@@ -85,7 +85,7 @@ export function placementImpairment(p: { cost: bigint; marketValue: bigint; exis
  */
 export function disposePlacementSecurities(p: {
   lots: SecurityLot[]; quantity: number; price: bigint; method: 'PEPS' | 'CMP'; date: string; account?: string; onCredit?: boolean;
-}): OpResult {
+}): OpResult<SecurityLot> {
   const held = p.lots.reduce((s, l) => s + l.quantity, 0);
   if (p.quantity > held) throw new Error('QUANTITE_TITRES_INSUFFISANTE');
   const totalCost = p.lots.reduce((s, l) => s + l.unitPrice * BigInt(l.quantity), 0n);
@@ -112,5 +112,5 @@ export function disposePlacementSecurities(p: {
     values: { cost, result: diff, remainingCost: totalCost - cost },
     schedule: remainingLots,
     notes: ['Respecter la permanence de la méthode (PEPS ou coût moyen pondéré) pour tout le portefeuille ; la dépréciation est ajustée à la clôture.'],
-  } as OpResult;
+  };
 }

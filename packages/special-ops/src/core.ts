@@ -5,7 +5,14 @@
  */
 export interface OpLine { account: string; debit: bigint; credit: bigint; label?: string; thirdPartyId?: string | null }
 export interface OpEntry { date?: string; label: string; lines: OpLine[] }
-export interface OpResult<S = unknown> { entries: OpEntry[]; schedule?: S[]; notes?: string[]; values?: Record<string, bigint | number | string | null> }
+export interface OpResult<S = unknown> {
+  entries: OpEntry[];
+  /** Écritures chez l'autre partie (absorbée, non-gérant, siège…), à saisir dans son propre dossier. */
+  counterpartEntries?: OpEntry[];
+  schedule?: S[];
+  notes?: string[];
+  values?: Record<string, bigint | number | string | null>;
+}
 
 export const D = (account: string, amount: bigint, label?: string): OpLine => ({ account, debit: amount, credit: 0n, ...(label ? { label } : {}) });
 export const C = (account: string, amount: bigint, label?: string): OpLine => ({ account, debit: 0n, credit: amount, ...(label ? { label } : {}) });

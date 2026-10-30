@@ -11,3 +11,4 @@ export * from './hedging';
 export * from './contracts';
 export * from './revaluation';
 export * from './third-parties';
+export * from './mergers';
