@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/.turbo
+**/*.tsbuildinfo
+.git
+apps/api/.env
+apps/desktop/src-tauri/target
