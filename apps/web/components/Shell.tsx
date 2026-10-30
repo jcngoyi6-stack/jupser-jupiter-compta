@@ -35,6 +35,7 @@ const MENU: { title: string; items: Item[] }[] = [
       { href: '/factures', label: t('nav.sales'), roles: ['COMMERCIAL', 'COMPTABLE', 'CHEF_COMPTABLE', 'CAISSIER', 'DIRECTION'], module: 'DOCUMENTS_QR', needsCompany: true },
       { href: '/tresorerie', label: t('nav.treasury'), roles: [...COMPTA, 'CAISSIER', 'DIRECTION'], module: 'TRESORERIE', needsCompany: true },
       { href: '/prevision', label: 'Plan de trésorerie', roles: [...COMPTA, 'DIRECTION'], module: 'TRESORERIE', needsCompany: true },
+      { href: '/analytique', label: 'Comptabilité analytique', roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'EXPERT_EXTERNE', 'DIRECTION', 'AUDITEUR'], module: 'COMPTABILITE_ANALYTIQUE', needsCompany: true },
       { href: '/budget', label: 'Budget', roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'DIRECTION'], module: 'BUDGET', needsCompany: true },
       { href: '/consolidation', label: 'Consolidation', roles: ['CHEF_COMPTABLE', 'DIRECTION'], module: 'CONSOLIDATION', needsCompany: true },
       { href: '/fiscalite', label: t('nav.tax'), roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'FISCALITE', 'DIRECTION'], module: 'FISCALITE', needsCompany: true },

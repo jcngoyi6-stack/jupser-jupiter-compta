@@ -16,6 +16,7 @@ Monorepo pnpm + Turborepo, TypeScript strict. Le dossier de conception d'origine
 | `packages/einvoice` | Facture normalisée RDC : validation, groupes de taxation, client e-MCF (DEF) et simulateur |
 | `packages/operations` | Stocks (CMUP/PEPS), production (nomenclatures, coût de revient), RH (pointage, recrutement non discriminatoire), marketing (RFM, consentement) |
 | `packages/advisory` | Cabinet : VAN, TRI, TRIM, délais, Monte-Carlo, sensibilité ; évaluation d'entreprise ; audit (seuil, Benford, écritures inhabituelles, sondage MUS) ; circuit de revue ; manuel de procédures |
+| `packages/cost-accounting` | Comptabilité analytique de gestion (docs/18) : charges incorporables, centres et prestations réciproques, coûts complets, coûts partiels, imputation rationnelle, ABC, coûts standards et écarts, budgets, journal en classe 9 |
 | `packages/connectors` | Ports et adaptateurs : paiement (CinetPay, Flutterwave, simulateur), cours de change (BCC, parités fixes, secours), OIDC (PKCE, id_token) |
 | `apps/api` | API NestJS + Prisma 7 + PostgreSQL 16 (RLS, triggers d'immuabilité), OpenAPI sur `/api/docs` |
 | `apps/web` | Interface Next.js (App Router, Tailwind, TanStack Query, PWA), une interface par rôle, console JUPSER intégrée, français/anglais/portugais/espagnol |
@@ -63,8 +64,8 @@ JUPSER IA fonctionne hors ligne par défaut ; renseigner `ANTHROPIC_API_KEY` dan
 pnpm turbo run test
 ```
 
-- 163 tests unitaires des packages métier (couverture ≥ 90 % imposée).
-- 70 tests d'acceptation API sur PostgreSQL réel (base `jupiter_test`) : isolation RLS, immuabilité, numérotation sans trou, 2FA, CSRF, clôture, facture normalisée, ERP (stocks, achats, production, CRM, RH), cabinet (revue, audit, états depuis balance, documents Word), projets d'investissement, paiement avec revérification du prestataire, licences, postes enrôlés à requêtes signées, SSO OIDC, OCR, cours de change.
+- 184 tests unitaires des packages métier (couverture ≥ 90 % imposée).
+- 79 tests d'acceptation API sur PostgreSQL réel (base `jupiter_test`) : isolation RLS, immuabilité, numérotation sans trou, 2FA, CSRF, clôture, facture normalisée, ERP (stocks, achats, production, CRM, RH), cabinet (revue, audit, états depuis balance, documents Word), projets d'investissement, comptabilité analytique (collecte, concordance, classe 9, quatre yeux), paiement avec revérification du prestataire, licences, postes enrôlés à requêtes signées, SSO OIDC, OCR, cours de change.
 
 ## Avertissements
 

@@ -60,6 +60,7 @@ const LABELS: Record<string, [string, string, string]> = {
   'Rapprochement': ['Bank reconciliation', 'Reconciliação bancária', 'Conciliación bancaria'],
   'Imports': ['Imports', 'Importações', 'Importaciones'],
   'Budget': ['Budget', 'Orçamento', 'Presupuesto'],
+  'Comptabilité analytique': ['Cost accounting', 'Contabilidade analítica', 'Contabilidad analítica'],
   'Plan de trésorerie': ['Cash forecast', 'Previsão de tesouraria', 'Previsión de tesorería'],
   'Consolidation': ['Consolidation', 'Consolidação', 'Consolidación'],
   'Stocks': ['Inventory', 'Existências', 'Existencias'],

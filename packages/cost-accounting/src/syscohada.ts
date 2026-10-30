@@ -142,7 +142,8 @@ export function cageJournal(p: {
     ...residual.map((b) => L(b.account, -b.balance, b.label)),
     L('977', residual.reduce((s, b) => s + b.balance, 0)),
   ]));
-  return { entries, balance: trialBalance(entries), accounts: CAGE_ACCOUNTS };
+  const nonEmpty = entries.filter((e) => e.lines.length > 0);
+  return { entries: nonEmpty, balance: trialBalance(nonEmpty), accounts: CAGE_ACCOUNTS };
 }
 
 export function trialBalance(entries: CageEntry[]) {

@@ -60,8 +60,8 @@ export class AnalyticsService {
     const chargeList = [...charges.values()].filter((c) => Math.abs(c.amount) > 0.004).map((c) => ({ ...c, amount: r2(c.amount) })).sort((a, b) => a.account.localeCompare(b.account));
     const totalCharges = chargeList.reduce((s, c) => s + c.amount, 0);
 
-    // 2. Capitaux propres à l'ouverture de la période (rémunération supplétive)
-    const eq = await tx.entryLine.aggregate({ where: { entry: { companyId, date: { lt: from }, status: { in: ['VALIDE', 'CONTREPASSE'] } }, account: { gte: '10', lt: '14' } }, _sum: { debit: true, credit: true } });
+    // 2. Capitaux propres employés sur la période, hors résultat (rémunération supplétive)
+    const eq = await tx.entryLine.aggregate({ where: { entry: { companyId, date: { lte: to }, status: { in: ['VALIDE', 'CONTREPASSE'] }, NOT: { origin: 'CLOTURE' } }, account: { gte: '10', lt: '13' } }, _sum: { debit: true, credit: true } });
     const equity = m((eq._sum.credit ?? 0n) - (eq._sum.debit ?? 0n));
 
     // 3. Stocks, production et ventes
@@ -280,7 +280,9 @@ export class AnalyticsService {
     const centreReport = centres.map((c) => ({
       code: c.code, label: c.label, kind: c.kind, primary: r2(prim.totals[c.code] ?? 0), afterSecondary: r2(sec.totals[c.code] ?? 0),
       // Budget du centre comparé à ses charges propres (répartition primaire).
-      budget: d.budgets[c.code] ?? null, budgetGap: d.budgets[c.code] === undefined ? null : r2((prim.totals[c.code] ?? 0) - d.budgets[c.code]!),
+      // Budget annuel ramené à la durée de la période.
+      budget: d.budgets[c.code] === undefined ? null : r2((d.budgets[c.code]! * months) / 12),
+      budgetGap: d.budgets[c.code] === undefined ? null : r2((prim.totals[c.code] ?? 0) - (d.budgets[c.code]! * months) / 12),
     }));
     return {
       period: { from: d.from, to: d.to, months: r2(months), currency: d.currency },
@@ -296,7 +298,8 @@ export class AnalyticsService {
       },
       warnings: [
         ...d.warnings,
-        ...unallocated.map((u) => `Compte ${u.account} (${u.amount}) sans clé de répartition : traité comme charge directe.`),
+        // Les comptes sans clé sont des charges directes : signalés seulement s'ils restent non imputés.
+        ...(nonImputed >= 0.5 ? unallocated.map((u) => `Compte ${u.account} (${u.amount}) sans clé de répartition : traité comme charge directe.`) : []),
         ...missingUnits.map((c) => `Centre ${c} : charges non imputées faute d’unités d’œuvre.`),
         ...(nonImputed >= 0.5 ? [`${r2(nonImputed)} de charges incorporables ne sont imputées à aucun coût (charges directes sans objet de coût) : vérifiez les clés de répartition et les codes analytiques.`] : []),
         ...(nonImputed <= -0.5 ? [`Les coûts calculés dépassent de ${r2(-nonImputed)} les charges incorporables comptabilisées : des achats ou de la main-d’œuvre suivis en stocks ou en production n’ont pas de charge correspondante en comptabilité générale sur la période.`] : []),

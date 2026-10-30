@@ -9,6 +9,7 @@ import type { SessionUser } from './auth/decorators';
 import { AuditService } from './common/audit.service';
 import { PrismaService } from './common/prisma.service';
 import { seedTaxRules } from './common/reference';
+import { seedBoulangerie } from './seed-cage';
 
 /**
  * Données de démonstration FICTIVES (aucune donnée réelle de client — CLAUDE.md).
@@ -36,7 +37,11 @@ async function main() {
   await mkUser('console@jupser.cd', 'Console JUPSER', true);
   const existing = await db.client.tenant.findFirst({ where: { name: 'Démo Kinshasa SARL' } });
   if (existing) {
-    console.log('Données de démonstration déjà présentes.');
+    const adminUser = await db.client.user.findUniqueOrThrow({ where: { email: 'admin@demo.cd' } });
+    const chefUser = await db.client.user.findUniqueOrThrow({ where: { email: 'chef@demo.cd' } });
+    const base: SessionUser = { userId: adminUser.id, tenantId: existing.id, email: adminUser.email, fullName: adminUser.fullName, roles: ['ADMIN'], companyIds: [], mfa: true, isStaff: false };
+    await seedBoulangerie(app, existing.id, base, { ...base, userId: chefUser.id, roles: ['CHEF_COMPTABLE'] });
+    console.log('Données de démonstration déjà présentes (boulangerie de démonstration ajoutée si absente).');
     await app.close();
     return;
   }
@@ -122,6 +127,7 @@ async function main() {
     ]);
     await audit.log(tx, tenant.id, admin.id, 'DONNEES_DEMO', `company:${company.id}`);
   });
+  await seedBoulangerie(app, tenant.id, u, uChef);
   console.log(`Démo prête. Comptes (mot de passe : ${pw}) :
   admin@demo.cd (administrateur), comptable@demo.cd, chef@demo.cd, dg@demo.cd, console@jupser.cd (console JUPSER)
   La double authentification est demandée à la première connexion des rôles sensibles.`);
@@ -129,6 +135,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e);
+  console.error(e, JSON.stringify((e as { response?: unknown }).response));
   process.exit(1);
 });

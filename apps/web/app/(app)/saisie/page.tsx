@@ -13,9 +13,11 @@ interface Line {
   label: string;
   debit: string;
   credit: string;
+  /** Code analytique (centre d'analyse, produit, projet) pour les comptes de gestion. */
+  analytic: string;
   fx: null | { currency: string; foreignAmount: string; rate: string; rateSource: string; rateDate: string };
 }
-const empty = (): Line => ({ account: '', thirdPartyId: '', label: '', debit: '', credit: '', fx: null });
+const empty = (): Line => ({ account: '', thirdPartyId: '', label: '', debit: '', credit: '', analytic: '', fx: null });
 
 /** Modèles d'écritures (docs/04 §3) — les montants sont saisis ensuite. */
 const TEMPLATES: Record<string, { journal: string; label: string; lines: Partial<Line>[] }> = {
@@ -28,10 +30,12 @@ const TEMPLATES: Record<string, { journal: string; label: string; lines: Partial
 };
 
 export default function Saisie() {
-  const { company, dec } = useSession();
+  const { company, dec, has } = useSession();
   const qc = useQueryClient();
   const accounts = useAccounts();
   const tps = useThirdParties();
+  const cage = useQuery({ queryKey: ['cage-config', company?.id], queryFn: () => api<any>(`/companies/${company!.id}/analytics/config`), enabled: !!company && has('COMPTABILITE_ANALYTIQUE'), retry: false });
+  const centres: { code: string; label: string }[] = cage.data?.settings?.centres ?? [];
   const journals = useQuery({ queryKey: ['journals', company?.id], queryFn: () => api<any[]>(`/companies/${company!.id}/journals`), enabled: !!company });
   const [journalCode, setJournal] = useState('OD');
   const [dt, setDate] = useState(today());
@@ -74,6 +78,7 @@ export default function Saisie() {
               label: l.label || undefined,
               debit: l.debit || '0',
               credit: l.credit || '0',
+              analytic: /^[678]/.test(l.account) && l.analytic ? l.analytic : null,
               fx: l.fx ? { ...l.fx, rate: l.fx.rate.replace(',', '.') } : null,
             })),
         },
@@ -144,7 +149,7 @@ export default function Saisie() {
           <thead>
             <tr>
               <th className="w-44">Compte</th>
-              <th className="w-52">Tiers</th>
+              <th className="w-52">Tiers / analytique</th>
               <th>Libellé de ligne</th>
               <th className="w-40 text-right">Débit ({company.currency})</th>
               <th className="w-40 text-right">Crédit ({company.currency})</th>
@@ -160,6 +165,11 @@ export default function Saisie() {
                     <select className={`input ${!l.thirdPartyId ? 'border-amber-400' : ''}`} value={l.thirdPartyId} onChange={(e) => set(i, { thirdPartyId: e.target.value })}>
                       <option value="">Tiers obligatoire…</option>
                       {tps.data?.map((t) => <option key={t.id} value={t.id}>{t.code} — {t.name}</option>)}
+                    </select>
+                  ) : /^[678]/.test(l.account) && centres.length > 0 ? (
+                    <select className="input" title="Code analytique" value={l.analytic} onChange={(e) => set(i, { analytic: e.target.value })}>
+                      <option value="">Analytique : clé de répartition</option>
+                      {centres.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
                     </select>
                   ) : (
                     <span className="text-xs text-slate-400">—</span>
