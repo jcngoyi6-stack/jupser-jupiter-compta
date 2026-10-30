@@ -1,0 +1,568 @@
+import { Body, Controller, Get, Header, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import {
+  budgetReport, componentSchedule, decimalsOf, disposalLines, dotationLines, monthlyForecast, netByAccount, parseBalance, parseBankStatement,
+  parseJournal, proposeMatches, reconciliationStatement, suggestMapping, weeklyForecast, addDays,
+  type AssetDef, type CashItem,
+} from '@jupiter/ledger';
+import {
+  buildBalanceSheet, buildIncomeStatement, buildSmtStatements, consolidate, detailNote, isTreasury, movementNote, NOTE_NUMBERS, textNoteTemplates,
+  type Entity,
+} from '@jupiter/statements';
+import type { Response } from 'express';
+import { z } from 'zod';
+import { ACCOUNTING_WRITE, CurrentUser, RequiresModule, Roles, type SessionUser } from '../auth/decorators';
+import { AuditService } from '../common/audit.service';
+import { readData } from '../common/data';
+import { domainError, parse, zAccount, zAmount, zDate } from '../common/http';
+import { PrismaService, type Tx } from '../common/prisma.service';
+import { buildWorkbook, readRows } from '../common/spreadsheet';
+import { ReportsService } from '../reports/reports.service';
+import { ClosingService } from './closing.service';
+import { EntriesService } from './entries.service';
+
+const zFile = z.object({ content: z.string().max(20_000_000).optional(), base64: z.string().max(28_000_000).optional(), fileName: z.string().optional() });
+
+async function dec(tx: Tx, companyId: string) {
+  return decimalsOf((await tx.company.findUniqueOrThrow({ where: { id: companyId } })).currency);
+}
+
+@ApiTags('Comptabilité — compléments')
+@RequiresModule('COMPTABILITE')
+@Controller('companies/:companyId')
+export class ComplementsController {
+  constructor(
+    private readonly db: PrismaService,
+    private readonly entries: EntriesService,
+    private readonly closing: ClosingService,
+    private readonly reports: ReportsService,
+    private readonly audit: AuditService,
+  ) {}
+
+  // ================= Immobilisations =================
+  private assetDef(a: { account: string; inServiceDate: string; components: unknown }): AssetDef {
+    const comps = (a.components as { label: string; cost: string; residualValue?: string; method: string; years: number; degressiveCoefficient?: string; totalUnits?: number; unitsByYear?: Record<string, number> }[]).map((c) => ({
+      ...c,
+      cost: BigInt(c.cost),
+      residualValue: c.residualValue ? BigInt(c.residualValue) : 0n,
+      method: c.method as AssetDef['components'][number]['method'],
+    }));
+    return { account: a.account, inServiceDate: a.inServiceDate, components: comps };
+  }
+
+  @Get('assets')
+  assets(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const rows = await tx.fixedAsset.findMany({ where: { companyId }, orderBy: { code: 'asc' } });
+      return rows.map((a) => {
+        const def = this.assetDef(a);
+        const schedule = def.components.map((c) => ({ label: c.label, rows: componentSchedule(c, def.inServiceDate) }));
+        const cost = def.components.reduce((s, c) => s + c.cost, 0n);
+        return { ...a, cost, schedule };
+      });
+    });
+  }
+
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('assets')
+  createAsset(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(
+        z.object({
+          code: z.string().min(1),
+          label: z.string().min(2),
+          account: zAccount.refine((a) => /^2[1-4]/.test(a), 'Compte d’immobilisation (21 à 24) attendu'),
+          acquisitionDate: zDate,
+          inServiceDate: zDate,
+          components: z.array(z.object({
+            label: z.string().min(1),
+            cost: zAmount(d),
+            residualValue: zAmount(d).optional(),
+            method: z.enum(['LINEAIRE', 'DEGRESSIF', 'UNITES_OEUVRE', 'NON_AMORTISSABLE']),
+            years: z.number().int().min(0).max(100),
+            degressiveCoefficient: z.string().optional(),
+            totalUnits: z.number().positive().optional(),
+            unitsByYear: z.record(z.number()).optional(),
+          })).min(1),
+        }),
+        body,
+      );
+      const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
+      const methods = company.methods as { depreciation?: string };
+      // permanence des méthodes (docs/12) : un mode différent de la méthode déclarée doit être justifié
+      const deviating = b.components.filter((c) => c.method !== 'NON_AMORTISSABLE' && c.method !== methods.depreciation);
+      const a = await tx.fixedAsset.create({
+        data: { tenantId: u.tenantId, companyId, code: b.code, label: b.label, account: b.account, acquisitionDate: b.acquisitionDate, inServiceDate: b.inServiceDate, components: JSON.parse(JSON.stringify(b.components, (_k, v) => (typeof v === 'bigint' ? v.toString() : v))) },
+      });
+      await this.audit.log(tx, u.tenantId, u.userId, 'IMMOBILISATION_CREEE', `asset:${a.id}`, { deviating: deviating.map((c) => c.method) });
+      return { ...a, warning: deviating.length ? `Méthode différente de la méthode déclarée (${methods.depreciation}) : à justifier en note annexe.` : null };
+    });
+  }
+
+  /** Dotations de l'exercice : écriture d'inventaire proposée en brouillon (journal OD). */
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('assets/depreciation')
+  depreciation(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    const b = parse(z.object({ year: z.number().int(), date: zDate }), body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const assets = (await tx.fixedAsset.findMany({ where: { companyId, status: 'EN_SERVICE' } })).filter((a) => !(a.bookedYears as Record<string, string>)[b.year]);
+      const defs = assets.map((a) => this.assetDef(a));
+      const lines = dotationLines(defs, b.year);
+      if (lines.length < 2) throw domainError('AUCUNE_DOTATION', 'Aucune dotation à comptabiliser pour cet exercice.');
+      const draft = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `AMORT-${b.year}`, label: `Dotations aux amortissements ${b.year}`, lines });
+      for (const a of assets) {
+        const def = this.assetDef(a);
+        const amount = def.components.reduce((s, c) => s + (componentSchedule(c, def.inServiceDate).find((r) => r.year === b.year)?.dotation ?? 0n), 0n);
+        await tx.fixedAsset.update({ where: { id: a.id }, data: { bookedYears: { ...(a.bookedYears as object), [b.year]: amount.toString() } } });
+      }
+      return draft;
+    });
+  }
+
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('assets/:id/dispose')
+  dispose(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('id') id: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({ date: zDate, price: zAmount(d), counterpart: zAccount.default('485100') }), body);
+      const a = await tx.fixedAsset.findFirstOrThrow({ where: { id, companyId } });
+      if (a.status !== 'EN_SERVICE') throw domainError('DEJA_CEDEE', 'Immobilisation déjà cédée.');
+      const booked = Object.values(a.bookedYears as Record<string, string>).reduce((s, v) => s + BigInt(v), 0n);
+      const r = disposalLines(this.assetDef(a), b.date, b.price, b.counterpart, booked);
+      const draft = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `CESSION-${a.code}`, label: `Cession ${a.label}`, lines: r.lines });
+      await tx.fixedAsset.update({ where: { id }, data: { status: 'CEDE', disposalDate: b.date, disposalPrice: b.price } });
+      await this.audit.log(tx, u.tenantId, u.userId, 'IMMOBILISATION_CEDEE', `asset:${id}`, { vnc: r.vnc, price: b.price });
+      return { draft, vnc: r.vnc, gainOrLoss: r.gainOrLoss };
+    });
+  }
+
+  // ================= Imports =================
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('imports/balance/preview')
+  @HttpCode(200)
+  async previewBalance(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    const f = parse(zFile, body);
+    const rows = await readRows(f);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const r = parseBalance(rows, await dec(tx, companyId));
+      const chart = await tx.account.findMany({ where: { companyId } });
+      const memory = Object.fromEntries((await tx.accountMapping.findMany({ where: { companyId } })).map((m) => [m.source, m.target]));
+      return { layout: r.cols.layout, errors: r.errors, lines: r.lines.map((l) => ({ ...l, suggestion: suggestMapping(l, chart, memory) })) };
+    });
+  }
+
+  /** Reprise de la balance d'ouverture (société existante) : à-nouveaux générés, contrôlés et validés. */
+  @Roles('CHEF_COMPTABLE', 'EXPERT_EXTERNE')
+  @Post('imports/balance/commit')
+  commitBalance(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({ date: zDate, lines: z.array(z.object({ source: z.string(), target: zAccount, debit: zAmount(d), credit: zAmount(d) })).min(2) }), body);
+      const fy = await this.entries.fiscalYearFor(tx, companyId, b.date);
+      if (b.date !== fy.startDate) throw domainError('DATE_OUVERTURE', `La balance d'ouverture se reprend au ${fy.startDate}.`);
+      const an = await tx.journal.findUniqueOrThrow({ where: { companyId_code: { companyId, code: 'AN' } } });
+      if (await tx.entry.count({ where: { companyId, fiscalYearId: fy.id, journalId: an.id } })) throw domainError('AN_EXISTANTS', 'Des à-nouveaux existent déjà pour cet exercice.');
+      for (const l of b.lines) {
+        await tx.accountMapping.upsert({ where: { companyId_source: { companyId, source: l.source } }, create: { tenantId: u.tenantId, companyId, source: l.source, target: l.target }, update: { target: l.target } });
+      }
+      // comptes collectifs : un tiers « reprise de solde » par compte, à détailler ensuite
+      const tps = new Map<string, string>();
+      const lines = [];
+      for (const l of b.lines.filter((x) => /^[1-5]/.test(x.target) && x.debit !== x.credit)) {
+        let thirdPartyId: string | null = null;
+        if (/^4[012]/.test(l.target)) {
+          if (!tps.has(l.target)) {
+            const tp = await tx.thirdParty.upsert({
+              where: { companyId_code: { companyId, code: `REPRISE-${l.target}` } },
+              create: { tenantId: u.tenantId, companyId, type: l.target.startsWith('41') ? 'CLIENT' : l.target.startsWith('40') ? 'FOURNISSEUR' : 'SALARIE', code: `REPRISE-${l.target}`, name: `Reprise de solde ${l.target}`, account: l.target },
+              update: {},
+            });
+            tps.set(l.target, tp.id);
+          }
+          thirdPartyId = tps.get(l.target)!;
+        }
+        const net = l.debit - l.credit;
+        lines.push({ account: l.target, thirdPartyId, debit: net > 0n ? net : 0n, credit: net < 0n ? -net : 0n });
+      }
+      const ignored = b.lines.filter((x) => /^[6-8]/.test(x.target));
+      const draft = await this.entries.createDraft(tx, u, companyId, { journalCode: 'AN', date: b.date, pieceRef: `REPRISE-${fy.label}`, label: `Reprise de la balance d'ouverture ${fy.label}`, lines }, 'AN');
+      const v = await this.entries.validate(tx, u, companyId, draft.id, { systemGenerated: true });
+      return { entry: v.entry, ignoredManagementAccounts: ignored.map((x) => x.source) };
+    });
+  }
+
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('imports/journal')
+  importJournal(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    const f = parse(zFile, body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const groups = parseJournal(await readRows(f), await dec(tx, companyId));
+      const created = [];
+      for (const g of groups) {
+        const first = g[0]!;
+        // les écritures importées sont des brouillons : mêmes contrôles qu'en saisie lors de la validation
+        created.push(
+          await this.entries.createDraft(tx, u, companyId, { journalCode: first.journal, date: first.date, pieceRef: first.piece, label: first.label || `Import ${first.piece}`, lines: g.map((l) => ({ account: l.account, debit: l.debit, credit: l.credit, label: l.label })) }, 'IMPORT'),
+        );
+      }
+      return { drafts: created.length };
+    });
+  }
+
+  @Roles('CHEF_COMPTABLE', 'EXPERT_EXTERNE')
+  @Post('imports/chart')
+  importChart(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    const f = parse(zFile, body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const rows = await readRows(f);
+      const chart = await tx.account.findMany({ where: { companyId } });
+      return rows.slice(1).filter((r) => r[0]).map((r) => suggestMapping({ account: r[0]!, label: r[1] ?? '' }, chart));
+    });
+  }
+
+  // ================= Banque : relevés et rapprochement =================
+  @Roles(...ACCOUNTING_WRITE, 'CAISSIER')
+  @Post('bank/:account/statement')
+  importStatement(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('account') account: string, @Body() body: unknown) {
+    const f = parse(zFile, body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const lines = parseBankStatement(await readRows(f), await dec(tx, companyId));
+      await tx.bankStatementLine.createMany({ data: lines.map((l) => ({ tenantId: u.tenantId, companyId, account, date: l.date, label: l.label, amount: l.amount, reference: l.reference ?? null })) });
+      await this.audit.log(tx, u.tenantId, u.userId, 'RELEVE_IMPORTE', `bank:${account}`, { lines: lines.length });
+      return { imported: lines.length };
+    });
+  }
+
+  @Get('bank/:account/reconciliation')
+  reconciliation(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('account') account: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const st = await tx.bankStatementLine.findMany({ where: { companyId, account }, orderBy: { date: 'asc' } });
+      const bookLines = await tx.entryLine.findMany({ where: { account, entry: { companyId, status: { in: ['VALIDE', 'CONTREPASSE'] } } }, include: { entry: { select: { date: true, pieceRef: true, label: true } } } });
+      const matchedIds = new Set(st.map((s) => s.matchedLineId).filter(Boolean));
+      const openSt = st.filter((s) => !s.matchedLineId);
+      const openBook = bookLines.filter((l) => !matchedIds.has(l.id)).map((l) => ({ id: l.id, date: l.entry.date, label: l.label ?? l.entry.label, pieceRef: l.entry.pieceRef, amount: l.debit - l.credit }));
+      const proposals = proposeMatches(openSt.map((s) => ({ date: s.date, label: s.label, amount: s.amount, reference: s.reference ?? undefined })), openBook).map((m) => ({ ...m, statementLineId: openSt[m.statementIndex]!.id }));
+      const bookBalance = bookLines.reduce((s, l) => s + l.debit - l.credit, 0n);
+      const statementBalance = st.reduce((s, l) => s + l.amount, 0n);
+      return {
+        statement: st,
+        openBook,
+        proposals,
+        state: reconciliationStatement(bookBalance, statementBalance, openBook, openSt.map((s) => ({ date: s.date, label: s.label, amount: s.amount }))),
+      };
+    });
+  }
+
+  @Roles(...ACCOUNTING_WRITE, 'CAISSIER')
+  @Post('bank/match')
+  @HttpCode(200)
+  match(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    const b = parse(z.object({ pairs: z.array(z.object({ statementLineId: z.string().uuid(), entryLineId: z.string().uuid() })).min(1) }), body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      for (const p of b.pairs) {
+        const s = await tx.bankStatementLine.findFirstOrThrow({ where: { id: p.statementLineId, companyId } });
+        const l = await tx.entryLine.findFirstOrThrow({ where: { id: p.entryLineId, account: s.account, entry: { companyId } } });
+        if (l.debit - l.credit !== s.amount) throw domainError('MONTANTS_DIFFERENTS', 'Montants différents : rapprochement refusé.');
+        await tx.bankStatementLine.update({ where: { id: s.id }, data: { matchedLineId: l.id } });
+      }
+      await this.audit.log(tx, u.tenantId, u.userId, 'RAPPROCHEMENT', `bank`, { pairs: b.pairs.length });
+      return { matched: b.pairs.length };
+    });
+  }
+
+  /** Écritures de régularisation (frais bancaires, agios, virements non comptabilisés) en brouillon. */
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('bank/:account/regularize')
+  regularize(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('account') account: string, @Body() body: unknown) {
+    const b = parse(z.object({ statementLineIds: z.array(z.string().uuid()).min(1), counterpartAccount: zAccount, journalCode: z.string().default('BQ1') }), body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const out = [];
+      for (const id of b.statementLineIds) {
+        const s = await tx.bankStatementLine.findFirstOrThrow({ where: { id, companyId, account } });
+        const abs = s.amount < 0n ? -s.amount : s.amount;
+        out.push(
+          await this.entries.createDraft(tx, u, companyId, {
+            journalCode: b.journalCode,
+            date: s.date,
+            pieceRef: s.reference ?? `RELEVE-${s.date}`,
+            label: s.label,
+            lines: s.amount < 0n
+              ? [{ account: b.counterpartAccount, debit: abs, credit: 0n }, { account, debit: 0n, credit: abs }]
+              : [{ account, debit: abs, credit: 0n }, { account: b.counterpartAccount, debit: 0n, credit: abs }],
+          }),
+        );
+      }
+      return { drafts: out };
+    });
+  }
+
+  // ================= Budget =================
+  @Get('budget')
+  budget(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId?: string, @Query('version') version = 'INITIAL') {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const fy = await this.reports.fiscalYear(tx, companyId, fyId);
+      const lines = await tx.budgetLine.findMany({ where: { companyId, fiscalYearId: fy.id, version } });
+      const actual = await tx.entryLine.findMany({ where: { entry: { companyId, fiscalYearId: fy.id, status: { in: ['VALIDE', 'CONTREPASSE'] } }, account: { startsWith: '' } }, select: { account: true, analytic: true, debit: true, credit: true } });
+      const report = budgetReport(
+        lines.map((l) => ({ prefix: l.prefix, analytic: l.analytic || null, amount: l.amount })),
+        actual.filter((a) => /^[267]/.test(a.account)).map((a) => ({ account: a.account, analytic: a.analytic, net: a.debit - a.credit })),
+        await this.commitments(tx, companyId),
+      );
+      return { fiscalYear: fy, version, report: report.map((r, i) => ({ ...r, id: lines[i]!.id, label: lines[i]!.label })) };
+    });
+  }
+
+  /** Engagements : bons de commande fournisseurs validés non encore facturés. */
+  private async commitments(tx: Tx, companyId: string) {
+    const pos = await tx.purchaseOrder.findMany({ where: { companyId, status: 'VALIDE' } }).catch(() => []);
+    return pos.map((p) => ({ prefix: p.expenseAccount, analytic: p.analytic, amount: p.totalNet }));
+  }
+
+  @Roles('CHEF_COMPTABLE', 'DIRECTION')
+  @Put('budget')
+  setBudget(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({ fiscalYearId: z.string().uuid(), version: z.enum(['INITIAL', 'REVISE']).default('INITIAL'), mode: z.enum(['ALERTE', 'BLOQUANT']).optional(), lines: z.array(z.object({ prefix: z.string().regex(/^\d{2,6}$/), analytic: z.string().default(''), label: z.string().default(''), amount: zAmount(d) })) }), body);
+      await tx.budgetLine.deleteMany({ where: { companyId, fiscalYearId: b.fiscalYearId, version: b.version } });
+      await tx.budgetLine.createMany({ data: b.lines.map((l) => ({ ...l, tenantId: u.tenantId, companyId, fiscalYearId: b.fiscalYearId, version: b.version })) });
+      if (b.mode) await tx.company.update({ where: { id: companyId }, data: { budgetMode: b.mode } });
+      await this.audit.log(tx, u.tenantId, u.userId, 'BUDGET_ENREGISTRE', `company:${companyId}`, { version: b.version, lines: b.lines.length });
+      return { saved: b.lines.length };
+    });
+  }
+
+  // ================= Prévision de trésorerie =================
+  @Get('treasury/forecast')
+  forecast(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('start') start?: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const from = start ?? new Date().toISOString().slice(0, 10);
+      const all = await tx.entryLine.findMany({ where: { entry: { companyId, status: { in: ['VALIDE', 'CONTREPASSE'] } } }, include: { entry: { select: { date: true, pieceRef: true } } } });
+      const opening = all.filter((l) => isTreasury(l.account)).reduce((s, l) => s + l.debit - l.credit, 0n);
+      const tps = new Map((await tx.thirdParty.findMany({ where: { companyId } })).map((t) => [t.id, t]));
+      const items: CashItem[] = [];
+      for (const l of all.filter((x) => !x.letter && /^(40|41)/.test(x.account))) {
+        const terms = tps.get(l.thirdPartyId ?? '')?.paymentTermsDays ?? 30;
+        // créance (débit) = encaissement attendu ; dette (crédit) = décaissement
+        items.push({ date: addDays(l.entry.date, terms), amount: l.debit - l.credit, category: l.account.startsWith('41') ? 'CLIENTS' : 'FOURNISSEURS', label: `${tps.get(l.thirdPartyId ?? '')?.name ?? ''} ${l.entry.pieceRef}` });
+      }
+      for (const l of all.filter((x) => /^(42|43|44)/.test(x.account))) {
+        items.push({ date: addDays(l.entry.date.slice(0, 8) + '15', 30), amount: l.debit - l.credit, category: l.account.startsWith('42') ? 'PAIE' : 'FISCAL_SOCIAL', label: l.account });
+      }
+      const manual = await tx.cashForecastItem.findMany({ where: { companyId } });
+      items.push(...manual.map((m) => ({ date: m.date, amount: m.amount, category: m.category, label: m.label })));
+      return { opening, weeks: weeklyForecast(opening, items, from, 13), months: monthlyForecast(opening, items, from.slice(0, 7), 12), manual };
+    });
+  }
+
+  @Roles(...ACCOUNTING_WRITE, 'DIRECTION', 'CAISSIER')
+  @Post('treasury/forecast/items')
+  addForecastItem(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const b = parse(z.object({ date: zDate, amount: zAmount(await dec(tx, companyId)), category: z.string().default('AUTRE'), label: z.string().min(2) }), body);
+      return tx.cashForecastItem.create({ data: { ...b, tenantId: u.tenantId, companyId } });
+    });
+  }
+
+  // ================= Notes annexes, SMT, livre d'inventaire, DSF =================
+  private async balancesFor(tx: Tx, companyId: string, fyId: string) {
+    const lines = (await this.closing.postedLines(tx, companyId, fyId)).filter((l) => l.origin !== 'CLOTURE');
+    return { lines, balances: [...netByAccount(lines).entries()].map(([account, net]) => ({ account, net })) };
+  }
+
+  @RequiresModule('ETATS_FINANCIERS')
+  @Get('reports/notes')
+  notes(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId?: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const fy = await this.reports.fiscalYear(tx, companyId, fyId);
+      const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
+      const prev = await tx.fiscalYear.findFirst({ where: { companyId, endDate: { lt: fy.startDate } }, orderBy: { endDate: 'desc' } });
+      const cur = await this.balancesFor(tx, companyId, fy.id);
+      const prv = prev ? await this.balancesFor(tx, companyId, prev.id) : { balances: [], lines: [] };
+      const labels = Object.fromEntries((await tx.account.findMany({ where: { companyId }, select: { number: true, label: true } })).map((a) => [a.number, a.label]));
+      const mv = cur.lines.map((l) => ({ account: l.account, debit: l.debit, credit: l.credit, journalType: l.journalType }));
+      const tables = [...NOTE_NUMBERS.movements.map((n) => movementNote(mv, n)), ...NOTE_NUMBERS.details.map((n) => detailNote(n, cur.balances, prv.balances, labels))];
+      const saved = await tx.noteText.findMany({ where: { companyId, fiscalYearId: fy.id } });
+      const methods = company.methods as { depreciation: string; stocks: string };
+      const texts = textNoteTemplates({ companyName: company.name, system: company.system, depreciation: methods.depreciation, stockMethod: methods.stocks, currency: company.currency, fiscalYear: fy.label }).map((t) => {
+        const s = saved.find((x) => x.number === t.number);
+        return s ? { number: s.number, title: s.title, text: s.text, status: s.status, validatedAt: s.validatedAt } : { ...t, status: 'PROPOSITION' };
+      });
+      return { fiscalYear: fy, tables, texts };
+    });
+  }
+
+  @Roles('CHEF_COMPTABLE', 'COMPTABLE', 'EXPERT_EXTERNE')
+  @Put('reports/notes/:number')
+  saveNote(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('number') number: string, @Body() body: unknown) {
+    const b = parse(z.object({ fiscalYearId: z.string().uuid(), title: z.string().min(2), text: z.string().min(2).max(20000), validate: z.boolean().default(false) }), body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const existing = await tx.noteText.findUnique({ where: { fiscalYearId_number: { fiscalYearId: b.fiscalYearId, number } } });
+      if (existing?.status === 'VALIDE') throw domainError('NOTE_FIGEE', 'Note validée : version figée.');
+      const data = { title: b.title, text: b.text, status: b.validate ? 'VALIDE' : 'BROUILLON', validatedBy: b.validate ? u.userId : null, validatedAt: b.validate ? new Date() : null };
+      const n = await tx.noteText.upsert({ where: { fiscalYearId_number: { fiscalYearId: b.fiscalYearId, number } }, create: { ...data, tenantId: u.tenantId, companyId, fiscalYearId: b.fiscalYearId, number }, update: data });
+      await this.audit.log(tx, u.tenantId, u.userId, b.validate ? 'NOTE_VALIDEE' : 'NOTE_MODIFIEE', `note:${number}`);
+      return n;
+    });
+  }
+
+  @RequiresModule('ETATS_FINANCIERS')
+  @Get('reports/smt')
+  smt(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId?: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const fy = await this.reports.fiscalYear(tx, companyId, fyId);
+      const { balances } = await this.balancesFor(tx, companyId, fy.id);
+      const treasury = (await this.closing.postedLines(tx, companyId, fy.id)).filter((l) => isTreasury(l.account) && l.journalType !== 'AN');
+      return { fiscalYear: fy, ...buildSmtStatements(balances), treasuryJournal: treasury.sort((a, b) => a.date.localeCompare(b.date)) };
+    });
+  }
+
+  /** Livre d'inventaire : bilan, compte de résultat, TFT, balance, registre des immobilisations. */
+  @Get('reports/inventory-book')
+  inventoryBook(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId?: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const st = await this.reports.statements(tx, companyId, fyId);
+      const tb = await this.reports.trialBalance(tx, companyId, st.fiscalYear.id);
+      const assets = await tx.fixedAsset.findMany({ where: { companyId } });
+      const stock = await tx.stockItem.findMany({ where: { companyId } }).catch(() => []);
+      return { ...st, trialBalance: tb, assets, stock };
+    });
+  }
+
+  /** Tableau de passage du résultat comptable au résultat fiscal. */
+  @Get('tax/adjustments')
+  adjustments(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId?: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const fy = await this.reports.fiscalYear(tx, companyId, fyId);
+      return tx.taxAdjustment.findMany({ where: { companyId, fiscalYearId: fy.id } });
+    });
+  }
+
+  @Roles('CHEF_COMPTABLE', 'FISCALITE', 'EXPERT_EXTERNE')
+  @Post('tax/adjustments')
+  addAdjustment(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const b = parse(z.object({ fiscalYearId: z.string().uuid(), kind: z.enum(['REINTEGRATION', 'DEDUCTION']), label: z.string().min(2), amount: zAmount(await dec(tx, companyId)) }), body);
+      return tx.taxAdjustment.create({ data: { ...b, tenantId: u.tenantId, companyId } });
+    });
+  }
+
+  /** DSF / liasse : socle SYSCOHADA (bilan, résultat, TFT, notes) + tableau de passage, en Excel. */
+  @RequiresModule('ETATS_FINANCIERS')
+  @Get('reports/dsf.xlsx')
+  @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  async dsf(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId: string | undefined, @Res({ passthrough: true }) res: Response) {
+    const buf = await this.db.forTenant(u.tenantId, async (tx) => {
+      const st = await this.reports.statements(tx, companyId, fyId);
+      const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
+      const country = (JSON.parse(readData('pays_ohada_referentiel.json')) as { pays: { code: string; nom: string }[] }).pays.find((p) => p.code === company.country);
+      const adj = await tx.taxAdjustment.findMany({ where: { companyId, fiscalYearId: st.fiscalYear.id } });
+      const xi = st.current.incomeStatement.values.XI!;
+      const re = adj.filter((a) => a.kind === 'REINTEGRATION').reduce((s, a) => s + a.amount, 0n);
+      const de = adj.filter((a) => a.kind === 'DEDUCTION').reduce((s, a) => s + a.amount, 0n);
+      const prevIs = (ref: string) => st.previous?.incomeStatement.values[ref] ?? null;
+      return buildWorkbook(
+        [
+          {
+            name: 'Identification', title: `Déclaration statistique et fiscale — ${country?.nom ?? company.country} — exercice ${st.fiscalYear.label}`,
+            columns: [{ header: 'Rubrique' }, { header: 'Valeur', width: 50 }],
+            rows: [['Dénomination', company.name], ['Forme juridique', company.legalForm], ['RCCM', company.rccm], ['NIF', company.taxId], ['Identification nationale', company.nationalId], ['Adresse', company.address], ['Système comptable', company.system], ['Exercice', `${st.fiscalYear.startDate} au ${st.fiscalYear.endDate}`], ['Devise', company.currency], ['Annexes fiscales nationales', `TODO(fiscaliste) : gabarit officiel ${company.country}`]],
+          },
+          { name: 'Bilan actif', title: 'Bilan — actif', columns: [{ header: 'Réf', width: 6 }, { header: 'Libellé', width: 50 }, { header: 'Brut', money: true }, { header: 'Amort./Dépréc.', money: true }, { header: 'Net N', money: true }, { header: 'Net N-1', money: true }], rows: st.current.balanceSheet.assets.map((r) => [r.ref, r.label, r.gross, r.depreciation, r.net, st.previous?.balanceSheet.assets.find((p) => p.ref === r.ref)?.net ?? null]) },
+          { name: 'Bilan passif', title: 'Bilan — passif', columns: [{ header: 'Réf', width: 6 }, { header: 'Libellé', width: 50 }, { header: 'Net N', money: true }, { header: 'Net N-1', money: true }], rows: st.current.balanceSheet.liabilities.map((r) => [r.ref, r.label, r.value, st.previous?.balanceSheet.liabilities.find((p) => p.ref === r.ref)?.value ?? null]) },
+          { name: 'Compte de résultat', title: 'Compte de résultat', columns: [{ header: 'Réf', width: 6 }, { header: 'Libellé', width: 50 }, { header: 'N', money: true }, { header: 'N-1', money: true }], rows: st.current.incomeStatement.rows.map((r) => [r.ref, r.label, r.value, prevIs(r.ref)]) },
+          { name: 'TFT', title: 'Tableau des flux de trésorerie', columns: [{ header: 'Réf', width: 6 }, { header: 'Libellé', width: 60 }, { header: 'N', money: true }], rows: st.current.cashFlow.rows.map((r) => [r.ref, r.label, r.value]) },
+          {
+            name: 'Résultat fiscal', title: 'Tableau de passage du résultat comptable au résultat fiscal',
+            columns: [{ header: 'Libellé', width: 60 }, { header: 'Montant', money: true }],
+            rows: [['Résultat net comptable (XI)', xi], ['Impôt sur le résultat comptabilisé (RS)', -st.current.incomeStatement.values.RS!], ...adj.map((a) => [`${a.kind === 'REINTEGRATION' ? '+' : '–'} ${a.label}`, a.kind === 'REINTEGRATION' ? a.amount : -a.amount] as [string, bigint]), ['Résultat fiscal', xi - st.current.incomeStatement.values.RS! + re - de]],
+          },
+          { name: 'Contrôles', columns: [{ header: 'Contrôle', width: 70 }, { header: 'Résultat' }], rows: st.controls.map((c) => [c.label, c.ok ? 'OK' : 'ÉCHEC']) },
+        ],
+        decimalsOf(company.currency),
+        { company: `${company.name} — NIF ${company.taxId ?? '—'}` },
+      );
+    });
+    res.setHeader('Content-Disposition', `attachment; filename="DSF.xlsx"`);
+    return new StreamableFile(buf);
+  }
+
+  // ================= Analytique =================
+  @Get('reports/analytic')
+  analytic(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId?: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const fy = await this.reports.fiscalYear(tx, companyId, fyId);
+      const lines = await tx.entryLine.findMany({ where: { analytic: { not: null }, entry: { companyId, fiscalYearId: fy.id, status: { in: ['VALIDE', 'CONTREPASSE'] } } }, select: { analytic: true, account: true, debit: true, credit: true } });
+      const m = new Map<string, { charges: bigint; produits: bigint }>();
+      for (const l of lines) {
+        const g = m.get(l.analytic!) ?? { charges: 0n, produits: 0n };
+        if (l.account.startsWith('6')) g.charges += l.debit - l.credit;
+        if (l.account.startsWith('7')) g.produits += l.credit - l.debit;
+        m.set(l.analytic!, g);
+      }
+      return [...m].map(([axis, v]) => ({ axis, ...v, resultat: v.produits - v.charges }));
+    });
+  }
+}
+
+/** Consolidation (édition Entreprise) — niveau locataire. */
+@ApiTags('Consolidation')
+@RequiresModule('CONSOLIDATION')
+@Controller('consolidation')
+export class ConsolidationController {
+  constructor(
+    private readonly db: PrismaService,
+    private readonly closing: ClosingService,
+    private readonly reports: ReportsService,
+  ) {}
+
+  @Get('groups')
+  groups(@CurrentUser() u: SessionUser) {
+    return this.db.forTenant(u.tenantId, (tx) => tx.consolidationGroup.findMany());
+  }
+
+  @Roles('CHEF_COMPTABLE', 'DIRECTION')
+  @Post('groups')
+  create(@CurrentUser() u: SessionUser, @Body() body: unknown) {
+    const b = parse(
+      z.object({
+        name: z.string().min(2),
+        currency: z.string().length(3),
+        members: z.array(z.object({ companyId: z.string().uuid(), parent: z.boolean().default(false), method: z.enum(['IG', 'MEE']), ownershipPct: z.string().regex(/^\d{1,3}(\.\d{1,4})?$/), investmentCost: z.string().optional(), investmentAccount: zAccount.optional(), closingRate: z.string().optional(), averageRate: z.string().optional() })).min(1),
+      }),
+      body,
+    );
+    return this.db.forTenant(u.tenantId, (tx) => tx.consolidationGroup.create({ data: { tenantId: u.tenantId, name: b.name, currency: b.currency, members: b.members } }));
+  }
+
+  @Get('groups/:id/statements')
+  statements(@CurrentUser() u: SessionUser, @Param('id') id: string, @Query('year') year?: string) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const g = await tx.consolidationGroup.findUniqueOrThrow({ where: { id } });
+      const members = g.members as { companyId: string; parent: boolean; method: 'IG' | 'MEE'; ownershipPct: string; investmentCost?: string; investmentAccount?: string; closingRate?: string; averageRate?: string }[];
+      const entities: Entity[] = [];
+      for (const m of members) {
+        const c = await tx.company.findUniqueOrThrow({ where: { id: m.companyId } });
+        const fy = year ? await tx.fiscalYear.findFirst({ where: { companyId: c.id, label: year } }) : await this.reports.fiscalYear(tx, c.id);
+        if (!fy) throw domainError('EXERCICE_INCONNU', `Exercice ${year} absent pour ${c.name}.`);
+        const lines = (await this.closing.postedLines(tx, c.id, fy.id)).filter((l) => l.origin !== 'CLOTURE');
+        const [i, f = ''] = m.ownershipPct.split('.');
+        entities.push({
+          id: c.id, name: c.name, parent: m.parent, method: m.method,
+          ownershipPpm: BigInt(i! + f.padEnd(4, '0')), // « 60 » → 600 000 ppm
+          balances: [...netByAccount(lines).entries()].map(([account, net]) => ({ account, net })),
+          closingRate: c.currency === g.currency ? undefined : m.closingRate,
+          averageRate: c.currency === g.currency ? undefined : m.averageRate,
+          investmentCost: m.investmentCost ? BigInt(m.investmentCost) : undefined,
+          investmentAccount: m.investmentAccount,
+        });
+      }
+      const r = consolidate(entities);
+      const bs = buildBalanceSheet(r.balances);
+      const is = buildIncomeStatement(r.balances);
+      return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: is.values.XI! - r.minorityResult };
+    });
+  }
+}
+

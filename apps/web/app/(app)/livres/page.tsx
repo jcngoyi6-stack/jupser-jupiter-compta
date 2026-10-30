@@ -25,6 +25,7 @@ export default function Livres() {
       <PageTitle title="Livres obligatoires" sub={`${company.name} — ${company.currency}`}>
         <FySelect value={fy} onChange={setFy} />
         <a className="btn-ghost" href={`/api/companies/${company.id}/reports/exports/entries.csv?${qs}`}>Export des écritures (CSV)</a>
+        <a className="btn-ghost" href={`/api/companies/${company.id}/reports/dsf.xlsx?${qs}`}>DSF / liasse (Excel)</a>
         <button className="btn-ghost" onClick={() => window.print()}>Imprimer</button>
       </PageTitle>
       <div className="no-print flex gap-2">

@@ -109,6 +109,8 @@ model Company {
   fourEyesThreshold   BigInt?      @map("four_eyes_threshold")
   docSequences        Json         @default("{}") @map("doc_sequences")
   einvoiceSettings    Json         @default("{}") @map("einvoice_settings")
+  budgetMode          String       @default("ALERTE") @map("budget_mode") // ALERTE ou BLOQUANT
+  methods             Json         @default("{\"depreciation\":\"LINEAIRE\",\"stocks\":\"CMUP\"}") // permanence des méthodes
   logoDataUrl     String?          @map("logo_data_url")
   systemDecision  Json?            @map("system_decision")
   createdAt       DateTime         @default(now()) @map("created_at")
@@ -206,6 +208,9 @@ model ThirdParty {
   country   String  @default("CD")
   account   String  // compte collectif (6 chiffres)
   clientType String @default("PM") @map("client_type") // facture normalisée : PP, PM, PC, PL, AO
+  paymentTermsDays Int @default(30) @map("payment_terms_days")
+  loyaltyPoints    Int @default(0) @map("loyalty_points")
+  segment          String?
   address   String?
   consentMarketing Boolean @default(false) @map("consent_marketing")
   unsubscribed     Boolean @default(false)
@@ -324,6 +329,13 @@ model Employee {
   dependents    Int     @default(0)
   active        Boolean @default(true)
   thirdPartyId  String  @map("third_party_id") @db.Uuid
+  email         String?
+  userId        String? @map("user_id") @db.Uuid
+  contractType  String  @default("CDI") @map("contract_type")
+  category      String?
+  department    String?
+  badgeId       String? @map("badge_id") // identifiant du terminal biométrique
+  leaveBalance  Int     @default(0) @map("leave_balance") // jours × 100
 
   @@unique([companyId, matricule])
   @@map("employee")
@@ -422,4 +434,490 @@ model TenantKey {
   wrappedKey String @map("wrapped_key") // clé de données enveloppée par la clé maîtresse
 
   @@map("tenant_key")
+}
+
+model FixedAsset {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  code            String
+  label           String
+  account         String
+  acquisitionDate String   @map("acquisition_date")
+  inServiceDate   String   @map("in_service_date")
+  components      Json
+  bookedYears     Json     @default("{}") @map("booked_years")
+  status          String   @default("EN_SERVICE")
+  disposalDate    String?  @map("disposal_date")
+  disposalPrice   BigInt?  @map("disposal_price")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([companyId, code])
+  @@map("fixed_asset")
+}
+
+model BankStatementLine {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  account       String
+  date          String
+  label         String
+  amount        BigInt
+  reference     String?
+  matchedLineId String?  @map("matched_line_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([companyId, account])
+  @@map("bank_statement_line")
+}
+
+model BudgetLine {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @map("tenant_id") @db.Uuid
+  companyId    String @map("company_id") @db.Uuid
+  fiscalYearId String @map("fiscal_year_id") @db.Uuid
+  version      String @default("INITIAL")
+  prefix       String
+  analytic     String @default("")
+  label        String @default("")
+  amount       BigInt
+
+  @@unique([fiscalYearId, version, prefix, analytic])
+  @@map("budget_line")
+}
+
+model NoteText {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  fiscalYearId String    @map("fiscal_year_id") @db.Uuid
+  number       String
+  title        String
+  text         String
+  status       String    @default("BROUILLON")
+  validatedBy  String?   @map("validated_by") @db.Uuid
+  validatedAt  DateTime? @map("validated_at")
+
+  @@unique([fiscalYearId, number])
+  @@map("note_text")
+}
+
+model AccountMapping {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  source    String
+  target    String
+
+  @@unique([companyId, source])
+  @@map("account_mapping")
+}
+
+model TaxAdjustment {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @map("tenant_id") @db.Uuid
+  companyId    String @map("company_id") @db.Uuid
+  fiscalYearId String @map("fiscal_year_id") @db.Uuid
+  kind         String // REINTEGRATION ou DEDUCTION
+  label        String
+  amount       BigInt
+
+  @@map("tax_adjustment")
+}
+
+model CashForecastItem {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  date      String
+  amount    BigInt
+  category  String
+  label     String
+
+  @@map("cash_forecast_item")
+}
+
+model ConsolidationGroup {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  name      String
+  currency  String
+  members   Json
+
+  @@map("consolidation_group")
+}
+
+// ======================= Stocks, achats, production =======================
+model StockItem {
+  id               String  @id @default(uuid()) @db.Uuid
+  tenantId         String  @map("tenant_id") @db.Uuid
+  companyId        String  @map("company_id") @db.Uuid
+  code             String
+  label            String
+  unit             String  @default("u")
+  kind             String  @default("MARCHANDISE") // MARCHANDISE, MATIERE, FOURNITURE, SEMI_FINI, PRODUIT_FINI
+  method           String  @default("CMUP") // CMUP ou FIFO
+  stockAccount     String  @map("stock_account")
+  purchaseAccount  String  @map("purchase_account")
+  salesAccount     String  @map("sales_account")
+  variationAccount String  @map("variation_account")
+  salePrice        BigInt  @default(0) @map("sale_price")
+  reorderLevel     BigInt  @default(0) @map("reorder_level") // milli-unités
+  active           Boolean @default(true)
+
+  @@unique([companyId, code])
+  @@map("stock_item")
+}
+
+model Warehouse {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  code      String
+  label     String
+
+  @@unique([companyId, code])
+  @@map("warehouse")
+}
+
+model StockMove {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  itemId      String   @map("item_id") @db.Uuid
+  warehouseId String   @map("warehouse_id") @db.Uuid
+  date        String
+  type        String // ENTREE, SORTIE, TRANSFERT_ENTREE, TRANSFERT_SORTIE, INVENTAIRE, PRODUCTION, CONSOMMATION
+  qtyMilli    BigInt   @map("qty_milli") // signé
+  unitCost    BigInt   @map("unit_cost")
+  totalCost   BigInt   @map("total_cost") // signé
+  reference   String
+  lot         String?
+  expiry      String?
+  entryId     String?  @map("entry_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([companyId, itemId])
+  @@map("stock_move")
+}
+
+model PurchaseOrder {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  companyId      String   @map("company_id") @db.Uuid
+  number         String
+  supplierId     String   @map("supplier_id") @db.Uuid
+  date           String
+  status         String   @default("BROUILLON") // BROUILLON, A_APPROUVER, VALIDE, RECU, FACTURE, ANNULE
+  lines          Json
+  totalNet       BigInt   @map("total_net")
+  totalVat       BigInt   @map("total_vat")
+  expenseAccount String   @map("expense_account")
+  analytic       String?
+  approvals      Json     @default("[]")
+  createdBy      String   @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([companyId, number])
+  @@map("purchase_order")
+}
+
+model Bom {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @map("tenant_id") @db.Uuid
+  companyId    String @map("company_id") @db.Uuid
+  productId    String @map("product_id") @db.Uuid
+  components   Json   // [{ itemId, qtyMilli }] pour une unité
+  routing      Json   @default("[]") // gamme : [{ poste, minutes, tauxHoraire }]
+  overheadRate String @default("0") @map("overhead_rate")
+
+  @@map("bom")
+}
+
+model WorkOrder {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  number     String
+  bomId      String   @map("bom_id") @db.Uuid
+  qtyMilli   BigInt   @map("qty_milli")
+  date       String
+  status     String   @default("LANCE")
+  costSheet  Json?    @map("cost_sheet")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([companyId, number])
+  @@map("work_order")
+}
+
+// ======================= CRM et marketing =======================
+model Lead {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String
+  org       String?
+  phone     String?
+  email     String?
+  source    String?
+  stage     String   @default("PROSPECT") // PROSPECT, QUALIFIE, PROPOSITION, NEGOCIATION, GAGNE, PERDU
+  value     BigInt   @default(0)
+  ownerId   String?  @map("owner_id") @db.Uuid
+  consent   Boolean  @default(false)
+  unsubscribed Boolean @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("lead")
+}
+
+model Campaign {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String
+  channel   String   // SMS, WHATSAPP, EMAIL
+  message   String
+  segment   Json
+  status    String   @default("BROUILLON")
+  stats     Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("campaign")
+}
+
+model CampaignMessage {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  campaignId  String   @map("campaign_id") @db.Uuid
+  recipient   String
+  contactType String   @map("contact_type") // TIERS ou PROSPECT
+  contactId   String   @map("contact_id") @db.Uuid
+  status      String   @default("ENVOYE")
+  token       String   @unique
+
+  @@map("campaign_message")
+}
+
+// ======================= RH =======================
+model Leave {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  employeeId String   @map("employee_id") @db.Uuid
+  type       String   @default("CONGE_PAYE")
+  fromDate   String   @map("from_date")
+  toDate     String   @map("to_date")
+  days       Int      // jours × 100
+  status     String   @default("DEMANDE")
+  decidedBy  String?  @map("decided_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("leave")
+}
+
+model Attendance {
+  id              String @id @default(uuid()) @db.Uuid
+  tenantId        String @map("tenant_id") @db.Uuid
+  companyId       String @map("company_id") @db.Uuid
+  employeeId      String @map("employee_id") @db.Uuid
+  date            String
+  checkIn         String? @map("check_in")
+  checkOut        String? @map("check_out")
+  workedMinutes   Int    @default(0) @map("worked_minutes")
+  lateMinutes     Int    @default(0) @map("late_minutes")
+  overtimeMinutes Int    @default(0) @map("overtime_minutes")
+  absent          Boolean @default(false)
+  source          String @default("FINGERTEC")
+  validated       Boolean @default(false)
+
+  @@unique([employeeId, date])
+  @@map("attendance")
+}
+
+model JobOpening {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  title     String
+  description String @default("")
+  criteria  Json     // [{ code, label, weight }]
+  status    String   @default("OUVERT")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("job_opening")
+}
+
+model Candidate {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  jobId     String @map("job_id") @db.Uuid
+  name      String
+  email     String?
+  phone     String?
+  scores    Json   @default("[]") // [{ evaluator, criterion, score (0-20) }]
+  status    String @default("CANDIDAT")
+
+  @@map("candidate")
+}
+
+// ======================= Collaboration, GED, courrier =======================
+model Channel {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  name      String
+  members   String[]
+  isPrivate Boolean @default(false) @map("is_private")
+
+  @@map("channel")
+}
+
+model Message {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  channelId String   @map("channel_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  body      String
+  link      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([channelId, createdAt])
+  @@map("message")
+}
+
+model Meeting {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  title        String
+  agenda       String
+  date         String
+  location     String
+  participants Json     // [{ userId, ack }]
+  minutes      String?
+  decisions    Json     @default("[]")
+  status       String   @default("CONVOQUEE")
+  createdBy    String   @map("created_by") @db.Uuid
+
+  @@map("meeting")
+}
+
+model Task {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  title      String
+  details    String   @default("")
+  assigneeId String   @map("assignee_id") @db.Uuid
+  dueDate    String?  @map("due_date")
+  status     String   @default("A_FAIRE")
+  source     String   @default("MANUEL")
+  link       String?
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("task")
+}
+
+model Document {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  companyId     String?  @map("company_id") @db.Uuid
+  title         String
+  category      String
+  tags          String[]
+  thirdPartyId  String?  @map("third_party_id") @db.Uuid
+  docDate       String?  @map("doc_date")
+  amount        BigInt?
+  fiscalYear    String?  @map("fiscal_year")
+  retentionUntil String  @map("retention_until")
+  mimeType      String   @map("mime_type")
+  fileName      String   @map("file_name")
+  sha256        String
+  storageKey    String?  @map("storage_key")
+  dataEnc       String?  @map("data_enc")
+  text          String   @default("")
+  entryId       String?  @map("entry_id") @db.Uuid
+  createdBy     String   @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("document")
+}
+
+model Mail {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  direction   String   // ARRIVE ou DEPART
+  number      String
+  date        String
+  correspondent String
+  subject     String
+  service     String?
+  assigneeId  String?  @map("assignee_id") @db.Uuid
+  dueDate     String?  @map("due_date")
+  status      String   @default("ENREGISTRE")
+  documentId  String?  @map("document_id") @db.Uuid
+  steps       Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([tenantId, number])
+  @@map("mail")
+}
+
+// ======================= Cabinet, projets =======================
+model Mission {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  type          String   // TENUE, REVISION, ETABLISSEMENT, AUDIT, CONSEIL_FISCAL, PAIE, EVALUATION, RESTRUCTURATION
+  title         String
+  responsibleId String   @map("responsible_id") @db.Uuid
+  status        String   @default("EN_COURS")
+  budgetMinutes Int      @default(0) @map("budget_minutes")
+  feeAmount     BigInt   @default(0) @map("fee_amount")
+  hourlyRate    BigInt   @default(0) @map("hourly_rate")
+  deadline      String?
+  review        Json     @default("{}") // circuit préparateur → réviseur → associé
+  audit         Json     @default("{}") // seuil, risques, programmes, feuilles de travail, anomalies
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("mission")
+}
+
+model TimeEntry {
+  id          String @id @default(uuid()) @db.Uuid
+  tenantId    String @map("tenant_id") @db.Uuid
+  missionId   String @map("mission_id") @db.Uuid
+  userId      String @map("user_id") @db.Uuid
+  date        String
+  minutes     Int
+  description String
+  billable    Boolean @default(true)
+
+  @@map("time_entry")
+}
+
+model ProjectEvaluation {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  input     Json
+  results   Json?
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("project_evaluation")
+}
+
+// ======================= Postes enrôlés =======================
+model Device {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  publicKey   String    @map("public_key")
+  fingerprint String    @unique
+  status      String    @default("ACTIF")
+  lastSeenAt  DateTime? @map("last_seen_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("device")
 }

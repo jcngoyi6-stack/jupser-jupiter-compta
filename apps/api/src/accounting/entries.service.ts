@@ -1,6 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  budgetReport,
   buildReversal,
+  checkBudget,
   entryHash,
   formatEntryNumber,
   GENESIS_HASH,
@@ -152,6 +154,7 @@ export class EntriesService {
         thirdPartyId: l.thirdPartyId,
         debit: l.debit,
         credit: l.credit,
+        analytic: l.analytic,
         fx: l.currency
           ? { currency: l.currency, foreignAmount: l.foreignAmount ?? 0n, rate: l.rate ?? '', rateSource: l.rateSource ?? '', rateDate: l.rateDate ?? '' }
           : null,
@@ -184,6 +187,9 @@ export class EntriesService {
     if (fourEyes && !opts.systemGenerated && entry.createdBy === u.userId) {
       throw domainError('QUATRE_YEUX', 'Validation à quatre yeux : la personne qui a saisi ne peut pas valider.');
     }
+    const budget = await this.budgetCheck(tx, companyId, fy.id, company.budgetMode as 'ALERTE' | 'BLOQUANT', input.lines, opts.systemGenerated);
+    if (budget.blocked) throw domainError('BUDGET_DEPASSE', budget.warnings.join(' '));
+    result.warnings.push(...budget.warnings.map((w) => ({ code: 'BUDGET', message: w })));
     await tx.journalSequence.upsert({
       where: { journalId_fiscalYearId: { journalId: journal.id, fiscalYearId: fy.id } },
       create: { tenantId: u.tenantId, journalId: journal.id, fiscalYearId: fy.id, last: 0 },
@@ -217,6 +223,29 @@ export class EntriesService {
     });
     await this.audit.log(tx, u.tenantId, u.userId, 'ECRITURE_VALIDEE', `entry:${id}`, { number, hash, origin: entry.origin });
     return { entry: validated, warnings: result.warnings };
+  }
+
+  /** Contrôle budgétaire (docs/13 §4) : charges et investissements comparés au budget de l'exercice. */
+  private async budgetCheck(tx: Tx, companyId: string, fyId: string, mode: 'ALERTE' | 'BLOQUANT', lines: EntryLineInput[], system?: boolean) {
+    const out = { blocked: false, warnings: [] as string[] };
+    if (system) return out;
+    const relevant = lines.filter((l) => /^[26]/.test(l.account) && l.debit > l.credit);
+    if (!relevant.length) return out;
+    const versions = await tx.budgetLine.findMany({ where: { companyId, fiscalYearId: fyId }, select: { version: true }, distinct: ['version'] });
+    if (!versions.length) return out;
+    const version = versions.some((v) => v.version === 'REVISE') ? 'REVISE' : 'INITIAL';
+    const budget = await tx.budgetLine.findMany({ where: { companyId, fiscalYearId: fyId, version } });
+    const actual = await tx.entryLine.findMany({ where: { entry: { companyId, fiscalYearId: fyId, status: { in: ['VALIDE', 'CONTREPASSE'] } } }, select: { account: true, analytic: true, debit: true, credit: true } });
+    const report = budgetReport(
+      budget.map((b) => ({ prefix: b.prefix, analytic: b.analytic || null, amount: b.amount })),
+      actual.filter((a) => /^[26]/.test(a.account)).map((a) => ({ account: a.account, analytic: a.analytic, net: a.debit - a.credit })),
+    );
+    for (const l of relevant) {
+      const r = checkBudget(report, l.account, l.debit - l.credit, l.analytic ?? null, mode);
+      if (r.warning) out.warnings.push(r.warning);
+      if (!r.ok) out.blocked = true;
+    }
+    return out;
   }
 
   async reverse(tx: Tx, u: SessionUser, companyId: string, id: string, date: string) {
