@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { convert, pickRate, type FxRate } from '@jupiter/fx';
 import { computeGenericPayslip, MissingValueError } from '@jupiter/tax-engine';
+import { payrollVariables } from '@jupiter/operations';
 import { decimalsOf } from '@jupiter/ledger';
 import { computePayslip, payrollEntryLines, type PayElement, type Payslip } from '@jupiter/payroll';
 import { z } from 'zod';
@@ -55,6 +56,10 @@ export class PayrollController {
         currency: z.enum(['CDF', 'USD', 'EUR', 'XOF', 'XAF', 'GNF', 'KMF']),
         dependents: z.number().int().min(0).max(30),
         elements: z.array(zElement).min(1),
+        badgeId: z.string().optional(),
+        email: z.string().email().optional(),
+        userId: z.string().uuid().optional(),
+        department: z.string().optional(),
       }),
       body,
     );
@@ -75,6 +80,10 @@ export class PayrollController {
           currency: b.currency,
           dependents: b.dependents,
           thirdPartyId: tp.id,
+          badgeId: b.badgeId,
+          email: b.email,
+          userId: b.userId,
+          department: b.department,
           salaryEnc: await this.crypto.encryptJson(tx, u.tenantId, elements),
         },
       });
@@ -125,8 +134,25 @@ export class PayrollController {
       const rules = await loadRules(tx);
       const rates = (await tx.fxRate.findMany({ where: { quote: company.currency } })) as unknown as FxRate[];
       const slips: (Payslip & { fullName: string; matricule: string; rate?: string | null })[] = [];
+      const warnings: string[] = [];
       for (const e of employees) {
         const elements = await this.crypto.decryptJson<PayElement[]>(tx, u.tenantId, e.salaryEnc);
+        // Présence biométrique validée → heures supplémentaires et retards, sans ressaisie
+        const att = await tx.attendance.findMany({ where: { employeeId: e.id, date: { startsWith: b.period }, validated: true } });
+        if (att.length) {
+          const hsPct = rules.tryFind<number | null>(company.country, 'PRESENCE', 'majoration_hs_pct', b.payDate)?.value;
+          const hours = rules.tryFind<number | null>(company.country, 'PRESENCE', 'heures_mensuelles', b.payDate)?.value;
+          const deductLate = rules.tryFind<boolean>(company.country, 'PRESENCE', 'retenue_retards', b.payDate)?.value ?? false;
+          const base = elements.find((x) => x.code === 'BASE')?.amount ?? 0n;
+          if (hsPct == null || !hours) {
+            if (att.some((a) => a.overtimeMinutes > 0)) warnings.push(`${e.fullName} : heures supplémentaires non payées — majoration ou durée légale non paramétrée (pack ${company.country}).`);
+          } else {
+            const hourly = base / BigInt(hours);
+            const v = payrollVariables(att.map((a) => ({ badge: '', date: a.date, checkIn: a.checkIn, checkOut: a.checkOut, workedMinutes: a.workedMinutes, lateMinutes: a.lateMinutes, overtimeMinutes: a.overtimeMinutes, absent: a.absent })), hourly, hsPct, deductLate);
+            if (v.overtimePay > 0n) elements.push({ code: 'HS', label: `Heures supplémentaires (${(v.overtimeMinutes / 60).toFixed(2)} h)`, amount: v.overtimePay, taxable: true, contributable: true, account: '661200' });
+            if (v.lateDeduction > 0n) elements.push({ code: 'RETARD', label: `Retenue retards (${v.lateMinutes} min)`, amount: -v.lateDeduction, taxable: true, contributable: true, account: '661100' });
+          }
+        }
         const rate = e.currency === company.currency ? null : pickRate(rates, e.currency, company.currency, b.payDate);
         if (e.currency !== company.currency && !rate) {
           throw domainError('COURS_ABSENT', `Cours officiel ${e.currency}/${company.currency} du ${b.payDate} manquant (BCC).`);
@@ -169,7 +195,7 @@ export class PayrollController {
         },
       });
       await this.audit.log(tx, u.tenantId, u.userId, 'PAIE_CALCULEE', `payroll_run:${run.id}`, { period: b.period, employees: slips.length });
-      return { id: run.id, period: b.period, entryId: draft.id, payslips: slips, banner: slips[0]?.banner ?? null };
+      return { id: run.id, period: b.period, entryId: draft.id, payslips: slips, banner: slips[0]?.banner ?? null, warnings };
     });
   }
 }

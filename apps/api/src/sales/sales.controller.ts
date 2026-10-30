@@ -11,6 +11,7 @@ import { config } from '../common/config';
 import { domainError, parse, zAccount, zAmount, zDate } from '../common/http';
 import { PrismaService, type Tx } from '../common/prisma.service';
 import { EInvoiceService } from './einvoice.service';
+import { StockService } from '../erp/stock.service';
 
 /**
  * Documents commerciaux avec QR (docs/13) : facture → écriture comptable automatique (journal VTE),
@@ -24,6 +25,7 @@ export class SalesController {
     private readonly entries: EntriesService,
     private readonly audit: AuditService,
     private readonly einvoice: EInvoiceService,
+    private readonly stock: StockService,
   ) {}
 
   private async nextNumber(tx: Tx, companyId: string, type: string, year: string) {
@@ -73,8 +75,10 @@ export class SalesController {
           thirdPartyId: z.string().uuid(),
           paymentMethod: z.enum(['ESPECES', 'VIREMENT', 'CARTE', 'MOBILE_MONEY', 'CHEQUE', 'CREDIT', 'AUTRE']).default('CREDIT'),
           exportSale: z.boolean().default(false),
+          sourceDocumentId: z.string().uuid().optional(), // devis / commande transformé(e) en facture
+          warehouseId: z.string().uuid().optional(), // sortie de stock des articles livrés
           lines: z
-            .array(z.object({ description: z.string().min(1), quantity: z.number().positive().max(1e9), unitPrice: zAmount(dec), vat: z.enum(['NORMAL', 'REDUIT', 'EXONERE', 'EXPORT']), account: zAccount.default('706100') }))
+            .array(z.object({ itemId: z.string().uuid().optional(), description: z.string().min(1), quantity: z.number().positive().max(1e9), unitPrice: zAmount(dec), vat: z.enum(['NORMAL', 'REDUIT', 'EXONERE', 'EXPORT']), account: zAccount.default('706100') }))
             .min(1),
         }),
         body,
@@ -156,6 +160,13 @@ export class SalesController {
           einvoice: def ? (def as never) : undefined,
         },
       });
+      if (b.sourceDocumentId) await tx.salesDocument.updateMany({ where: { id: b.sourceDocumentId, companyId }, data: { status: 'TRANSFORME' } });
+      // ERP : la vente d'articles stockés sort le stock au coût (inventaire permanent)
+      for (const l of computed.filter((x) => x.itemId)) {
+        if (!b.warehouseId) throw domainError('DEPOT_REQUIS', 'Dépôt requis pour les articles stockés.');
+        const qtyMilli = BigInt(Math.round(l.quantity * 1000));
+        await this.stock.move(tx, u, companyId, { itemId: l.itemId!, warehouseId: b.warehouseId, date: b.date, type: 'SORTIE', qtyMilli: -qtyMilli, reference: number });
+      }
       await this.audit.log(tx, u.tenantId, u.userId, 'FACTURE_EMISE', `sales_document:${doc.id}`, { number, hash });
       return { ...doc, entryNumber: posted.entry.number, banner: trace.banner, ...(await this.qr(hash)) };
     });

@@ -257,7 +257,7 @@ export class AccountingController {
       }),
       body,
     );
-    const def = { CLIENT: '411100', FOURNISSEUR: '401000', SALARIE: '422000', AUTRE: '471000' }[b.type];
+    const def = { CLIENT: '411100', FOURNISSEUR: '401100', SALARIE: '422000', AUTRE: '471100' }[b.type];
     return this.db.forTenant(u.tenantId, async (tx) => {
       const tp = await tx.thirdParty.create({ data: { ...b, account: b.account ?? def, tenantId: u.tenantId, companyId } });
       await this.audit.log(tx, u.tenantId, u.userId, 'TIERS_CREE', `third_party:${tp.id}`);

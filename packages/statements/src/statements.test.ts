@@ -199,7 +199,9 @@ describe('tableau des flux de trésorerie', () => {
     expect(flowRefOf('131000', 1n)).toBe('FN');
     expect(flowRefOf('181000', 0n)).toBe('FP');
     expect(flowRefOf('181000', 1n)).toBe('FQ');
-    expect(flowRefOf('485000', 1n)).toBe('FB');
+    expect(flowRefOf('485000', 1n)).toBe('FI');
+    expect(flowRefOf('481000', 0n)).toBe('FG');
+    expect(flowRefOf('488000', 1n)).toBe('FB');
     expect(flowRefOf('291000', 1n)).toBe('FA');
     expect(flowRefOf('284000', 0n)).toBe('FA');
     expect(flowRefOf('000000', 0n)).toBe('FE');

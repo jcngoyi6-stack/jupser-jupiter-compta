@@ -56,7 +56,7 @@ export function proposePurchaseEntry(inv: ExtractedInvoice, supplierThirdPartyId
   if (inv.confidence < 0.8) warnings.push('Confiance faible : relecture attentive recommandée.');
   const lines: EntryLineInput[] = [{ account: expense, debit: inv.netAmount, credit: 0n }];
   if (inv.vatAmount > 0n) lines.push({ account: '445200', debit: inv.vatAmount, credit: 0n, vatCode: 'TVA_DED' });
-  lines.push({ account: '401000', thirdPartyId: supplierThirdPartyId, debit: 0n, credit: inv.grossAmount });
+  lines.push({ account: '401100', thirdPartyId: supplierThirdPartyId, debit: 0n, credit: inv.grossAmount });
   return {
     status: 'BROUILLON_IA',
     journalCode,
@@ -129,7 +129,7 @@ export class MockLlmProvider implements LlmProvider {
         'Achat avec TVA récupérable (SYSCOHADA révisé) :',
         '- Débit 60xxxx (achat) ou compte de charge : montant HT',
         '- Débit 445200 TVA récupérable sur achats : TVA',
-        '- Crédit 401000 Fournisseurs : TTC (tiers obligatoire)',
+        '- Crédit 401100 Fournisseurs : TTC (tiers obligatoire)',
         "Pièce justificative obligatoire (principe d'enregistrement chronologique et pièce justificative).",
       ].join('\n');
     }

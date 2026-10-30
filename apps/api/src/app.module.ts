@@ -16,6 +16,13 @@ import { DbErrorFilter } from './common/errors';
 import { PrismaService } from './common/prisma.service';
 import { HealthController } from './common/health.controller';
 import { PayrollController } from './payroll/payroll.controller';
+import { StockController } from './erp/stock.controller';
+import { StockService } from './erp/stock.service';
+import { SalesCrmController, UnsubscribeController } from './erp/sales-crm.controller';
+import { MessagingService } from './erp/messaging.service';
+import { HrController } from './erp/hr.controller';
+import { CollabController, GedController } from './erp/collab.controller';
+import { StorageService } from './common/storage.service';
 import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
 import { EInvoiceService } from './sales/einvoice.service';
@@ -32,6 +39,12 @@ import { TaxController } from './tax/tax.controller';
     ReportsController,
     TaxController,
     PayrollController,
+    StockController,
+    SalesCrmController,
+    UnsubscribeController,
+    HrController,
+    CollabController,
+    GedController,
     SalesController,
     AiController,
     BillingController,
@@ -46,6 +59,9 @@ import { TaxController } from './tax/tax.controller';
     ClosingService,
     ReportsService,
     EInvoiceService,
+    StockService,
+    MessagingService,
+    StorageService,
     { provide: APP_GUARD, useClass: SecurityGuard },
     { provide: APP_FILTER, useClass: DbErrorFilter },
   ],

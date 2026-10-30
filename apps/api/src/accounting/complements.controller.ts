@@ -125,7 +125,7 @@ export class ComplementsController {
   dispose(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('id') id: string, @Body() body: unknown) {
     return this.db.forTenant(u.tenantId, async (tx) => {
       const d = await dec(tx, companyId);
-      const b = parse(z.object({ date: zDate, price: zAmount(d), counterpart: zAccount.default('485100') }), body);
+      const b = parse(z.object({ date: zDate, price: zAmount(d), counterpart: zAccount.optional() }), body);
       const a = await tx.fixedAsset.findFirstOrThrow({ where: { id, companyId } });
       if (a.status !== 'EN_SERVICE') throw domainError('DEJA_CEDEE', 'Immobilisation déjà cédée.');
       const booked = Object.values(a.bookedYears as Record<string, string>).reduce((s, v) => s + BigInt(v), 0n);
@@ -412,9 +412,15 @@ export class ComplementsController {
   smt(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Query('fiscalYearId') fyId?: string) {
     return this.db.forTenant(u.tenantId, async (tx) => {
       const fy = await this.reports.fiscalYear(tx, companyId, fyId);
-      const { balances } = await this.balancesFor(tx, companyId, fy.id);
-      const treasury = (await this.closing.postedLines(tx, companyId, fy.id)).filter((l) => isTreasury(l.account) && l.journalType !== 'AN');
-      return { fiscalYear: fy, ...buildSmtStatements(balances), treasuryJournal: treasury.sort((a, b) => a.date.localeCompare(b.date)) };
+      const { balances, lines } = await this.balancesFor(tx, companyId, fy.id);
+      const opening = [...netByAccount(lines.filter((l) => l.journalType === 'AN')).entries()].map(([account, net]) => ({ account, net }));
+      const byEntry = new Map<string, typeof lines>();
+      for (const l of lines.filter((x) => x.journalType !== 'AN')) byEntry.set(l.entryNumber, [...(byEntry.get(l.entryNumber) ?? []), l]);
+      const cash = [...byEntry.values()]
+        .filter((ls) => ls.some((l) => isTreasury(l.account)))
+        .map((ls) => ({ counterparts: ls.filter((l) => !isTreasury(l.account)).map((l) => ({ account: l.account, amount: l.credit - l.debit })) }));
+      const treasury = lines.filter((l) => isTreasury(l.account) && l.journalType !== 'AN');
+      return { fiscalYear: fy, ...buildSmtStatements(balances, cash, opening), treasuryJournal: treasury.sort((a, b) => a.date.localeCompare(b.date)) };
     });
   }
 

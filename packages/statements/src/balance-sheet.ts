@@ -2,7 +2,8 @@ import type { AccountBalance, ControlResult } from './types';
 
 /**
  * Bilan SYSCOHADA révisé, système normal (références AD…BZ à l'actif, CA…DZ au passif).
- * TODO(expert-comptable, lot L2) : confronter libellés et rattachements à l'AUDCIF page par page.
+ * Rattachements conformes au tableau « Numéros de comptes à incorporer dans les postes » de l'AUDCIF
+ * (présentation des états financiers du système normal, p. 1048).
  *
  * Règle de non-compensation (docs/12) : un compte de tiers est classé à l'actif ou au passif
  * selon le sens de son solde (client créditeur → DI, fournisseur débiteur → BH…).
@@ -84,6 +85,9 @@ export const LIABILITY_LINES: { ref: string; label: string; total?: string[] }[]
 /** Rattachement des comptes d'actif (montant brut, solde débiteur). */
 const ASSET_RULES: Rule[] = [
   { prefix: '211', side: 'any', ref: 'AE' },
+  { prefix: '2181', side: 'any', ref: 'AE' },
+  { prefix: '2191', side: 'any', ref: 'AE' },
+  { prefix: '2193', side: 'any', ref: 'AF' },
   { prefix: '212', side: 'any', ref: 'AF' },
   { prefix: '213', side: 'any', ref: 'AF' },
   { prefix: '214', side: 'any', ref: 'AF' },
@@ -164,6 +168,7 @@ const LIABILITY_RULES: Rule[] = [
   { prefix: '46', side: 'C', ref: 'DM' },
   { prefix: '47', side: 'C', ref: 'DM' },
   { prefix: '499', side: 'any', ref: 'DN' },
+  { prefix: '4998', side: 'any', ref: 'DH' },
   { prefix: '599', side: 'any', ref: 'DN' },
   { prefix: '564', side: 'any', ref: 'DQ' },
   { prefix: '565', side: 'any', ref: 'DQ' },

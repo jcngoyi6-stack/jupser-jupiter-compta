@@ -152,8 +152,12 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 198000;198;AUTRES PROVISIONS POUR RISQUES ET CHARGES;3;compte;non;1;Comptes de ressources durables;19;bilan
 198100;1981;Provisions pour amendes et pénalités;4;sous-compte;oui;1;Comptes de ressources durables;198;bilan
 198300;1983;Provisions pour propre assureur;4;sous-compte;oui;1;Comptes de ressources durables;198;bilan
+198400;1984;Provisions pour démantèlement et remise en état;4;sous-compte;oui;1;Comptes de ressources durables;198;bilan
+198500;1985;Provisions pour droits à réduction ou avantage en nature (Chèques cadeau, cartes de fidélité…);4;sous-compte;oui;1;Comptes de ressources durables;198;bilan
+198800;1988;Provisions pour divers risques et charges;4;sous-compte;oui;1;Comptes de ressources durables;198;bilan
 ;20;CHARGES IMMOBILISÉES;2;rubrique;non;2;Comptes d'actif immobilisé;;bilan
 ;21;IMMOBILISATIONS INCORPORELLES;2;rubrique;non;2;Comptes d'actif immobilisé;;bilan
+211000;211;FRAIS DE DÉVELOPPEMENT;3;compte;oui;2;Comptes d'actif immobilisé;21;bilan
 212000;212;FRAIS DE DÉVELOPPEMENT BREVETS, LICENCES, CONCESSIONS, ET DROITS SIMILAIRES;3;compte;non;2;Comptes d'actif immobilisé;21;bilan
 212100;2121;Brevets;4;sous-compte;oui;2;Comptes d'actif immobilisé;212;bilan
 212200;2122;Licences;4;sous-compte;oui;2;Comptes d'actif immobilisé;212;bilan
@@ -313,11 +317,13 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 268000;268;AUTRES TITRES DE PARTICIPATION;3;compte;oui;2;Comptes d'actif immobilisé;26;bilan
 ;27;AUTRES IMMOBILISATIONS FINANCIÈRES;2;rubrique;non;2;Comptes d'actif immobilisé;;bilan
 270000;270;CLASSE 8;3;compte;oui;2;Comptes d'actif immobilisé;27;bilan
+271000;271;PRÊTS ET CRÉANCES;3;compte;non;2;Comptes d'actif immobilisé;27;bilan
 271100;2711;Prêts participatifs;4;sous-compte;oui;2;Comptes d'actif immobilisé;271;bilan
 271200;2712;Prêts aux associés;4;sous-compte;oui;2;Comptes d'actif immobilisé;271;bilan
 271300;2713;Billets de fonds;4;sous-compte;oui;2;Comptes d'actif immobilisé;271;bilan
 271400;2714;Titres prêtés;4;sous-compte;oui;2;Comptes d'actif immobilisé;271;bilan
 271800;2718;Autres prêts et créances;4;sous-compte;oui;2;Comptes d'actif immobilisé;271;bilan
+272000;272;PRÊTS AU PERSONNEL;3;compte;non;2;Comptes d'actif immobilisé;27;bilan
 272100;2721;Prêts immobiliers;4;sous-compte;oui;2;Comptes d'actif immobilisé;272;bilan
 272200;2722;Prêts mobiliers et d’installation;4;sous-compte;oui;2;Comptes d'actif immobilisé;272;bilan
 272800;2728;Autres prêts au personnel;4;sous-compte;oui;2;Comptes d'actif immobilisé;272;bilan
@@ -363,6 +369,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 278500;2785;Or et métaux précieux (1);4;sous-compte;oui;2;Comptes d'actif immobilisé;278;bilan
 278800;2788;Autres immobilisations financières;4;sous-compte;oui;2;Comptes d'actif immobilisé;278;bilan
 ;28;AMORTISSEMENTS;2;rubrique;non;2;Comptes d'actif immobilisé;;bilan
+281000;281;AMORTISSEMENTS DES IMMOBILISATIONS INCORPORELLES;3;compte;non;2;Comptes d'actif immobilisé;28;bilan
 281100;2811;Amortissements des frais de développement;4;sous-compte;oui;2;Comptes d'actif immobilisé;281;bilan
 281200;2812;Amortissements des brevets, licences, concessions et droits similaires;4;sous-compte;oui;2;Comptes d'actif immobilisé;281;bilan
 281300;2813;Amortissements des logiciels et sites internet;4;sous-compte;oui;2;Comptes d'actif immobilisé;281;bilan
@@ -376,6 +383,12 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 283000;283;AMORTISSEMENTS DES BÂTIMENTS, INSTALLATIONS TECHNIQUES ET AGENCEMENTS;3;compte;non;2;Comptes d'actif immobilisé;28;bilan
 283100;2831;Amortissements des bâtiments industriels, agricoles, administratifs et commerciaux sur sol propre;4;sous-compte;oui;2;Comptes d'actif immobilisé;283;bilan
 283200;2832;Amortissements des bâtiments industriels, agricoles, administratifs et commerciaux sur sol d'autrui;4;sous-compte;oui;2;Comptes d'actif immobilisé;283;bilan
+283300;2833;Amortissements des ouvrages d'infrastructure;4;sous-compte;oui;2;Comptes d'actif immobilisé;283;bilan
+283400;2834;Amortissements des aménagements, agencements et installations;4;sous-compte;oui;2;Comptes d'actif immobilisé;283;bilan
+283500;2835;Amortissements des aménagements de bureaux;4;sous-compte;oui;2;Comptes d'actif immobilisé;283;bilan
+283700;2837;Amortissements des bâtiments industriels, agricoles et commerciaux mis en concession;4;sous-compte;oui;2;Comptes d'actif immobilisé;283;bilan
+283800;2838;Amortissements des autres installations et agencements;4;sous-compte;oui;2;Comptes d'actif immobilisé;283;bilan
+284000;284;AMORTISSEMENTS DU MATÉRIEL;3;compte;non;2;Comptes d'actif immobilisé;28;bilan
 284100;2841;Amortissements du matériel et outillage industriel et commercial;4;sous-compte;oui;2;Comptes d'actif immobilisé;284;bilan
 284200;2842;Amortissements du matériel et outillage agricole;4;sous-compte;oui;2;Comptes d'actif immobilisé;284;bilan
 284300;2843;Amortissements du matériel d'emballage récupérable et identifiable;4;sous-compte;oui;2;Comptes d'actif immobilisé;284;bilan
@@ -434,6 +447,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 296500;2965;Dépréciations des participations dans des organismes professionnels;4;sous-compte;oui;2;Comptes d'actif immobilisé;296;bilan
 296600;2966;Dépréciations des parts dans des GIE;4;sous-compte;oui;2;Comptes d'actif immobilisé;296;bilan
 296800;2968;Dépréciations des autres titres de participation;4;sous-compte;oui;2;Comptes d'actif immobilisé;296;bilan
+297000;297;DÉPRÉCIATIONS DES AUTRES IMMOBILISATIONS FINANCIÈRES;3;compte;non;2;Comptes d'actif immobilisé;29;bilan
 297100;2971;Dépréciations des prêts et créances;4;sous-compte;oui;2;Comptes d'actif immobilisé;297;bilan
 297200;2972;Dépréciations des prêts au personnel;4;sous-compte;oui;2;Comptes d'actif immobilisé;297;bilan
 297300;2973;Dépréciations des créances sur l'Etat;4;sous-compte;oui;2;Comptes d'actif immobilisé;297;bilan
@@ -442,6 +456,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 297700;2977;Dépréciations des créances rattachées à des participations et avances à des GIE;4;sous-compte;oui;2;Comptes d'actif immobilisé;297;bilan
 297800;2978;Dépréciations des créances financières diverses;4;sous-compte;oui;2;Comptes d'actif immobilisé;297;bilan
 ;31;MARCHANDISES;2;rubrique;non;3;Comptes de stocks;;bilan
+311000;311;MARCHANDISES A;3;compte;non;3;Comptes de stocks;31;bilan
 311100;3111;Marchandises A1;4;sous-compte;oui;3;Comptes de stocks;311;bilan
 311200;3112;Marchandises A2;4;sous-compte;oui;3;Comptes de stocks;311;bilan
 312000;312;MARCHANDISES B;3;compte;non;3;Comptes de stocks;31;bilan
@@ -452,7 +467,14 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 313200;3132;Végétaux;4;sous-compte;oui;3;Comptes de stocks;313;bilan
 318000;318;MARCHANDISES HORS ACTIVITÉS ORDINAIRES (H.A.O.);3;compte;oui;3;Comptes de stocks;31;bilan
 ;32;MATIÈRES PREMIÈRES ET FOURNITURES LIÉES;2;rubrique;non;3;Comptes de stocks;;bilan
+321000;321;MATIÈRES A;3;compte;oui;3;Comptes de stocks;32;bilan
+322000;322;MATIÈRES B;3;compte;oui;3;Comptes de stocks;32;bilan
+323000;323;FOURNITURES (A,B);3;compte;oui;3;Comptes de stocks;32;bilan
 ;33;AUTRES APPROVISIONNEMENTS;2;rubrique;non;3;Comptes de stocks;;bilan
+331000;331;MATIÈRES CONSOMMABLES;3;compte;oui;3;Comptes de stocks;33;bilan
+332000;332;FOURNITURES D'ATELIER ET D'USINE;3;compte;oui;3;Comptes de stocks;33;bilan
+333000;333;FOURNITURES DE MAGASIN;3;compte;oui;3;Comptes de stocks;33;bilan
+334000;334;FOURNITURES DE BUREAU;3;compte;oui;3;Comptes de stocks;33;bilan
 335000;335;EMBALLAGES;3;compte;non;3;Comptes de stocks;33;bilan
 335100;3351;Emballages perdus;4;sous-compte;oui;3;Comptes de stocks;335;bilan
 335200;3352;Emballages rcupérables non identifiables;4;sous-compte;oui;3;Comptes de stocks;335;bilan
@@ -476,15 +498,21 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 345100;3451;Animaux;4;sous-compte;oui;3;Comptes de stocks;345;bilan
 345200;3452;Végétaux;4;sous-compte;oui;3;Comptes de stocks;345;bilan
 ;35;SERVICES EN COURS;2;rubrique;non;3;Comptes de stocks;;bilan
+351000;351;ÉTUDES EN COURS;3;compte;non;3;Comptes de stocks;35;bilan
 351100;3511;Études en cours E1;4;sous-compte;oui;3;Comptes de stocks;351;bilan
 351200;3512;Études en cours E2;4;sous-compte;oui;3;Comptes de stocks;351;bilan
+352000;352;PRESTATIONS DE SERVICES EN COURS;3;compte;non;3;Comptes de stocks;35;bilan
 352100;3521;Prestations de services S1;4;sous-compte;oui;3;Comptes de stocks;352;bilan
 352200;3522;Prestations de services S2;4;sous-compte;oui;3;Comptes de stocks;352;bilan
 ;36;PRODUITS FINIS;2;rubrique;non;3;Comptes de stocks;;bilan
+361000;361;PRODUITS FINIS A;3;compte;oui;3;Comptes de stocks;36;bilan
+362000;362;PRODUITS FINIS B;3;compte;oui;3;Comptes de stocks;36;bilan
+363000;363;ACTIFS BIOLOGIQUES;3;compte;non;3;Comptes de stocks;36;bilan
 363100;3631;Animaux;4;sous-compte;oui;3;Comptes de stocks;363;bilan
 363200;3632;Végétaux;4;sous-compte;oui;3;Comptes de stocks;363;bilan
 363800;3638;Autres stocks (activités annexes);4;sous-compte;oui;3;Comptes de stocks;363;bilan
 ;37;PRODUITS INTERMÉDIAIRES ET RÉSIDUELS;2;rubrique;non;3;Comptes de stocks;;bilan
+371000;371;PRODUITS INTERMÉDIAIRES;3;compte;non;3;Comptes de stocks;37;bilan
 371100;3711;Produits intermédiaires A;4;sous-compte;oui;3;Comptes de stocks;371;bilan
 371200;3712;Produits intermédiaires B;4;sous-compte;oui;3;Comptes de stocks;371;bilan
 372000;372;PRODUITS RÉSIDUELS;3;compte;non;3;Comptes de stocks;37;bilan
@@ -514,7 +542,12 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 397000;397;DÉPRÉCIATIONS DES STOCKS DE PRODUITS INTERMÉDIAIRES ET RÉSIDUELS;3;compte;oui;3;Comptes de stocks;39;bilan
 398000;398;DÉPRÉCIATIONS DES STOCKS EN COURS DE ROUTE, EN;3;compte;oui;3;Comptes de stocks;39;bilan
 ;40;FOURNISSEURS ET COMPTES RATTACHÉS;2;rubrique;non;4;Comptes de tiers;;bilan
-401000;401;FOURNISSEURS, DETTES EN COMPTE;3;compte;oui;4;Comptes de tiers;40;bilan
+401000;401;FOURNISSEURS, DETTES EN COMPTE;3;compte;non;4;Comptes de tiers;40;bilan
+401100;4011;Fournisseurs;4;sous-compte;oui;4;Comptes de tiers;401;bilan
+401200;4012;Fournisseurs Groupe;4;sous-compte;oui;4;Comptes de tiers;401;bilan
+401300;4013;Fournisseurs sous-traitants;4;sous-compte;oui;4;Comptes de tiers;401;bilan
+401600;4016;Fournisseurs, réserve de propriété;4;sous-compte;oui;4;Comptes de tiers;401;bilan
+401700;4017;Fournisseurs, retenues de garantie;4;sous-compte;oui;4;Comptes de tiers;401;bilan
 402000;402;FOURNISSEURS, EFFETS À PAYER;3;compte;non;4;Comptes de tiers;40;bilan
 402100;4021;Fournisseurs, Effets à payer;4;sous-compte;oui;4;Comptes de tiers;402;bilan
 402200;4022;Fournisseurs - Groupe, Effets à payer;4;sous-compte;oui;4;Comptes de tiers;402;bilan
@@ -529,6 +562,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 408200;4082;Fournisseurs - Groupe;4;sous-compte;oui;4;Comptes de tiers;408;bilan
 408300;4083;Fournisseurs sous-traitants;4;sous-compte;oui;4;Comptes de tiers;408;bilan
 408600;4086;Fournisseurs, intérêts courus;4;sous-compte;oui;4;Comptes de tiers;408;bilan
+409000;409;FOURNISSEURS DÉBITEURS;3;compte;non;4;Comptes de tiers;40;bilan
 409100;4091;Fournisseurs avances et acomptes versés;4;sous-compte;oui;4;Comptes de tiers;409;bilan
 409200;4092;Fournisseurs - Groupe avances et acomptes versés;4;sous-compte;oui;4;Comptes de tiers;409;bilan
 409300;4093;Fournisseurs sous-traitants avances et acomptes versés;4;sous-compte;oui;4;Comptes de tiers;409;bilan
@@ -815,6 +849,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 523000;523;BANQUES AUTRES ETATS ZONE MONETAIRE;3;compte;oui;5;Comptes de trésorerie;52;bilan
 524000;524;BANQUES HORS ZONE MONETAIRE;3;compte;oui;5;Comptes de trésorerie;52;bilan
 525000;525;BANQUES DEPOT A TERME;3;compte;oui;5;Comptes de trésorerie;52;bilan
+526000;526;BANQUES, INTERETS COURUS;3;compte;non;5;Comptes de trésorerie;52;bilan
 526100;5261;Banque, intérêts courus charges à payer;4;sous-compte;oui;5;Comptes de trésorerie;526;bilan
 526700;5267;Banque, intérêts courus produits à recevoir;4;sous-compte;oui;5;Comptes de trésorerie;526;bilan
 ;53;ÉTABLISSEMENTS FINANCIERS ET ASSIMILÉS;2;rubrique;non;5;Comptes de trésorerie;;bilan
@@ -1037,6 +1072,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 658200;6582;Dons;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;658;gestion
 658300;6583;Mécénat;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;658;gestion
 658800;6588;Autres charges diverses;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;658;gestion
+659000;659;CHARGES POUR DÉPRÉCIATIONS ET PROVISIONS POUR RISQUES À COURT TERME D'EXPLOITATION;3;compte;non;6;Comptes de charges des activités ordinaires;65;gestion
 659100;6591;sur risques à court terme;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;659;gestion
 659300;6593;sur stocks;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;659;gestion
 659400;6594;sur créances;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;659;gestion
@@ -1112,10 +1148,12 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 678100;6781;sur rentes viagères;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;678;gestion
 678200;6782;sur opérations financières;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;678;gestion
 678400;6784;sur instruments de trésorerie;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;678;gestion
+679000;679;CHARGES POUR DÉPRÉCIATIONS ET PROVISIONS POUR RISQUES À COURT TERME FINANCIÈRES;3;compte;non;6;Comptes de charges des activités ordinaires;67;gestion
 679100;6791;sur risques financiers;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;679;gestion
 679500;6795;sur titres de placement;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;679;gestion
 679800;6798;Autres charges pour dépréciations et provisions pour risques à court terme financières;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;679;gestion
 ;68;DOTATIONS AUX AMORTISSEMENTS;2;rubrique;non;6;Comptes de charges des activités ordinaires;;gestion
+681000;681;DOTATIONS AUX AMORTISSEMENTS D'EXPLOITATION;3;compte;non;6;Comptes de charges des activités ordinaires;68;gestion
 681200;6812;Dotations aux amortissements des immobilisations incorporelles;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;681;gestion
 681300;6813;Dotations aux amortissements des immobilisations corporelles;4;sous-compte;oui;6;Comptes de charges des activités ordinaires;681;gestion
 ;69;DOTATIONS AUX PROVISIONS ET AUX DÉPRÉCIATIONS;2;rubrique;non;6;Comptes de charges des activités ordinaires;;gestion
@@ -1213,6 +1251,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 754000;754;PRODUITS DES CESSIONS COURANTES D’IMMOBILISATIONS;3;compte;non;7;Comptes de produits des activités ordinaires;75;gestion
 754100;7541;Immobilisations incorporelles;4;sous-compte;oui;7;Comptes de produits des activités ordinaires;754;gestion
 754200;7542;Immobilisations corporelles;4;sous-compte;oui;7;Comptes de produits des activités ordinaires;754;gestion
+756000;756;GAINS DE CHANGE SUR CREANCES ET DETTES COMMERCIALES;3;compte;oui;7;Comptes de produits des activités ordinaires;75;gestion
 758000;758;PRODUITS DIVERS;3;compte;non;7;Comptes de produits des activités ordinaires;75;gestion
 758100;7581;Indemnités de fonction et autres rémunérations d'administrateurs;4;sous-compte;oui;7;Comptes de produits des activités ordinaires;758;gestion
 758200;7582;Indemnités d’assurances reçues;4;sous-compte;oui;7;Comptes de produits des activités ordinaires;758;gestion
@@ -1248,6 +1287,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 781000;781;TRANSFERTS DE CHARGES D'EXPLOITATION;3;compte;oui;7;Comptes de produits des activités ordinaires;78;gestion
 787000;787;TRANSFERTS DE CHARGES FINANCIERES;3;compte;oui;7;Comptes de produits des activités ordinaires;78;gestion
 ;79;REPRISES DE PROVISIONS, DE DÉPRÉCIATIONS ET AUTRES;2;rubrique;non;7;Comptes de produits des activités ordinaires;;gestion
+791000;791;REPRISES DE PROVISIONS ET DEPRECIATIONS D'EXPLOITATION;3;compte;non;7;Comptes de produits des activités ordinaires;79;gestion
 791100;7911;pour risques et charges;4;sous-compte;oui;7;Comptes de produits des activités ordinaires;791;gestion
 791300;7913;des immobilisations incorporelles;4;sous-compte;oui;7;Comptes de produits des activités ordinaires;791;gestion
 791400;7914;des immobilisations corporelles;4;sous-compte;oui;7;Comptes de produits des activités ordinaires;791;gestion
@@ -1271,6 +1311,7 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 835000;835;DONS ET LIBÉRALITÉS ACCORDÉS;3;compte;oui;8;Comptes des autres charges et des autres produits;83;gestion
 836000;836;ABANDONS DE CRÉANCES CONSENTIS;3;compte;oui;8;Comptes des autres charges et des autres produits;83;gestion
 837000;837;CHARGES LIEES AUX OPERATIONS DE LIQUIDATION;3;compte;oui;8;Comptes des autres charges et des autres produits;83;gestion
+839000;839;CHARGES POUR DÉPRÉCIATIONS ET PROVISIONS POUR RISQUES À COURT TERME H.A.O.;3;compte;oui;8;Comptes des autres charges et des autres produits;83;gestion
 ;84;PRODUITS HORS ACTIVITÉS ORDINAIRES;2;rubrique;non;8;Comptes des autres charges et des autres produits;;gestion
 841000;841;PRODUITS H.A.O CONSTATÉS;3;compte;oui;8;Comptes des autres charges et des autres produits;84;gestion
 843000;843;PRODUITS LIES AUX OPERATIONS DE RESTRUCTURATION;3;compte;oui;8;Comptes des autres charges et des autres produits;84;gestion

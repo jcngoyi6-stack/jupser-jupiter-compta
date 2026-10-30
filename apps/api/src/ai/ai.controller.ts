@@ -87,7 +87,7 @@ export class AiController {
       const known = new Set((await tx.account.findMany({ where: { companyId, imputable: true }, select: { number: true } })).map((a) => a.number));
       const expense = b.expenseAccount ?? suggestAccounts(b.description, known)[0]?.account;
       const p = proposePurchaseEntry({ supplierName: supplier.name, date: b.date, number: b.number, netAmount: b.netAmount, vatAmount: b.vatAmount, grossAmount: b.grossAmount, currency: company.currency, expenseAccount: expense, confidence: b.confidence }, supplier.id, 'ACH');
-      p.lines = p.lines.map((l) => (l.account === '401000' ? { ...l, account: supplier.account } : l));
+      p.lines = p.lines.map((l) => (l.account === '401100' ? { ...l, account: supplier.account } : l));
       const draft = await this.entries.createDraft(tx, { ...u, userId: u.userId }, companyId, { journalCode: p.journalCode, date: p.date, pieceRef: p.pieceRef, label: p.label, lines: p.lines }, 'IA', true);
       const action = await tx.aiAction.create({
         data: { tenantId: u.tenantId, companyId, tool: 'propose_purchase_entry', params: { number: b.number }, result: { entryId: draft.id, warnings: p.warnings, confidence: p.confidence }, userId: u.userId },

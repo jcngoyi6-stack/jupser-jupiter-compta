@@ -20,8 +20,8 @@ const empty = (): Line => ({ account: '', thirdPartyId: '', label: '', debit: ''
 /** Modèles d'écritures (docs/04 §3) — les montants sont saisis ensuite. */
 const TEMPLATES: Record<string, { journal: string; label: string; lines: Partial<Line>[] }> = {
   loyer: { journal: 'BQ1', label: 'Loyer du mois', lines: [{ account: '622200' }, { account: '521100' }] },
-  electricite: { journal: 'ACH', label: 'Facture d’électricité', lines: [{ account: '605200' }, { account: '445200' }, { account: '401000' }] },
-  achat_tva: { journal: 'ACH', label: 'Achat de marchandises avec TVA', lines: [{ account: '601100' }, { account: '445200' }, { account: '401000' }] },
+  electricite: { journal: 'ACH', label: 'Facture d’électricité', lines: [{ account: '605200' }, { account: '445200' }, { account: '401100' }] },
+  achat_tva: { journal: 'ACH', label: 'Achat de marchandises avec TVA', lines: [{ account: '601100' }, { account: '445200' }, { account: '401100' }] },
   vente_tva: { journal: 'VTE', label: 'Vente de services avec TVA', lines: [{ account: '411100' }, { account: '706100' }, { account: '443200' }] },
   caisse_banque: { journal: 'CAI', label: 'Versement caisse en banque', lines: [{ account: '585000' }, { account: '571100' }] },
   mobile_money: { journal: 'MM1', label: 'Encaissement mobile money', lines: [{ account: '552000' }, { account: '411100' }] },

@@ -92,7 +92,7 @@ async function main() {
       headcount: 12,
     });
     const client = await tx.thirdParty.create({ data: { tenantId: tenant.id, companyId: company.id, type: 'CLIENT', code: 'C001', name: 'Client Exemple SA', account: '411100' } });
-    const supplier = await tx.thirdParty.create({ data: { tenantId: tenant.id, companyId: company.id, type: 'FOURNISSEUR', code: 'F001', name: 'Fournisseur Exemple SARL', account: '401000' } });
+    const supplier = await tx.thirdParty.create({ data: { tenantId: tenant.id, companyId: company.id, type: 'FOURNISSEUR', code: 'F001', name: 'Fournisseur Exemple SARL', account: '401100' } });
     const post = async (journalCode: string, date: string, pieceRef: string, label: string, lines: { account: string; debit: bigint; credit: bigint; thirdPartyId?: string }[]) => {
       const d = await entries.createDraft(tx, u, company.id, { journalCode, date, pieceRef, label, lines });
       await entries.validate(tx, uChef, company.id, d.id);
@@ -105,7 +105,7 @@ async function main() {
     await post('ACH', `${year}-01-10`, 'F-2026-001', 'Achat fournitures et prestations', [
       { account: '605700', debit: 10n * M, credit: 0n },
       { account: '445200', debit: 16n * M / 10n, credit: 0n },
-      { account: '401000', debit: 0n, credit: 116n * M / 10n, thirdPartyId: supplier.id },
+      { account: '401100', debit: 0n, credit: 116n * M / 10n, thirdPartyId: supplier.id },
     ]);
     await post('VTE', `${year}-01-20`, 'FA-DEMO-001', 'Prestations de services janvier', [
       { account: '411100', debit: 58n * M, credit: 0n, thirdPartyId: client.id },

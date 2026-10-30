@@ -146,7 +146,8 @@ export function accumulatedAt(a: AssetDef, date: string): bigint {
  * Écritures de cession : dotation complémentaire de l'exercice, sortie de l'actif (VNC en 81x),
  * prix de cession en 82x (contrepartie : créance sur cession 485 ou trésorerie).
  */
-export function disposalLines(a: AssetDef, date: string, price: bigint, counterpart = '485100', amortBooked: bigint) {
+export function disposalLines(a: AssetDef, date: string, price: bigint, counterpart: string | undefined, amortBooked: bigint) {
+  counterpart ??= a.account.startsWith('21') ? '485100' : '485200';
   const cost = a.components.reduce((s, c) => s + c.cost, 0n);
   const accum = accumulatedAt(a, date);
   const extra = accum - amortBooked;

@@ -1,22 +1,38 @@
 import { describe, expect, it } from 'vitest';
 import { buildSmtStatements, consolidate, detailNote, movementNote, NOTE_NUMBERS, textNoteTemplates } from './index';
 
-describe('SMT', () => {
-  it('produit bilan et compte de résultat SMT équilibrés', () => {
-    const r = buildSmtStatements([
-      { account: '101300', net: -1000n },
-      { account: '571100', net: 1300n },
+describe('SMT (modèle officiel)', () => {
+  it('établit recettes, dépenses, variations et bilan SMT', () => {
+    const closing = [
+      { account: '104100', net: -1000n },
+      { account: '571100', net: 1200n },
+      { account: '521100', net: -50n },
       { account: '411100', net: 200n },
-      { account: '401000', net: -150n },
+      { account: '401100', net: -150n },
       { account: '701100', net: -900n },
       { account: '601100', net: 500n },
-      { account: '603100', net: 50n },
-    ]);
-    expect(r.totalRecettes).toBe(900n);
-    expect(r.totalDepenses).toBe(550n);
-    expect(r.resultat).toBe(350n);
-    expect(r.totalActif).toBe(1500n);
+      { account: '622200', net: 100n },
+      { account: '311100', net: 100n },
+      { account: '603100', net: -100n },
+      { account: '245100', net: 100n },
+      { account: '284500', net: -20n },
+      { account: '681300', net: 20n },
+    ];
+    const cash = [
+      { counterparts: [{ account: '701100', amount: 700n }] },
+      { counterparts: [{ account: '601100', amount: -350n }, { account: '622200', amount: -100n }] },
+      { counterparts: [{ account: '104100', amount: 1000n }] },
+      { counterparts: [{ account: '245100', amount: -100n }] },
+      { counterparts: [{ account: '758800', amount: 5n }, { account: '661100', amount: -5n }, { account: '641000', amount: -1n }, { account: '671000', amount: -1n }, { account: '628100', amount: -3n }] },
+    ];
+    const r = buildSmtStatements(closing, cash);
+    expect(r.totalRecettes).toBe(705n);
+    expect(r.depenses).toEqual({ achats: 350n, loyers: 100n, salaires: 5n, impots: 1n, interets: 1n, autres: 3n });
+    expect(r.solde).toBe(245n);
+    expect(r.variations).toEqual({ stocks: 100n, creances: 200n, dettes: 150n });
+    expect(r.dotations).toBe(20n);
     expect(r.controls[0]!.ok).toBe(true);
+    expect(r.passif.resultat).toBe(380n);
   });
 });
 

@@ -5,7 +5,7 @@ import type { ControlResult } from './types';
  * Chaque ligne d'écriture hors journal d'à-nouveaux et hors trésorerie est affectée à un flux ;
  * la variation de trésorerie (ZG) est donc toujours égale à la somme des flux, et ZH = ZA + ZG
  * se rapproche de la trésorerie de clôture du bilan (contrôle bouclé).
- * TODO(expert-comptable, lot L2) : valider l'affectation fine des comptes mixtes de la classe 4.
+ * Modèle conforme à l'AUDCIF (système normal, section 2 : modèle de tableau des flux de trésorerie).
  */
 export interface FlowLine {
   account: string;
@@ -58,6 +58,9 @@ export function flowRefOf(account: string, debit: bigint): string {
   if (/^(19|15|29|39|49|59)/.test(a)) return 'FA';
   if (/^28/.test(a)) return isDebit ? 'FI' : 'FA';
   if (/^8[12]/.test(a)) return 'FI';
+  // AUDCIF : FB et FE excluent les créances et dettes liées aux investissements
+  if (/^485/.test(a)) return 'FI';
+  if (/^48[12]/.test(a)) return 'FG';
   if (/^48/.test(a)) return 'FB';
   if (/^3/.test(a)) return 'FC';
   if (/^(41|409|476|478)/.test(a)) return 'FD';
