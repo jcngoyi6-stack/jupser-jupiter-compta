@@ -12,3 +12,4 @@ export * from './contracts';
 export * from './revaluation';
 export * from './third-parties';
 export * from './mergers';
+export * from './joint-ops';
