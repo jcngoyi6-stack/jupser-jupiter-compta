@@ -1,0 +1,14 @@
+{
+  "name": "@jupiter/special-ops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Opérations et problèmes spécifiques du SYSCOHADA révisé (guide d'application, titre VIII de l'AUDCIF) : écritures types et échéanciers.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {}
+}

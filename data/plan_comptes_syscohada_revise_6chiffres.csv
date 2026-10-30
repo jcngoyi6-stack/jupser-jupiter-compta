@@ -1352,6 +1352,88 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 899000;899;DÉGRÈVEMENTS ET ANNULATIONS D’IMPÔTS SUR RÉSULTATS ANTÉRIEURS;3;compte;non;8;Comptes des autres charges et des autres produits;89;gestion
 899100;8991;Dégrèvements;4;sous-compte;oui;8;Comptes des autres charges et des autres produits;899;gestion
 899400;8994;Annulations pour pertes rétroactives;4;sous-compte;oui;8;Comptes des autres charges et des autres produits;899;gestion
+900000;90;ENGAGEMENTS OBTENUS ET ENGAGEMENTS ACCORDÉS;2;compte;non;9;Comptes des engagements hors bilan;9;engagement
+901000;901;ENGAGEMENTS DE FINANCEMENT OBTENUS;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+901100;9011;Crédits confirmés obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;901;engagement
+901200;9012;Emprunts restant à encaisser;4;sous-compte;oui;9;Comptes des engagements hors bilan;901;engagement
+901300;9013;Facilités de financement renouvelables;4;sous-compte;oui;9;Comptes des engagements hors bilan;901;engagement
+901400;9014;Facilités d'émission;4;sous-compte;oui;9;Comptes des engagements hors bilan;901;engagement
+901800;9018;Autres engagements de financement obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;901;engagement
+902000;902;ENGAGEMENTS DE GARANTIE OBTENUS;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+902100;9021;Avals obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;902;engagement
+902200;9022;Cautions, garanties obtenues;4;sous-compte;oui;9;Comptes des engagements hors bilan;902;engagement
+902300;9023;Hypothèques obtenues;4;sous-compte;oui;9;Comptes des engagements hors bilan;902;engagement
+902400;9024;Effets endossés par des tiers;4;sous-compte;oui;9;Comptes des engagements hors bilan;902;engagement
+902800;9028;Autres garanties obtenues;4;sous-compte;oui;9;Comptes des engagements hors bilan;902;engagement
+903000;903;ENGAGEMENTS RÉCIPROQUES;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+903100;9031;Achats de marchandises à terme;4;sous-compte;oui;9;Comptes des engagements hors bilan;903;engagement
+903200;9032;Achats à terme de devises;4;sous-compte;oui;9;Comptes des engagements hors bilan;903;engagement
+903300;9033;Commandes fermes des clients;4;sous-compte;oui;9;Comptes des engagements hors bilan;903;engagement
+903800;9038;Autres engagements réciproques;4;sous-compte;oui;9;Comptes des engagements hors bilan;903;engagement
+904000;904;AUTRES ENGAGEMENTS OBTENUS;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+904100;9041;Abandons de créances conditionnels;4;sous-compte;oui;9;Comptes des engagements hors bilan;904;engagement
+904300;9043;Ventes avec clause de réserve de propriété;4;sous-compte;oui;9;Comptes des engagements hors bilan;904;engagement
+904800;9048;Divers engagements obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;904;engagement
+905000;905;ENGAGEMENTS DE FINANCEMENT ACCORDÉS;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+905100;9051;Crédits accordés non décaissés;4;sous-compte;oui;9;Comptes des engagements hors bilan;905;engagement
+905800;9058;Autres engagements de financement accordés;4;sous-compte;oui;9;Comptes des engagements hors bilan;905;engagement
+906000;906;ENGAGEMENTS DE GARANTIE ACCORDÉS;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+906100;9061;Avals accordés;4;sous-compte;oui;9;Comptes des engagements hors bilan;906;engagement
+906200;9062;Cautions, garanties accordées;4;sous-compte;oui;9;Comptes des engagements hors bilan;906;engagement
+906300;9063;Hypothèques accordées;4;sous-compte;oui;9;Comptes des engagements hors bilan;906;engagement
+906400;9064;Effets endossés par l’entité;4;sous-compte;oui;9;Comptes des engagements hors bilan;906;engagement
+906800;9068;Autres garanties accordées;4;sous-compte;oui;9;Comptes des engagements hors bilan;906;engagement
+907000;907;ENGAGEMENTS RÉCIPROQUES;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+907100;9071;Ventes de marchandises à terme;4;sous-compte;oui;9;Comptes des engagements hors bilan;907;engagement
+907200;9072;Ventes à terme de devises;4;sous-compte;oui;9;Comptes des engagements hors bilan;907;engagement
+907300;9073;Commandes fermes aux fournisseurs;4;sous-compte;oui;9;Comptes des engagements hors bilan;907;engagement
+907800;9078;Autres engagements réciproques;4;sous-compte;oui;9;Comptes des engagements hors bilan;907;engagement
+908000;908;AUTRES ENGAGEMENTS ACCORDÉS;3;compte;non;9;Comptes des engagements hors bilan;90;engagement
+908100;9081;Annulations conditionnelles de dettes;4;sous-compte;oui;9;Comptes des engagements hors bilan;908;engagement
+908200;9082;Engagements de retraite;4;sous-compte;oui;9;Comptes des engagements hors bilan;908;engagement
+908300;9083;Achats avec clause de réserve de propriété;4;sous-compte;oui;9;Comptes des engagements hors bilan;908;engagement
+908800;9088;Divers engagements accordés;4;sous-compte;oui;9;Comptes des engagements hors bilan;908;engagement
+910000;91;CONTREPARTIES DES ENGAGEMENTS;2;compte;non;9;Comptes des engagements hors bilan;9;engagement
+911000;911;CONTREPARTIE DES ENGAGEMENTS DE FINANCEMENT OBTENUS;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+911100;9111;Contrepartie : crédits confirmés obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;911;engagement
+911200;9112;Contrepartie : emprunts restant à encaisser;4;sous-compte;oui;9;Comptes des engagements hors bilan;911;engagement
+911300;9113;Contrepartie : facilités de financement renouvelables;4;sous-compte;oui;9;Comptes des engagements hors bilan;911;engagement
+911400;9114;Contrepartie : facilités d'émission;4;sous-compte;oui;9;Comptes des engagements hors bilan;911;engagement
+911800;9118;Contrepartie : autres engagements de financement obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;911;engagement
+912000;912;CONTREPARTIE DES ENGAGEMENTS DE GARANTIE OBTENUS;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+912100;9121;Contrepartie : avals obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;912;engagement
+912200;9122;Contrepartie : cautions, garanties obtenues;4;sous-compte;oui;9;Comptes des engagements hors bilan;912;engagement
+912300;9123;Contrepartie : hypothèques obtenues;4;sous-compte;oui;9;Comptes des engagements hors bilan;912;engagement
+912400;9124;Contrepartie : effets endossés par des tiers;4;sous-compte;oui;9;Comptes des engagements hors bilan;912;engagement
+912800;9128;Contrepartie : autres garanties obtenues;4;sous-compte;oui;9;Comptes des engagements hors bilan;912;engagement
+913000;913;CONTREPARTIE DES ENGAGEMENTS RÉCIPROQUES;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+913100;9131;Contrepartie : achats de marchandises à terme;4;sous-compte;oui;9;Comptes des engagements hors bilan;913;engagement
+913200;9132;Contrepartie : achats à terme de devises;4;sous-compte;oui;9;Comptes des engagements hors bilan;913;engagement
+913300;9133;Contrepartie : commandes fermes des clients;4;sous-compte;oui;9;Comptes des engagements hors bilan;913;engagement
+913800;9138;Contrepartie : autres engagements réciproques;4;sous-compte;oui;9;Comptes des engagements hors bilan;913;engagement
+914000;914;CONTREPARTIE DES AUTRES ENGAGEMENTS OBTENUS;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+914100;9141;Contrepartie : abandons de créances conditionnels;4;sous-compte;oui;9;Comptes des engagements hors bilan;914;engagement
+914300;9143;Contrepartie : ventes avec clause de réserve de propriété;4;sous-compte;oui;9;Comptes des engagements hors bilan;914;engagement
+914800;9148;Contrepartie : divers engagements obtenus;4;sous-compte;oui;9;Comptes des engagements hors bilan;914;engagement
+915000;915;CONTREPARTIE DES ENGAGEMENTS DE FINANCEMENT ACCORDÉS;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+915100;9151;Contrepartie : crédits accordés non décaissés;4;sous-compte;oui;9;Comptes des engagements hors bilan;915;engagement
+915800;9158;Contrepartie : autres engagements de financement accordés;4;sous-compte;oui;9;Comptes des engagements hors bilan;915;engagement
+916000;916;CONTREPARTIE DES ENGAGEMENTS DE GARANTIE ACCORDÉS;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+916100;9161;Contrepartie : avals accordés;4;sous-compte;oui;9;Comptes des engagements hors bilan;916;engagement
+916200;9162;Contrepartie : cautions, garanties accordées;4;sous-compte;oui;9;Comptes des engagements hors bilan;916;engagement
+916300;9163;Contrepartie : hypothèques accordées;4;sous-compte;oui;9;Comptes des engagements hors bilan;916;engagement
+916400;9164;Contrepartie : effets endossés par l’entité;4;sous-compte;oui;9;Comptes des engagements hors bilan;916;engagement
+916800;9168;Contrepartie : autres garanties accordées;4;sous-compte;oui;9;Comptes des engagements hors bilan;916;engagement
+917000;917;CONTREPARTIE DES ENGAGEMENTS RÉCIPROQUES;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+917100;9171;Contrepartie : ventes de marchandises à terme;4;sous-compte;oui;9;Comptes des engagements hors bilan;917;engagement
+917200;9172;Contrepartie : ventes à terme de devises;4;sous-compte;oui;9;Comptes des engagements hors bilan;917;engagement
+917300;9173;Contrepartie : commandes fermes aux fournisseurs;4;sous-compte;oui;9;Comptes des engagements hors bilan;917;engagement
+917800;9178;Contrepartie : autres engagements réciproques;4;sous-compte;oui;9;Comptes des engagements hors bilan;917;engagement
+918000;918;CONTREPARTIE DES AUTRES ENGAGEMENTS ACCORDÉS;3;compte;non;9;Comptes des engagements hors bilan;91;engagement
+918100;9181;Contrepartie : annulations conditionnelles de dettes;4;sous-compte;oui;9;Comptes des engagements hors bilan;918;engagement
+918200;9182;Contrepartie : engagements de retraite;4;sous-compte;oui;9;Comptes des engagements hors bilan;918;engagement
+918300;9183;Contrepartie : achats avec clause de réserve de propriété;4;sous-compte;oui;9;Comptes des engagements hors bilan;918;engagement
+918800;9188;Contrepartie : divers engagements accordés;4;sous-compte;oui;9;Comptes des engagements hors bilan;918;engagement
 920000;92;COMPTES RÉFLÉCHIS;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
 921000;921;Stocks réfléchis;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;92;cage
 926000;926;Charges réfléchies;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;92;cage
