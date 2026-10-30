@@ -38,7 +38,21 @@ const MENU: { title: string; items: Item[] }[] = [
       { href: '/consolidation', label: 'Consolidation', roles: ['CHEF_COMPTABLE', 'DIRECTION'], module: 'CONSOLIDATION', needsCompany: true },
       { href: '/fiscalite', label: t('nav.tax'), roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'FISCALITE', 'DIRECTION'], module: 'FISCALITE', needsCompany: true },
       { href: '/paie', label: t('nav.payroll'), roles: ['PAIE', 'RH'], module: 'GRH_PAIE_RECRUTEMENT', needsCompany: true },
+      { href: '/stocks', label: 'Stocks', roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'COMMERCIAL', 'CAISSIER', 'DIRECTION'], module: 'STOCKS', needsCompany: true },
+      { href: '/achats', label: 'Achats', roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'COMMERCIAL', 'DIRECTION'], module: 'STOCKS', needsCompany: true },
+      { href: '/production', label: 'Production', roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'DIRECTION'], module: 'PRODUCTION', needsCompany: true },
+      { href: '/crm', label: 'CRM et campagnes', roles: ['COMMERCIAL', 'DIRECTION'], module: 'MARKETING_CRM', needsCompany: true },
+      { href: '/rh', label: 'Ressources humaines', roles: ['RH', 'PAIE'], module: 'GRH_PAIE_RECRUTEMENT', needsCompany: true },
+      { href: '/espace-salarie', label: 'Mon espace salarié', roles: ['EMPLOYE'], module: 'GRH_PAIE_RECRUTEMENT', needsCompany: true },
       { href: '/ia', label: t('nav.ai'), module: 'IA_GUIDE' },
+    ],
+  },
+  {
+    title: 'Bureau',
+    items: [
+      { href: '/collaboration', label: 'Collaboration', module: 'COLLABORATION' },
+      { href: '/ged', label: 'Archives (GED)', module: 'GED_ARCHIVAGE_IA' },
+      { href: '/courrier', label: 'Courrier', module: 'COURRIER' },
     ],
   },
   {
