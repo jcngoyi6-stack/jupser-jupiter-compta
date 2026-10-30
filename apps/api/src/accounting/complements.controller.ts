@@ -692,7 +692,7 @@ export class ConsolidationController {
       z.object({
         name: z.string().min(2),
         currency: z.string().length(3),
-        members: z.array(z.object({ companyId: z.string().uuid(), parent: z.boolean().default(false), method: z.enum(['IG', 'MEE']), ownershipPct: z.string().regex(/^\d{1,3}(\.\d{1,4})?$/), investmentCost: z.string().optional(), investmentAccount: zAccount.optional(), closingRate: z.string().optional(), averageRate: z.string().optional() })).min(1),
+        members: z.array(z.object({ companyId: z.string().uuid(), parent: z.boolean().default(false), method: z.enum(['IG', 'IP', 'MEE']), ownershipPct: z.string().regex(/^\d{1,3}(\.\d{1,4})?$/), investmentCost: z.string().optional(), investmentAccount: zAccount.optional(), equityAtAcquisition: z.string().regex(/^\d+$/).optional(), closingRate: z.string().optional(), averageRate: z.string().optional() })).min(1),
       }),
       body,
     );
@@ -703,7 +703,7 @@ export class ConsolidationController {
   statements(@CurrentUser() u: SessionUser, @Param('id') id: string, @Query('year') year?: string) {
     return this.db.forTenant(u.tenantId, async (tx) => {
       const g = await tx.consolidationGroup.findUniqueOrThrow({ where: { id } });
-      const members = g.members as { companyId: string; parent: boolean; method: 'IG' | 'MEE'; ownershipPct: string; investmentCost?: string; investmentAccount?: string; closingRate?: string; averageRate?: string }[];
+      const members = g.members as { companyId: string; parent: boolean; method: 'IG' | 'IP' | 'MEE'; ownershipPct: string; investmentCost?: string; investmentAccount?: string; equityAtAcquisition?: string; closingRate?: string; averageRate?: string }[];
       const entities: Entity[] = [];
       for (const m of members) {
         const c = await tx.company.findUniqueOrThrow({ where: { id: m.companyId } });
@@ -719,12 +719,13 @@ export class ConsolidationController {
           averageRate: c.currency === g.currency ? undefined : m.averageRate,
           investmentCost: m.investmentCost ? BigInt(m.investmentCost) : undefined,
           investmentAccount: m.investmentAccount,
+          equityAtAcquisition: m.equityAtAcquisition ? BigInt(m.equityAtAcquisition) : undefined,
         });
       }
       const r = consolidate(entities);
       const bs = buildBalanceSheet(r.balances);
       const is = buildIncomeStatement(r.balances);
-      return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: is.values.XI! - r.minorityResult };
+      return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: r.summary.groupResult };
     });
   }
 }
