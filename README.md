@@ -11,10 +11,15 @@ Monorepo pnpm + Turborepo, TypeScript strict. Le dossier de conception d'origine
 | `packages/fx` | Conversion sans flottant, choix du cours, réévaluation 478/479 + provision, écarts réalisés 676/776, seuil SMT converti |
 | `packages/tax-engine` | Règles fiscales versionnées (`A_VALIDER`/`VALIDE`), TVA, IS/minimum, barèmes, calendrier, bandeau « Estimation » |
 | `packages/payroll` | Paie RDC (IRPP IS-IRPP, CNSS, INPP, ONEM), paie en USD convertie au cours du jour, écriture de paie |
-| `packages/licensing` | Tarifs, cycle d'abonnement (lecture seule à J+15), modules, quotas |
-| `packages/ai` | JUPSER IA : prompt système, propositions `BROUILLON_IA`, minimisation des données, fournisseur hors ligne |
+| `packages/licensing` | Tarifs, cycle d'abonnement (lecture seule à J+15), modules, quotas, jetons de licence hors ligne signés Ed25519 |
+| `packages/ai` | JUPSER IA : prompt système, propositions `BROUILLON_IA`, minimisation des données, OCR (contrôle du JSON lu par vision), fournisseur hors ligne |
+| `packages/einvoice` | Facture normalisée RDC : validation, groupes de taxation, client e-MCF (DEF) et simulateur |
+| `packages/operations` | Stocks (CMUP/PEPS), production (nomenclatures, coût de revient), RH (pointage, recrutement non discriminatoire), marketing (RFM, consentement) |
+| `packages/advisory` | Cabinet : VAN, TRI, TRIM, délais, Monte-Carlo, sensibilité ; évaluation d'entreprise ; audit (seuil, Benford, écritures inhabituelles, sondage MUS) ; circuit de revue ; manuel de procédures |
+| `packages/connectors` | Ports et adaptateurs : paiement (CinetPay, Flutterwave, simulateur), cours de change (BCC, parités fixes, secours), OIDC (PKCE, id_token) |
 | `apps/api` | API NestJS + Prisma 7 + PostgreSQL 16 (RLS, triggers d'immuabilité), OpenAPI sur `/api/docs` |
-| `apps/web` | Interface Next.js (App Router, Tailwind, TanStack Query, PWA), une interface par rôle, console JUPSER intégrée |
+| `apps/web` | Interface Next.js (App Router, Tailwind, TanStack Query, PWA), une interface par rôle, console JUPSER intégrée, français/anglais/portugais/espagnol |
+| `apps/desktop` | Application de bureau Tauri 2 (Windows, macOS, Linux) — voir son README |
 
 ## Démarrage (développement)
 
@@ -58,8 +63,8 @@ JUPSER IA fonctionne hors ligne par défaut ; renseigner `ANTHROPIC_API_KEY` dan
 pnpm turbo run test
 ```
 
-- 92 tests unitaires des packages métier (couverture ≥ 90 % imposée).
-- 30 tests d'acceptation API sur PostgreSQL réel (base `jupiter_test`) : isolation RLS entre locataires, immuabilité en base, numérotation sans trou, 2FA, verrouillage après 5 échecs, CSRF, périodes clôturées, à-nouveaux = bilan de clôture, QR et avoir, IA sans validation automatique, paie à quatre yeux, lecture seule à J+15, webhook signé.
+- 163 tests unitaires des packages métier (couverture ≥ 90 % imposée).
+- 70 tests d'acceptation API sur PostgreSQL réel (base `jupiter_test`) : isolation RLS, immuabilité, numérotation sans trou, 2FA, CSRF, clôture, facture normalisée, ERP (stocks, achats, production, CRM, RH), cabinet (revue, audit, états depuis balance, documents Word), projets d'investissement, paiement avec revérification du prestataire, licences, postes enrôlés à requêtes signées, SSO OIDC, OCR, cours de change.
 
 ## Avertissements
 

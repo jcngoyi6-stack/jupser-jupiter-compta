@@ -1,28 +1,45 @@
-# État d'avancement — version 0.1.0 (30/10/2026)
+# État d'avancement — version 0.2.0 (30/10/2026)
 
-Légende : ✅ réalisé et testé · 🟡 partiel · ⬜ non commencé
+Légende : ✅ développé et couvert par des tests automatisés · 🟡 développé, validation métier ou contrat externe en attente · ⬜ non commencé
+
+La recette de chaque lot (docs/10) exige des validations humaines (fiscaliste, expert-comptable, DGI, jeux de données réels) : « développé » ne signifie pas « recetté ».
 
 ## Lots (docs/10)
 
 | Lot | État | Détail |
 |---|---|---|
-| L0 Socle | 🟡 | ✅ monorepo, CI, Argon2id, TOTP obligatoire par rôle, verrouillage 5 échecs, session 30 min glissante (cookie httpOnly, SameSite strict, anti-CSRF), RLS PostgreSQL + test d'isolation, audit chaîné SHA-256 vérifiable, chiffrement AES-256-GCM par locataire (salaires, pièces), rôles et périmètre société, i18n (français ; structure en/pt/es). ⬜ enrôlement des postes, SSO, KMS réel, journalisation Prometheus |
-| L1 Comptabilité | ✅ | Plan SYSCOHADA 6 chiffres + sous-comptes, journaux, saisie grille + modèles, contrôles bloquants, validation, contre-passation, numérotation continue, lettrage auto/manuel, balance âgée, devises (cours tracés, réévaluation, écarts). ⬜ import Excel/relevés, rapprochement bancaire assisté, immobilisations |
-| L2 États financiers | 🟡 | ✅ bilan, compte de résultat, TFT bouclé, N/N-1, contrôles, SIG/ratios, clôture + à-nouveaux détaillés par tiers, livres (journal, grand-livre, balance 6 colonnes), export CSV. ⬜ notes annexes, états SMT, DSF, livre d'inventaire, validation expert-comptable des mappages |
-| L3 Licences et paiements | 🟡 | ✅ éditions/modules, garde `@RequiresModule`, quotas, lecture seule J+15, suspension J+60, paiement simulé + webhook HMAC idempotent, console JUPSER (clients, abonnements, MRR, validation des règles). ⬜ prestataires réels (CinetPay…), factures JUPSER, jetons Ed25519 hors ligne |
-| L4 JUPSER IA v1 | 🟡 | ✅ guide (API Claude ou hors ligne), pièce → écriture `BROUILLON_IA`, acceptation humaine journalisée, crédits IA. ⬜ OCR de PDF/photos, base de connaissance AUDCIF, contrôles IA |
-| L5 Fiscalité + paie RDC | 🟡 | ✅ règles RDC 2026 versionnées (`A_VALIDER`), TVA + liquidation, IS/minimum, calendrier, paie (IRPP IS-IRPP, CNSS, INPP, ONEM, USD→CDF), écriture de paie à quatre yeux. ⬜ validation fiscaliste, bulletins PDF, déclarations sociales |
-| L7b Documents | 🟡 | ✅ factures avec QR + écriture automatique, avoir, vérification publique (annulation signalée), logo de l'abonné. ⬜ autres documents, messagerie, réunions, tâches, GED, courrier |
-| L6, L7, L7c, L8, L9 | ⬜ | Analyse financière avancée, production, stocks, CRM, budget, présence biométrique, recrutement, 16 autres packs pays, espace Cabinets, consolidation |
+| L0 Socle | ✅ | Monorepo, Argon2id, TOTP obligatoire par rôle, verrouillage, session 30 min glissante, anti-CSRF, RLS + test d'isolation, audit chaîné SHA-256, chiffrement AES-256-GCM par locataire, **postes enrôlés** (clé Ed25519 du navigateur, requêtes signées, approbation, révocation), **SSO OIDC** (PKCE, id_token vérifié, domaines autorisés), i18n **fr/en/pt/es** (menus). ⬜ KMS/HSM réel, Prometheus |
+| L1 Comptabilité | ✅ | Plan SYSCOHADA 6 chiffres aligné sur l'AUDCIF (1 354 comptes), saisie, contrôles, lettrage, devises, **imports** (balance 4/6/8 colonnes, journal, plan), **rapprochement bancaire** assisté, **immobilisations** par composants (linéaire, dégressif, unités d'œuvre, cessions) |
+| L2 États financiers | 🟡 | Bilan, compte de résultat, TFT alignés sur les tableaux de correspondance de l'AUDCIF, **notes annexes 1 à 36**, **SMT** (modèle officiel), **DSF** (Excel), livre d'inventaire. À confronter par un expert-comptable avec le guide d'application |
+| L3 Licences et paiements | 🟡 | Éditions, modules, quotas, lecture seule J+15, suspension J+60, **CinetPay et Flutterwave** (statut toujours revérifié auprès du prestataire, montant contrôlé), **licences hors ligne Ed25519** (console JUPSER, vérification en ligne, révocation, tolérance 30 jours). Contrats prestataires à signer ; factures JUPSER à brancher sur le module de facturation |
+| L4 JUPSER IA v1 | 🟡 | Guide, pièce → écriture `BROUILLON_IA`, **OCR des photos et PDF par vision Claude** (JSON contrôlé, fournisseur reconnu, incohérences signalées), rédaction de courriers. Critère « ≥ 85 % des champs corrects sur 200 pièces » à mesurer sur des pièces réelles |
+| L5 Fiscalité + paie RDC | 🟡 | Règles RDC versionnées `A_VALIDER`, TVA, IS, paie, **facture normalisée DGI** (DEF/e-MCF : client HTTP + simulateur), déclarations sociales (CSV), bulletins. Spécification e-MCF et barèmes à valider (DGI, fiscaliste) |
+| L6 Analyse financière | ✅ | SIG, ratios, TFT, **prévision de trésorerie** 13 semaines / mensuelle, **budget** (alerte ou blocage) |
+| L7 Production et marketing | ✅ | Nomenclatures, ordres de fabrication, coût de revient, stocks CMUP/PEPS en inventaire permanent, achats (quatre yeux), CRM, campagnes avec consentement et désinscription |
+| L7b Documents, collaboration, GED, courrier | ✅ | Devis, proformas, bons de commande et de livraison avec QR, messagerie interne, réunions (PV → tâches), GED (classement, rétention), registre du courrier |
+| L7c Budget, trésorerie, stocks, présence, recrutement | 🟡 | Import des pointages (Fingertec), congés, recrutement (critères non discriminatoires), espace salarié. Majoration des heures supplémentaires et durée légale `A_VALIDER` par pays |
+| L8 Packs pays | 🟡 | 16 autres pays : règles générées depuis le référentiel, toutes `A_VALIDER`, paie générique (`PACK_PAYS_INCOMPLET` tant qu'un barème manque) |
+| L9 IA Agent, Cabinet, consolidation | 🟡 | **Espace Cabinet** : portefeuille, missions, temps et honoraires, circuit préparateur → réviseur → associé, dossier d'audit (seuil, risques, programmes ISA, feuilles de travail, anomalies, Benford, écritures inhabituelles, sondage MUS, revue analytique), états depuis une balance avec correspondance mémorisée, documents Word (lettre de mission, confirmations…), **manuel de procédures** (séparation des tâches), **évaluation d'entreprise**, **restructuration** ; **évaluation de projets** (VAN, TRI, TRIM, délais, IP, sensibilité, scénarios, Monte-Carlo, rapport Word) ; **consolidation** (IG, MEE). ⬜ agents IA multi-étapes, liasses en masse |
 
-## Pile imposée — écarts assumés
+## Applications
 
-- Pièces justificatives stockées chiffrées dans PostgreSQL (MinIO/S3 à brancher).
-- Pas encore de Redis/BullMQ (aucune tâche de fond nécessaire à ce stade).
-- Console JUPSER intégrée à `apps/web` (`/console`, réservée au personnel JUPSER) plutôt qu'une application séparée.
-- `apps/desktop` (Tauri) non commencé.
+| Application | État |
+|---|---|
+| `apps/api` | ✅ 70 tests d'acceptation sur PostgreSQL |
+| `apps/web` | ✅ compilation `next build` sans erreur |
+| `apps/desktop` (Tauri 2) | 🟡 projet complet, **non compilé ici** (WebKitGTK absent de l'environnement) ; voir `apps/desktop/README.md` |
+| Console JUPSER | ✅ intégrée à `apps/web` (`/console`, réservée au personnel JUPSER) |
 
-## Points à faire valider (TODO)
+## Écarts assumés par rapport à la pile cible
 
-- `TODO(fiscaliste)` : tous les paramètres de `data/paie_rdc_2026.json` (grille INPP, déductibilité CNSS, ordre réduction/plafond/minimum, SMIG), échéance TVA.
-- `TODO(expert-comptable)` : rattachements du bilan et du TFT, comptes INPP/ONEM, durée du premier exercice. L'Acte uniforme et le guide d'application n'étaient pas dans l'archive reçue (seul le plan de comptes extrait) : à joindre pour la relecture page par page.
+- Redis/BullMQ non utilisé : aucune tâche de fond longue à ce stade (les traitements sont synchrones et courts).
+- Console JUPSER intégrée à l'application web plutôt qu'une application séparée (même contrôle `@JupserStaff`).
+- Pièces chiffrées en base par défaut ; S3/MinIO activé par `S3_ENDPOINT`.
+
+## Points à faire valider
+
+- `TODO(fiscaliste)` : tous les taux et barèmes des 17 packs (`A_VALIDER`), majoration des heures supplémentaires, durée légale du travail.
+- `TODO(DGI)` : spécification de l'API e-MCF (chemins, champs, groupes de taxation) pour la facture normalisée RDC.
+- `TODO(expert-comptable)` : rattachements bilan/TFT, notes annexes, programmes d'audit et seuils (référentiel ISA), modèles de manuel de procédures.
+- `TODO(JUPSER)` : contrats CinetPay/Flutterwave (points d'accès définitifs), flux de cours de la BCC, clés de licence de production, adresse de production de l'application de bureau.
+- Le guide d'application du SYSCOHADA n'a pas pu être exploité : le dépôt `jupser-compta-guide-d-application` ne contient qu'un README.
