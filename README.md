@@ -68,8 +68,8 @@ JUPSER IA fonctionne hors ligne par défaut ; renseigner `ANTHROPIC_API_KEY` dan
 pnpm turbo run test
 ```
 
-- 184 tests unitaires des packages métier (couverture ≥ 90 % imposée).
-- 79 tests d'acceptation API sur PostgreSQL réel (base `jupiter_test`) : isolation RLS, immuabilité, numérotation sans trou, 2FA, CSRF, clôture, facture normalisée, ERP (stocks, achats, production, CRM, RH), cabinet (revue, audit, états depuis balance, documents Word), projets d'investissement, comptabilité analytique (collecte, concordance, classe 9, quatre yeux), paiement avec revérification du prestataire, licences, postes enrôlés à requêtes signées, SSO OIDC, OCR, cours de change.
+- 213 tests unitaires (dont les exemples chiffrés du guide d'application du SYSCOHADA révisé) des packages métier (couverture ≥ 90 % imposée).
+- 86 tests d'acceptation API sur PostgreSQL réel (base `jupiter_test`) : isolation RLS, immuabilité, numérotation sans trou, 2FA, CSRF, clôture, facture normalisée, ERP (stocks, achats, production, CRM, RH), cabinet (revue, audit, états depuis balance, documents Word), projets d'investissement, comptabilité analytique (collecte, concordance, classe 9, quatre yeux), paiement avec revérification du prestataire, licences, postes enrôlés à requêtes signées, SSO OIDC, OCR, cours de change.
 
 ## Avertissements
 

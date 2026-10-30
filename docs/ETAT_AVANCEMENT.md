@@ -1,4 +1,6 @@
-# État d'avancement — version 0.3.0 (30/10/2026)
+# État d'avancement — version 0.4.0 (30/10/2026)
+
+Relecture complète des modules à la lumière du guide d'application du SYSCOHADA révisé : voir [docs/19](19_RELECTURE_GUIDE_APPLICATION.md).
 
 Légende : ✅ développé et couvert par des tests automatisés · 🟡 développé, validation métier ou contrat externe en attente · ⬜ non commencé
 
@@ -15,7 +17,7 @@ La recette de chaque lot (docs/10) exige des validations humaines (fiscaliste, e
 | L4 JUPSER IA v1 | 🟡 | Guide, pièce → écriture `BROUILLON_IA`, **OCR des photos et PDF par vision Claude** (JSON contrôlé, fournisseur reconnu, incohérences signalées), rédaction de courriers. Critère « ≥ 85 % des champs corrects sur 200 pièces » à mesurer sur des pièces réelles |
 | L5 Fiscalité + paie RDC | 🟡 | Règles RDC versionnées `A_VALIDER`, TVA, IS, paie, **facture normalisée DGI** (DEF/e-MCF : client HTTP + simulateur), déclarations sociales (CSV), bulletins. Spécification e-MCF et barèmes à valider (DGI, fiscaliste) |
 | L6 Analyse financière | ✅ | SIG, ratios, TFT, **prévision de trésorerie** 13 semaines / mensuelle, **budget** (alerte ou blocage) |
-| CAGE (docs/18) | 🟡 | **Comptabilité analytique de gestion** interconnectée : collecte automatique (grand-livre avec codes analytiques, stocks, production, ventes, budgets), centres et prestations réciproques, coûts complets, imputation rationnelle, concordance exacte, journal classe 9, coûts partiels, ABC, standards et écarts, budgets ; frais d'atelier des ordres de fabrication au coût de l'UO. Subdivisions de la classe 9 à valider par l'expert-comptable |
+| CAGE (docs/18) | 🟡 | **Comptabilité analytique de gestion** interconnectée : collecte automatique (grand-livre avec codes analytiques, stocks, production, ventes, budgets), centres et prestations réciproques, coûts complets, imputation rationnelle, concordance exacte, journal classe 9, coûts partiels, ABC, standards et écarts, budgets ; frais d'atelier des ordres de fabrication au coût de l'UO. Plan analytique de la classe 9 à 6 chiffres validé par JUPSER le 30/10/2026 |
 | L7 Production et marketing | ✅ | Nomenclatures, ordres de fabrication, coût de revient, stocks CMUP/PEPS en inventaire permanent, achats (quatre yeux), CRM, campagnes avec consentement et désinscription |
 | L7b Documents, collaboration, GED, courrier | ✅ | Devis, proformas, bons de commande et de livraison avec QR, messagerie interne, réunions (PV → tâches), GED (classement, rétention), registre du courrier |
 | L7c Budget, trésorerie, stocks, présence, recrutement | 🟡 | Import des pointages (Fingertec), congés, recrutement (critères non discriminatoires), espace salarié. Majoration des heures supplémentaires et durée légale `A_VALIDER` par pays |
@@ -43,4 +45,4 @@ La recette de chaque lot (docs/10) exige des validations humaines (fiscaliste, e
 - `TODO(DGI)` : spécification de l'API e-MCF (chemins, champs, groupes de taxation) pour la facture normalisée RDC.
 - `TODO(expert-comptable)` : rattachements bilan/TFT, notes annexes, programmes d'audit et seuils (référentiel ISA), modèles de manuel de procédures.
 - `TODO(JUPSER)` : contrats CinetPay/Flutterwave (points d'accès définitifs), flux de cours de la BCC, clés de licence de production, adresse de production de l'application de bureau.
-- Le guide d'application du SYSCOHADA (437 pages) et les ouvrages de comptabilité analytique ont été exploités pour le module CAGE ; une relecture complète des autres modules à la lumière du guide reste à faire.
+- Le guide d'application du SYSCOHADA (437 pages) a servi à la relecture de tous les modules (docs/19) ; les applications non couvertes y sont listées.
