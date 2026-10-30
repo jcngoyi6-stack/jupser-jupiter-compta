@@ -5,3 +5,6 @@ export * from './securities';
 export * from './receivables';
 export * from './equity';
 export * from './grants';
+export * from './bonds';
+export * from './pensions';
+export * from './hedging';
