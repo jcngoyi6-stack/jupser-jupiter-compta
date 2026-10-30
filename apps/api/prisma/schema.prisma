@@ -1,0 +1,417 @@
+// Jupiter Compta — modèle de données (docs/03).
+// Montants : BigInt en unités mineures de la devise (CLAUDE.md, invariant 5).
+// Toute table métier porte tenant_id et est protégée par RLS (migration SQL).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TenantType {
+  ENTREPRISE
+  CABINET
+}
+
+enum AccountingSystem {
+  NORMAL
+  SMT
+}
+
+enum EntryStatus {
+  BROUILLON
+  BROUILLON_IA
+  VALIDE
+  CONTREPASSE
+}
+
+enum PeriodStatus {
+  OUVERTE
+  CLOTUREE
+}
+
+enum RuleStatus {
+  A_VALIDER
+  VALIDE
+}
+
+model Tenant {
+  id           String     @id @default(uuid()) @db.Uuid
+  name         String
+  type         TenantType @default(ENTREPRISE)
+  edition      String     @default("ESSENTIEL")
+  modules      String[]
+  maxUsers     Int        @default(5) @map("max_users")
+  maxCompanies Int        @default(1) @map("max_companies")
+  aiCredits    Int        @default(100) @map("ai_credits")
+  subStatus    String     @default("ESSAI") @map("sub_status")
+  trialEndsAt  DateTime?  @map("trial_ends_at") @db.Date
+  paidUntil    DateTime?  @map("paid_until") @db.Date
+  createdAt    DateTime   @default(now()) @map("created_at")
+  memberships  Membership[]
+  companies    Company[]
+
+  @@map("tenant")
+}
+
+model User {
+  id             String    @id @default(uuid()) @db.Uuid
+  email          String    @unique
+  fullName       String    @map("full_name")
+  passwordHash   String    @map("password_hash")
+  mfaSecretEnc   String?   @map("mfa_secret_enc")
+  mfaEnabled     Boolean   @default(false) @map("mfa_enabled")
+  failedLogins   Int       @default(0) @map("failed_logins")
+  lockedUntil    DateTime? @map("locked_until")
+  isJupserStaff  Boolean   @default(false) @map("is_jupser_staff")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  memberships    Membership[]
+
+  @@map("app_user")
+}
+
+model Membership {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  roles      String[]
+  companyIds String[] @map("company_ids") // vide = toutes les sociétés du locataire
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([tenantId, userId])
+  @@map("membership")
+}
+
+model Company {
+  id              String           @id @default(uuid()) @db.Uuid
+  tenantId        String           @map("tenant_id") @db.Uuid
+  name            String
+  legalForm       String           @map("legal_form")
+  country         String
+  currency        String
+  system          AccountingSystem @default(NORMAL)
+  rccm            String?
+  taxId           String?          @map("tax_id")
+  nationalId      String?          @map("national_id")
+  employerNo      String?          @map("employer_no")
+  address         String?
+  sector          String?
+  activity        String           @default("SERVICES")
+  shareCapital    BigInt           @default(0) @map("share_capital")
+  headcount       Int              @default(1)
+  attachmentThreshold BigInt?      @map("attachment_threshold")
+  fourEyesThreshold   BigInt?      @map("four_eyes_threshold")
+  docSequences        Json         @default("{}") @map("doc_sequences")
+  logoDataUrl     String?          @map("logo_data_url")
+  systemDecision  Json?            @map("system_decision")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  fiscalYears     FiscalYear[]
+  accounts        Account[]
+  journals        Journal[]
+
+  @@map("company")
+}
+
+model FiscalYear {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  label     String
+  startDate String   @map("start_date")
+  endDate   String   @map("end_date")
+  closed    Boolean  @default(false)
+  closedAt  DateTime? @map("closed_at")
+  company   Company  @relation(fields: [companyId], references: [id])
+  periods   Period[]
+
+  @@unique([companyId, label])
+  @@map("fiscal_year")
+}
+
+model Period {
+  id           String       @id @default(uuid()) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  fiscalYearId String       @map("fiscal_year_id") @db.Uuid
+  label        String
+  startDate    String       @map("start_date")
+  endDate      String       @map("end_date")
+  status       PeriodStatus @default(OUVERTE)
+  fiscalYear   FiscalYear   @relation(fields: [fiscalYearId], references: [id])
+
+  @@map("period")
+}
+
+model Account {
+  id            String  @id @default(uuid()) @db.Uuid
+  tenantId      String  @map("tenant_id") @db.Uuid
+  companyId     String  @map("company_id") @db.Uuid
+  number        String
+  official      String
+  label         String
+  usageLabel    String? @map("usage_label")
+  class         Int
+  parent        String?
+  imputable     Boolean
+  active        Boolean @default(true)
+  collective    Boolean @default(false)
+  isCustom      Boolean @default(false) @map("is_custom")
+  company       Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, number])
+  @@map("account")
+}
+
+model Journal {
+  id               String  @id @default(uuid()) @db.Uuid
+  tenantId         String  @map("tenant_id") @db.Uuid
+  companyId        String  @map("company_id") @db.Uuid
+  code             String
+  label            String
+  type             String
+  counterpartAccount String? @map("counterpart_account")
+  company          Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@map("journal")
+}
+
+model JournalSequence {
+  tenantId     String @map("tenant_id") @db.Uuid
+  journalId    String @map("journal_id") @db.Uuid
+  fiscalYearId String @map("fiscal_year_id") @db.Uuid
+  last         Int    @default(0)
+
+  @@id([journalId, fiscalYearId])
+  @@map("journal_sequence")
+}
+
+model ThirdParty {
+  id        String  @id @default(uuid()) @db.Uuid
+  tenantId  String  @map("tenant_id") @db.Uuid
+  companyId String  @map("company_id") @db.Uuid
+  type      String  // CLIENT, FOURNISSEUR, SALARIE, AUTRE
+  code      String
+  name      String
+  taxId     String? @map("tax_id")
+  phone     String?
+  email     String?
+  country   String  @default("CD")
+  account   String  // compte collectif (6 chiffres)
+
+  @@unique([companyId, code])
+  @@map("third_party")
+}
+
+model Entry {
+  id           String      @id @default(uuid()) @db.Uuid
+  tenantId     String      @map("tenant_id") @db.Uuid
+  companyId    String      @map("company_id") @db.Uuid
+  fiscalYearId String      @map("fiscal_year_id") @db.Uuid
+  journalId    String      @map("journal_id") @db.Uuid
+  seq          Int?
+  number       String?
+  date         String
+  pieceRef     String      @map("piece_ref")
+  pieceDate    String?     @map("piece_date")
+  label        String
+  status       EntryStatus @default(BROUILLON)
+  origin       String      @default("MANUEL")
+  hash         String?
+  prevHash     String?     @map("prev_hash")
+  reversalOfId String?     @map("reversal_of_id") @db.Uuid
+  reversedById String?     @map("reversed_by_id") @db.Uuid
+  createdBy    String      @map("created_by") @db.Uuid
+  validatedBy  String?     @map("validated_by") @db.Uuid
+  validatedAt  DateTime?   @map("validated_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  lines        EntryLine[]
+  attachments  Attachment[]
+
+  @@unique([journalId, fiscalYearId, seq])
+  @@index([companyId, date])
+  @@map("entry")
+}
+
+model EntryLine {
+  id            String  @id @default(uuid()) @db.Uuid
+  tenantId      String  @map("tenant_id") @db.Uuid
+  entryId       String  @map("entry_id") @db.Uuid
+  lineNo        Int     @map("line_no")
+  account       String
+  thirdPartyId  String? @map("third_party_id") @db.Uuid
+  label         String?
+  debit         BigInt  @default(0)
+  credit        BigInt  @default(0)
+  currency      String?
+  foreignAmount BigInt? @map("foreign_amount")
+  rate          String?
+  rateSource    String? @map("rate_source")
+  rateDate      String? @map("rate_date")
+  vatCode       String? @map("vat_code")
+  analytic      String?
+  letter        String?
+  entry         Entry   @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([account])
+  @@map("entry_line")
+}
+
+model Attachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  entryId   String?  @map("entry_id") @db.Uuid
+  fileName  String   @map("file_name")
+  mimeType  String   @map("mime_type")
+  sha256    String
+  dataEnc   String   @map("data_enc") // contenu chiffré AES-256-GCM (clé du locataire)
+  createdAt DateTime @default(now()) @map("created_at")
+  entry     Entry?   @relation(fields: [entryId], references: [id])
+
+  @@map("attachment")
+}
+
+model FxRate {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  currency String
+  quote    String
+  rate     String
+  date     String
+  source   String
+  type     String
+
+  @@map("fx_rate")
+}
+
+model TaxRule {
+  id            String     @id @default(uuid()) @db.Uuid
+  country       String
+  tax           String
+  param         String
+  value         Json
+  effectiveFrom String     @map("effective_from")
+  effectiveTo   String?    @map("effective_to")
+  status        RuleStatus @default(A_VALIDER)
+  legalRef      String     @map("legal_ref")
+  validatedBy   String?    @map("validated_by")
+  validatedAt   DateTime?  @map("validated_at")
+
+  @@map("tax_rule")
+}
+
+model Employee {
+  id            String  @id @default(uuid()) @db.Uuid
+  tenantId      String  @map("tenant_id") @db.Uuid
+  companyId     String  @map("company_id") @db.Uuid
+  matricule     String
+  fullName      String  @map("full_name")
+  position      String?
+  hireDate      String  @map("hire_date")
+  currency      String  @default("USD")
+  salaryEnc     String  @map("salary_enc") // éléments de paie chiffrés (AES-256-GCM)
+  dependents    Int     @default(0)
+  active        Boolean @default(true)
+  thirdPartyId  String  @map("third_party_id") @db.Uuid
+
+  @@unique([companyId, matricule])
+  @@map("employee")
+}
+
+model PayrollRun {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  period    String
+  payDate   String   @map("pay_date")
+  fxRate    String?  @map("fx_rate")
+  status    String   @default("CALCULEE")
+  resultEnc String   @map("result_enc")
+  entryId   String?  @map("entry_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([companyId, period])
+  @@map("payroll_run")
+}
+
+model SalesDocument {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  type        String   // FACTURE, AVOIR, DEVIS, RECU
+  number      String
+  date        String
+  thirdPartyId String  @map("third_party_id") @db.Uuid
+  lines       Json
+  totalNet    BigInt   @map("total_net")
+  totalVat    BigInt   @map("total_vat")
+  totalGross  BigInt   @map("total_gross")
+  currency    String
+  status      String   @default("EMISE") // EMISE, ANNULEE
+  hash        String   @unique
+  cancelledById String? @map("cancelled_by_id") @db.Uuid
+  entryId     String?  @map("entry_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([companyId, type, number])
+  @@map("sales_document")
+}
+
+model AiAction {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  companyId  String?  @map("company_id") @db.Uuid
+  tool       String
+  params     Json
+  result     Json?
+  status     String   @default("PROPOSE")
+  userId     String   @map("user_id") @db.Uuid
+  decidedBy  String?  @map("decided_by") @db.Uuid
+  decidedAt  DateTime? @map("decided_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("ai_action")
+}
+
+model Payment {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  provider    String
+  method      String
+  amountCents BigInt   @map("amount_cents")
+  months      Int
+  status      String   @default("EN_ATTENTE")
+  externalRef String   @unique @map("external_ref")
+  createdAt   DateTime @default(now()) @map("created_at")
+  paidAt      DateTime? @map("paid_at")
+
+  @@map("payment")
+}
+
+model AuditLog {
+  id       String   @id @default(uuid()) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  seq      Int
+  at       String
+  actor    String
+  action   String
+  object   String
+  payload  Json
+  prevHash String   @map("prev_hash")
+  hash     String
+
+  @@unique([tenantId, seq])
+  @@map("audit_log")
+}
+
+model TenantKey {
+  tenantId   String @id @map("tenant_id") @db.Uuid
+  wrappedKey String @map("wrapped_key") // clé de données enveloppée par la clé maîtresse
+
+  @@map("tenant_key")
+}
