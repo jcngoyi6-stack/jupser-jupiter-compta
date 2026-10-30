@@ -26,16 +26,17 @@ Méthode : pour chaque application du guide correspondant à une fonction du log
 | Consolidation | 132, 133, 134 | L'écart d'acquisition absorbait les réserves acquises depuis l'entrée dans le périmètre (−1 800 000 au lieu de réserves consolidées de +1 800 000) ; quote-part de mise en équivalence passée en 776 ; intégration proportionnelle absente | **Corrigé** : capitaux propres à la date d'acquisition, réserves consolidées, intérêts minoritaires, intégration proportionnelle, ligne « quote-part dans les résultats des entités mises en équivalence » ; chiffres du guide retrouvés (part du groupe 132 475 000) |
 | Comptabilité analytique | — | Plan de la classe 9 à 6 chiffres | **Validé par JUPSER le 30/10/2026** |
 
-## 2. Applications non encore couvertes par le logiciel
+## 2. Applications désormais couvertes (version 0.5.0)
 
-Ces opérations se saisissent aujourd'hui en écritures manuelles avec les comptes du guide ; elles pourraient faire l'objet d'assistants dédiés :
+Les applications qui se saisissaient en écritures manuelles sont servies par le paquet `special-ops` et l'écran
+**Opérations spécifiques** (écritures proposées en brouillon) : location (37, 38), réserve de propriété (39, 40),
+immeubles (41 à 43), titres (48 à 51), créances (55 à 57), capital (58 à 64), subventions (66 à 70), emprunts
+obligataires (78 à 80), retraites (81 à 83), change (88 à 91), contrats pluri-exercices et abonnement (92 à 94),
+concessions, GIE, intérim (95 à 98), réévaluation (99, 100), engagements et tiers (102 à 105), opérations en commun et
+établissements (106 à 112), pluri-monétaire et agriculture (113 à 115), fusions (116 à 120), liquidation (122),
+première application (123 à 126), consolidation avancée (128 à 130, 135 à 138). Détail : [docs/20](20_OPERATIONS_SPECIFIQUES.md).
 
-- contrats de location (37, 38), réserve de propriété (39, 40), immeubles de placement (41), constructions sur sol d'autrui et rentes viagères (42, 43) ;
-- portefeuille titres (48 à 51), abandons de créances, affacturage, titrisation (55 à 57) ;
-- opérations sur le capital (58 à 64), subventions d'investissement et leur reprise au rythme de l'amortissement (66 à 70) ;
-- emprunts obligataires (78 à 80), engagements de retraite (81 à 83), couvertures de change (89 à 91), position globale de change (88) ;
-- contrats pluri-exercices (92, 93), concessions de service public (95), GIE (96, 97), réévaluation (99, 100), opérations en commun et établissements (106 à 111), comptabilité pluri-monétaire (113, 114), fusions (116 à 120), liquidation (122), première application (123 à 126) ;
-- consolidation : écarts d'évaluation et badwill (135 à 137), conversion par la méthode du cours historique (138), variations de périmètre (141), comptes combinés (142).
+Restent : entité ad hoc (131), variations de pourcentage d'intérêt (141), comptes combinés (142).
 
 ## 3. Points à trancher par l'expert-comptable
 

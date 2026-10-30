@@ -16,6 +16,7 @@ Monorepo pnpm + Turborepo, TypeScript strict. Le dossier de conception d'origine
 | `packages/einvoice` | Facture normalisée RDC : validation, groupes de taxation, client e-MCF (DEF) et simulateur |
 | `packages/operations` | Stocks (CMUP/PEPS), production (nomenclatures, coût de revient), RH (pointage, recrutement non discriminatoire), marketing (RFM, consentement) |
 | `packages/advisory` | Cabinet : VAN, TRI, TRIM, délais, Monte-Carlo, sensibilité ; évaluation d'entreprise ; audit (seuil, Benford, écritures inhabituelles, sondage MUS) ; circuit de revue ; manuel de procédures |
+| `packages/special-ops` | Opérations spécifiques du guide d'application (docs/20) : location-acquisition, titres, capital, subventions, emprunts obligataires, retraites, change, contrats, réévaluation, fusions, liquidation, première application, consolidation avancée |
 | `packages/cost-accounting` | Comptabilité analytique de gestion (docs/18) : charges incorporables, centres et prestations réciproques, coûts complets, coûts partiels, imputation rationnelle, ABC, coûts standards et écarts, budgets, journal en classe 9 |
 | `packages/connectors` | Ports et adaptateurs : paiement (CinetPay, Flutterwave, simulateur), cours de change (BCC, parités fixes, secours), OIDC (PKCE, id_token) |
 | `apps/api` | API NestJS + Prisma 7 + PostgreSQL 16 (RLS, triggers d'immuabilité), OpenAPI sur `/api/docs` |

@@ -12,19 +12,19 @@ const VAT = 0.18; // taux théorique de l'exemple du guide, fourni en paramètre
 
 describe('applications 92 et 93 : contrats pluri-exercices', () => {
   it('contrat bénéficiaire à l’avancement : CA 555 M, résultat 105 M', () => {
-    const r = contractAtClosing({ price: 925n * M, estimatedCost: 750n * M, costToDate: 450n * M, reliable: true, vatRate: VAT, closingDate: '2026-12-31' });
+    const r = contractAtClosing({ price: 925n * M, estimatedCost: 750n * M, costIncurred: 450n * M, reliable: true, vatRate: VAT, closingDate: '2026-12-31' });
     expect(amt(r, 0)).toEqual([['418100', 654_900_000n], ['705100', -555n * M], ['443500', -99_900_000n]]);
     expect(r.entries[1]!.date).toBe('2027-01-01');
     expect(r.values).toMatchObject({ progress: 0.6, resultToDate: 105n * M, provision: 0n });
     expect(amt(contractCompletion({ price: 925n * M, vatRate: VAT, date: '2027-10-30' }), 0)).toEqual([['411100', 1_091_500_000n], ['705100', -925n * M], ['443300', -166_500_000n]]);
   });
   it('méthode à l’achèvement : CA limité aux coûts (450 M)', () => {
-    const r = contractAtClosing({ price: 925n * M, estimatedCost: 750n * M, costToDate: 450n * M, reliable: false, vatRate: VAT, closingDate: '2026-12-31' });
+    const r = contractAtClosing({ price: 925n * M, estimatedCost: 750n * M, costIncurred: 450n * M, reliable: false, vatRate: VAT, closingDate: '2026-12-31' });
     expect(amt(r, 0)).toEqual([['418100', 531n * M], ['705100', -450n * M], ['443500', -81n * M]]);
-    expect(contractAtClosing({ price: 1n, estimatedCost: 0n, costToDate: 5n, reliable: false, vatRate: 0, closingDate: '2026-12-31' }).values!.revenue).toBe(1n);
+    expect(contractAtClosing({ price: 1n, estimatedCost: 0n, costIncurred: 5n, reliable: false, vatRate: 0, closingDate: '2026-12-31' }).values!.revenue).toBe(1n);
   });
   it('contrat déficitaire : CA 57,6 M, provision 2,6 M, reprise à la livraison', () => {
-    const r = contractAtClosing({ price: 120n * M, estimatedCost: 125n * M, costToDate: 60n * M, reliable: true, vatRate: VAT, closingDate: '2025-12-31' });
+    const r = contractAtClosing({ price: 120n * M, estimatedCost: 125n * M, costIncurred: 60n * M, reliable: true, vatRate: VAT, closingDate: '2025-12-31' });
     expect(amt(r, 0)).toEqual([['418100', 67_968_000n], ['705100', -57_600_000n], ['443500', -10_368_000n]]);
     expect(amt(r, 2)).toEqual([['691100', 2_600_000n], ['193000', -2_600_000n]]);
     expect(r.values!.resultToDate).toBe(-5n * M);
@@ -136,7 +136,7 @@ describe('applications 102 à 105 : engagements, événements postérieurs, tier
   });
   it('tous les comptes utilisés existent et sont imputables', () => {
     expect(unknownAccounts([
-      contractAtClosing({ price: 120n, estimatedCost: 125n, costToDate: 60n, reliable: true, vatRate: VAT, closingDate: '2025-12-31' }),
+      contractAtClosing({ price: 120n, estimatedCost: 125n, costIncurred: 60n, reliable: true, vatRate: VAT, closingDate: '2025-12-31' }),
       contractCompletion({ price: 1n, vatRate: VAT, date: 'x', provision: 1n }),
       subscriptionCharges({ annualForecast: 1_200n, year: 2026, product: true, invoices: [{ month: 1, amount: 100n, coveredMonths: 1 }] }),
       subscriptionCharges({ annualForecast: 1_200n, year: 2026, invoices: [{ month: 1, amount: 100n, coveredMonths: 1 }] }),

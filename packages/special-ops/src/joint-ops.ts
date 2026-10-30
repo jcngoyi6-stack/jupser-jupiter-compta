@@ -3,9 +3,7 @@
  * applications 106 à 112). Les écritures chez l'autre partie (non-gérant, succursale, franchiseur) sont rendues
  * dans `counterpartEntries`.
  */
-import { C, D, entry, pct, type OpEntry, type OpLine, type OpResult } from './core';
-
-export interface AccountAmount { account: string; amount: bigint }
+import { C, D, entry, pct, type OpEntry, type OpLine, type AccountAmount, type OpResult } from './core';
 
 /**
  * Société en participation (applications 106 et 107) : solde des comptes de gestion de la participation par le

@@ -16,3 +16,4 @@ export * from './joint-ops';
 export * from './misc-ops';
 export * from './transition';
 export * from './group';
+export * from './catalogue';

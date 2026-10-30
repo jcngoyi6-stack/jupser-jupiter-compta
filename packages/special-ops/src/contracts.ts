@@ -17,11 +17,11 @@ const nextDay = (iso: string) => {
  * contrepassées à l'ouverture ; perte à terminaison provisionnée pour la part non encore réalisée (6911 / 193).
  */
 export function contractAtClosing(p: {
-  price: bigint; estimatedCost: bigint; costToDate: bigint; reliable: boolean; vatRate: number; closingDate: string;
+  price: bigint; estimatedCost: bigint; costIncurred: bigint; reliable: boolean; vatRate: number; closingDate: string;
   revenueRecognisedBefore?: bigint; revenueAccount?: string;
 }): OpResult {
-  const progress = p.estimatedCost === 0n ? 0 : Number(p.costToDate) / Number(p.estimatedCost);
-  const cumulative = p.reliable ? ratio(p.price, p.costToDate, p.estimatedCost) : (p.costToDate < p.price ? p.costToDate : p.price);
+  const progress = p.estimatedCost === 0n ? 0 : Number(p.costIncurred) / Number(p.estimatedCost);
+  const cumulative = p.reliable ? ratio(p.price, p.costIncurred, p.estimatedCost) : (p.costIncurred < p.price ? p.costIncurred : p.price);
   const revenue = cumulative - (p.revenueRecognisedBefore ?? 0n);
   const vat = pct(revenue, p.vatRate);
   const acc = p.revenueAccount ?? '705100';
@@ -30,9 +30,9 @@ export function contractAtClosing(p: {
     entry('Contrepassation du chiffre d’affaires à l’avancement', [D(acc, revenue), D('443500', vat), C('418100', revenue + vat)], nextDay(p.closingDate)),
   ];
   const lossAtCompletion = p.estimatedCost > p.price ? p.estimatedCost - p.price : 0n;
-  const provision = lossAtCompletion - ratio(lossAtCompletion, p.costToDate, p.estimatedCost);
+  const provision = lossAtCompletion - ratio(lossAtCompletion, p.costIncurred, p.estimatedCost);
   if (provision > 0n) entries.push(entry('Provision pour pertes sur marchés à achèvement futur', [D('691100', provision), C('193000', provision)], p.closingDate));
-  return { entries, values: { progress, revenue, resultToDate: cumulative - p.costToDate - provision, provision, resultAtCompletion: p.price - p.estimatedCost } };
+  return { entries, values: { progress, revenue, resultToDate: cumulative - p.costIncurred - provision, provision, resultAtCompletion: p.price - p.estimatedCost } };
 }
 
 /** Facturation à la livraison de l'ouvrage, reprise de la provision pour pertes à terminaison. */

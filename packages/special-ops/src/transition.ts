@@ -3,9 +3,7 @@
  * Les comptes de l'ancien plan à solder (201X frais d'établissement, 206 primes de remboursement, 352…) sont des
  * paramètres : ils doivent exister dans le plan de reprise du dossier (balance d'ouverture migrée).
  */
-import { C, D, entry, ratio, type OpEntry, type OpResult } from './core';
-
-export interface AccountAmount { account: string; amount: bigint }
+import { C, D, entry, ratio, type OpEntry, type AccountAmount, type OpResult } from './core';
 
 /**
  * Frais d'établissement (application 123, opération 1) : solde viré en 4751 au bilan d'ouverture puis repris par

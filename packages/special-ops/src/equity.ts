@@ -3,9 +3,7 @@
  * fractionnée, augmentations et réductions de capital, amortissement du capital.
  * L'affectation du résultat (application 65) est servie par le module de clôture (ledger/closing).
  */
-import { C, D, entry, type OpLine, type OpResult } from './core';
-
-export interface AccountAmount { account: string; amount: bigint }
+import { C, D, entry, type OpLine, type AccountAmount, type OpResult } from './core';
 
 /**
  * Constitution avec libération intégrale (application 58) : promesses (461x / 1011), exigibilité (4613),

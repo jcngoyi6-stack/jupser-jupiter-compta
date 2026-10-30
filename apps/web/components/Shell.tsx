@@ -18,6 +18,7 @@ const MENU: { title: string; items: Item[] }[] = [
       { href: '/saisie', label: t('nav.entry'), roles: [...COMPTA, 'CAISSIER'], module: 'COMPTABILITE', needsCompany: true },
       { href: '/ecritures', label: t('nav.entries'), roles: [...COMPTA, 'CAISSIER', 'PAIE', 'DIRECTION'], module: 'COMPTABILITE', needsCompany: true },
       { href: '/plan-comptable', label: t('nav.chart'), roles: COMPTA, module: 'COMPTABILITE', needsCompany: true },
+      { href: '/operations-specifiques', label: 'Opérations spécifiques', roles: ['CHEF_COMPTABLE', 'COMPTABLE', 'EXPERT_EXTERNE', 'AUDITEUR'], module: 'COMPTABILITE', needsCompany: true },
       { href: '/tiers', label: t('nav.thirdParties'), roles: [...COMPTA, 'COMMERCIAL', 'CAISSIER'], module: 'COMPTABILITE', needsCompany: true },
       { href: '/livres', label: t('nav.books'), roles: [...COMPTA, 'DIRECTION'], module: 'COMPTABILITE', needsCompany: true },
       { href: '/etats', label: t('nav.statements'), roles: [...COMPTA, 'DIRECTION'], module: 'ETATS_FINANCIERS', needsCompany: true },

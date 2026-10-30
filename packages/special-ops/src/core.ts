@@ -14,6 +14,8 @@ export interface OpResult<S = unknown> {
   values?: Record<string, bigint | number | string | null>;
 }
 
+export interface AccountAmount { account: string; amount: bigint }
+
 export const D = (account: string, amount: bigint, label?: string): OpLine => ({ account, debit: amount, credit: 0n, ...(label ? { label } : {}) });
 export const C = (account: string, amount: bigint, label?: string): OpLine => ({ account, debit: 0n, credit: amount, ...(label ? { label } : {}) });
 

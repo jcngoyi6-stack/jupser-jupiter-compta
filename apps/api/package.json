@@ -25,6 +25,7 @@
     "@jupiter/licensing": "workspace:*",
     "@jupiter/operations": "workspace:*",
     "@jupiter/payroll": "workspace:*",
+    "@jupiter/special-ops": "workspace:*",
     "@jupiter/statements": "workspace:*",
     "@jupiter/tax-engine": "workspace:*",
     "@nestjs/common": "11.2.8",

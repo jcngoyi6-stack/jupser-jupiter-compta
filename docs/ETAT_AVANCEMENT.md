@@ -1,6 +1,8 @@
-# État d'avancement — version 0.4.0 (30/10/2026)
+# État d'avancement — version 0.5.0 (30/10/2026)
 
 Relecture complète des modules à la lumière du guide d'application du SYSCOHADA révisé : voir [docs/19](19_RELECTURE_GUIDE_APPLICATION.md).
+
+**0.5.0** : opérations spécifiques du guide (location-acquisition, titres, capital, subventions, emprunts obligataires, retraites, couvertures de change, contrats pluri-exercices, réévaluation, fusions, liquidation, première application, consolidation avancée) — paquet `special-ops`, API et écran dédiés : voir [docs/20](20_OPERATIONS_SPECIFIQUES.md).
 
 Légende : ✅ développé et couvert par des tests automatisés · 🟡 développé, validation métier ou contrat externe en attente · ⬜ non commencé
 
@@ -16,6 +18,7 @@ La recette de chaque lot (docs/10) exige des validations humaines (fiscaliste, e
 | L3 Licences et paiements | 🟡 | Éditions, modules, quotas, lecture seule J+15, suspension J+60, **CinetPay et Flutterwave** (statut toujours revérifié auprès du prestataire, montant contrôlé), **licences hors ligne Ed25519** (console JUPSER, vérification en ligne, révocation, tolérance 30 jours). Contrats prestataires à signer ; factures JUPSER à brancher sur le module de facturation |
 | L4 JUPSER IA v1 | 🟡 | Guide, pièce → écriture `BROUILLON_IA`, **OCR des photos et PDF par vision Claude** (JSON contrôlé, fournisseur reconnu, incohérences signalées), rédaction de courriers. Critère « ≥ 85 % des champs corrects sur 200 pièces » à mesurer sur des pièces réelles |
 | L5 Fiscalité + paie RDC | 🟡 | Règles RDC versionnées `A_VALIDER`, TVA, IS, paie, **facture normalisée DGI** (DEF/e-MCF : client HTTP + simulateur), déclarations sociales (CSV), bulletins. Spécification e-MCF et barèmes à valider (DGI, fiscaliste) |
+| Opérations spécifiques (docs/20) | 🟡 | 63 opérations du guide d'application (applications 37 à 138), écritures proposées en brouillon, échéanciers, écritures chez l'autre partie ; exemples du guide en tests. Choix de comptes listés en docs/20 à valider par l'expert-comptable |
 | L6 Analyse financière | ✅ | SIG, ratios, TFT, **prévision de trésorerie** 13 semaines / mensuelle, **budget** (alerte ou blocage) |
 | CAGE (docs/18) | 🟡 | **Comptabilité analytique de gestion** interconnectée : collecte automatique (grand-livre avec codes analytiques, stocks, production, ventes, budgets), centres et prestations réciproques, coûts complets, imputation rationnelle, concordance exacte, journal classe 9, coûts partiels, ABC, standards et écarts, budgets ; frais d'atelier des ordres de fabrication au coût de l'UO. Plan analytique de la classe 9 à 6 chiffres validé par JUPSER le 30/10/2026 |
 | L7 Production et marketing | ✅ | Nomenclatures, ordres de fabrication, coût de revient, stocks CMUP/PEPS en inventaire permanent, achats (quatre yeux), CRM, campagnes avec consentement et désinscription |

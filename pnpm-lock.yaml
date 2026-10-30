@@ -62,6 +62,9 @@ importers:
       '@jupiter/payroll':
         specifier: workspace:*
         version: link:../../packages/payroll
+      '@jupiter/special-ops':
+        specifier: workspace:*
+        version: link:../../packages/special-ops
       '@jupiter/statements':
         specifier: workspace:*
         version: link:../../packages/statements
