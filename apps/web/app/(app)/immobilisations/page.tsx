@@ -6,19 +6,20 @@ import { Alert, Money, PageTitle } from '@/components/ui';
 import { api, errorText } from '@/lib/api';
 import { date, today } from '@/lib/format';
 
-interface Comp { label: string; cost: string; method: string; years: string; degressiveCoefficient: string }
+interface Comp { label: string; cost: string; residualValue: string; method: string; years: string; degressiveCoefficient: string; fiscalMethod: string; fiscalYears: string; fiscalCoefficient: string }
+const newComp = (label = ''): Comp => ({ label, cost: '', residualValue: '', method: 'LINEAIRE', years: '5', degressiveCoefficient: '', fiscalMethod: '', fiscalYears: '', fiscalCoefficient: '' });
 
 export default function Immobilisations() {
   const { company, dec, can } = useSession();
   const qc = useQueryClient();
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error' | 'warn'; text: string } | null>(null);
   const [f, setF] = useState({ code: '', label: '', account: '244400', acquisitionDate: today(), inServiceDate: today() });
-  const [comps, setComps] = useState<Comp[]>([{ label: 'Principal', cost: '', method: 'LINEAIRE', years: '5', degressiveCoefficient: '' }]);
+  const [comps, setComps] = useState<Comp[]>([newComp('Principal')]);
   const [open, setOpen] = useState<string | null>(null);
   const q = useQuery({ queryKey: ['assets', company?.id], queryFn: () => api<any[]>(`/companies/${company!.id}/assets`), enabled: !!company });
   const err = (e: unknown) => setMsg({ kind: 'error', text: errorText(e) });
   const create = useMutation({
-    mutationFn: () => api<any>(`/companies/${company!.id}/assets`, { method: 'POST', body: { ...f, components: comps.map((c) => ({ label: c.label, cost: c.cost, method: c.method, years: Number(c.years), degressiveCoefficient: c.degressiveCoefficient || undefined })) } }),
+    mutationFn: () => api<any>(`/companies/${company!.id}/assets`, { method: 'POST', body: { ...f, components: comps.map((c) => ({ label: c.label, cost: c.cost, residualValue: c.residualValue || undefined, method: c.method, years: Number(c.years), degressiveCoefficient: c.degressiveCoefficient || undefined, fiscal: c.fiscalMethod ? { method: c.fiscalMethod, years: Number(c.fiscalYears || c.years), degressiveCoefficient: c.fiscalCoefficient || undefined } : undefined })) } }),
     onSuccess: (r) => { setMsg({ kind: r.warning ? 'warn' : 'ok', text: r.warning ?? 'Immobilisation enregistrée.' }); qc.invalidateQueries(); },
     onError: err,
   });
@@ -49,19 +50,38 @@ export default function Immobilisations() {
             <input className="input num" placeholder="Compte (2xxxxx)" value={f.account} onChange={(e) => setF({ ...f, account: e.target.value })} />
             <input type="date" className="input" value={f.inServiceDate} onChange={(e) => setF({ ...f, inServiceDate: e.target.value, acquisitionDate: e.target.value })} />
           </div>
-          {comps.map((c, i) => (
-            <div key={i} className="grid grid-cols-2 gap-2 md:grid-cols-6">
-              <input className="input md:col-span-2" placeholder="Composant" value={c.label} onChange={(e) => setComps(comps.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
-              <input className="input" placeholder="Coût" value={c.cost} onChange={(e) => setComps(comps.map((x, j) => (j === i ? { ...x, cost: e.target.value } : x)))} />
-              <select className="input" value={c.method} onChange={(e) => setComps(comps.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))}>
-                <option value="LINEAIRE">Linéaire</option><option value="DEGRESSIF">Dégressif</option><option value="NON_AMORTISSABLE">Non amortissable</option>
-              </select>
-              <input className="input" placeholder="Durée (ans)" value={c.years} onChange={(e) => setComps(comps.map((x, j) => (j === i ? { ...x, years: e.target.value } : x)))} />
-              {c.method === 'DEGRESSIF' && <input className="input" placeholder="Coefficient" value={c.degressiveCoefficient} onChange={(e) => setComps(comps.map((x, j) => (j === i ? { ...x, degressiveCoefficient: e.target.value } : x)))} />}
-            </div>
-          ))}
+          {comps.map((c, i) => {
+            const set = (patch: Partial<Comp>) => setComps(comps.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+            return (
+              <div key={i} className="space-y-2 rounded border border-slate-200 p-2">
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
+                  <input className="input md:col-span-2" placeholder="Composant" value={c.label} onChange={(e) => set({ label: e.target.value })} />
+                  <input className="input" placeholder="Coût" value={c.cost} onChange={(e) => set({ cost: e.target.value })} />
+                  <input className="input" placeholder="Valeur résiduelle" value={c.residualValue} onChange={(e) => set({ residualValue: e.target.value })} />
+                  <select className="input" value={c.method} onChange={(e) => set({ method: e.target.value })}>
+                    <option value="LINEAIRE">Linéaire</option>
+                    <option value="DEGRESSIF">Dégressif à taux décroissant</option>
+                    <option value="DEGRESSIF_COEFFICIENT">Dégressif à coefficient</option>
+                    <option value="NON_AMORTISSABLE">Non amortissable</option>
+                  </select>
+                  <input className="input" placeholder="Durée (ans)" value={c.years} onChange={(e) => set({ years: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
+                  {c.method === 'DEGRESSIF_COEFFICIENT' && <input className="input" placeholder="Coefficient" value={c.degressiveCoefficient} onChange={(e) => set({ degressiveCoefficient: e.target.value })} />}
+                  <select className="input md:col-span-2" value={c.fiscalMethod} onChange={(e) => set({ fiscalMethod: e.target.value })} title="Plan fiscal (amortissements dérogatoires)">
+                    <option value="">Plan fiscal identique</option>
+                    <option value="LINEAIRE">Plan fiscal linéaire</option>
+                    <option value="DEGRESSIF_COEFFICIENT">Plan fiscal dégressif à coefficient</option>
+                  </select>
+                  {c.fiscalMethod && <input className="input" placeholder="Durée fiscale" value={c.fiscalYears} onChange={(e) => set({ fiscalYears: e.target.value })} />}
+                  {c.fiscalMethod === 'DEGRESSIF_COEFFICIENT' && <input className="input" placeholder="Coefficient fiscal" value={c.fiscalCoefficient} onChange={(e) => set({ fiscalCoefficient: e.target.value })} />}
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-xs text-slate-500">Dégressif à taux décroissant : méthode du guide d’application (application 13). Un plan fiscal différent génère les amortissements dérogatoires (851 / 151 / 861).</p>
           <div className="flex gap-2">
-            <button className="btn-ghost" onClick={() => setComps([...comps, { label: '', cost: '', method: 'LINEAIRE', years: '5', degressiveCoefficient: '' }])}>+ Composant</button>
+            <button className="btn-ghost" onClick={() => setComps([...comps, newComp()])}>+ Composant</button>
             <button className="btn-primary" onClick={() => create.mutate()}>Enregistrer</button>
           </div>
         </div>

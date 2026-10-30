@@ -12,10 +12,10 @@ describe('immobilisations', () => {
     expect(rows.map((r) => r.dotation)).toEqual([1_800_000n, 2_400_000n, 2_400_000n, 2_400_000n, 2_400_000n, 600_000n]);
     expect(rows.at(-1)!.vnc).toBe(0n);
   });
-  it('amortit en dégressif avec bascule en linéaire', () => {
-    const rows = componentSchedule({ label: 'Machine', cost: 1_000_000n, method: 'DEGRESSIF', years: 5, degressiveCoefficient: '2' }, '2026-01-01');
+  it('amortit en dégressif à coefficient (plan fiscal) avec bascule en linéaire', () => {
+    const rows = componentSchedule({ label: 'Machine', cost: 1_000_000n, method: 'DEGRESSIF_COEFFICIENT', years: 5, degressiveCoefficient: '2' }, '2026-01-01');
     expect(rows.map((r) => r.dotation)).toEqual([400_000n, 240_000n, 144_000n, 108_000n, 108_000n]);
-    expect(() => componentSchedule({ label: 'x', cost: 1n, method: 'DEGRESSIF', years: 5 }, '2026-01-01')).toThrow();
+    expect(() => componentSchedule({ label: 'x', cost: 1n, method: 'DEGRESSIF_COEFFICIENT', years: 5 }, '2026-01-01')).toThrow();
   });
   it("amortit par unités d'œuvre et gère les composants non amortissables", () => {
     const rows = componentSchedule({ label: 'Presse', cost: 900n, method: 'UNITES_OEUVRE', years: 0, totalUnits: 90, unitsByYear: { '2026': 30, '2027': 70 } }, '2026-01-01');
@@ -33,7 +33,7 @@ describe('immobilisations', () => {
   };
   it('approche par composants et écriture de dotation équilibrée', () => {
     expect(assetDotationForYear(asset, 2026)).toBe(160_000n + 100_000n);
-    expect(depreciationAccounts('245100')).toEqual({ amort: '284510', dotation: '681300' });
+    expect(depreciationAccounts('245100')).toEqual({ amort: '284500', dotation: '681300' });
     expect(depreciationAccounts('213000').dotation).toBe('681200');
     const lines = dotationLines([asset], 2026);
     expect(balanceGap(lines)).toBe(0n);

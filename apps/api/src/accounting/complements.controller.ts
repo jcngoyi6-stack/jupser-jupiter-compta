@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Header, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
-  budgetReport, componentSchedule, decimalsOf, disposalLines, dotationLines, monthlyForecast, netByAccount, parseBalance, parseBankStatement,
+  budgetReport, componentSchedule, decimalsOf, derogatoryLines, disposalLines, impairmentLines, mirrorAccounts, dotationLines, monthlyForecast, netByAccount, parseBalance, parseBankStatement,
   parseJournal, proposeMatches, reconciliationStatement, suggestMapping, weeklyForecast, addDays,
   type AssetDef, type CashItem,
 } from '@jupiter/ledger';
@@ -40,14 +40,23 @@ export class ComplementsController {
   ) {}
 
   // ================= Immobilisations =================
-  private assetDef(a: { account: string; inServiceDate: string; components: unknown }): AssetDef {
-    const comps = (a.components as { label: string; cost: string; residualValue?: string; method: string; years: number; degressiveCoefficient?: string; totalUnits?: number; unitsByYear?: Record<string, number> }[]).map((c) => ({
+  private async chart(tx: Tx, companyId: string) {
+    return new Set((await tx.account.findMany({ where: { companyId }, select: { number: true } })).map((x) => x.number));
+  }
+
+  private assetDef(a: { account: string; inServiceDate: string; components: unknown }, chart?: ReadonlySet<string>): AssetDef {
+    const comps = (a.components as { label: string; cost: string; residualValue?: string; method: string; years: number; degressiveCoefficient?: string; totalUnits?: number; unitsByYear?: Record<string, number>; fiscal?: AssetDef['components'][number]['fiscal']; valueTests?: { year: number; actualValue: string }[] }[]).map((c) => ({
       ...c,
+      valueTests: c.valueTests?.map((t) => ({ year: t.year, actualValue: BigInt(t.actualValue) })),
       cost: BigInt(c.cost),
       residualValue: c.residualValue ? BigInt(c.residualValue) : 0n,
-      method: c.method as AssetDef['components'][number]['method'],
+      // Fiches antérieures : « DEGRESSIF » avec coefficient désignait le dégressif fiscal à coefficient.
+      method: (c.method === 'DEGRESSIF' && c.degressiveCoefficient ? 'DEGRESSIF_COEFFICIENT' : c.method) as AssetDef['components'][number]['method'],
     }));
-    return { account: a.account, inServiceDate: a.inServiceDate, components: comps };
+    // Comptes 28/29 : compte miroir de l'entité s'il existe dans son plan, sinon compte officiel.
+    const m = mirrorAccounts(a.account);
+    const pick = (cands: string[]) => (chart ? cands.find((c) => chart.has(c)) : undefined);
+    return { account: a.account, inServiceDate: a.inServiceDate, components: comps, amortAccount: pick(m.amort), impairmentAccount: pick(m.impairment) };
   }
 
   @Get('assets')
@@ -79,11 +88,13 @@ export class ComplementsController {
             label: z.string().min(1),
             cost: zAmount(d),
             residualValue: zAmount(d).optional(),
-            method: z.enum(['LINEAIRE', 'DEGRESSIF', 'UNITES_OEUVRE', 'NON_AMORTISSABLE']),
+            method: z.enum(['LINEAIRE', 'DEGRESSIF', 'DEGRESSIF_COEFFICIENT', 'UNITES_OEUVRE', 'NON_AMORTISSABLE']),
             years: z.number().int().min(0).max(100),
             degressiveCoefficient: z.string().optional(),
             totalUnits: z.number().positive().optional(),
             unitsByYear: z.record(z.number()).optional(),
+            /** Plan fiscal différent (amortissements dérogatoires, application 18 du guide). */
+            fiscal: z.object({ method: z.enum(['LINEAIRE', 'DEGRESSIF_COEFFICIENT']), years: z.number().int().min(1).max(100), degressiveCoefficient: z.string().optional() }).optional(),
           })).min(1),
         }),
         body,
@@ -107,8 +118,10 @@ export class ComplementsController {
     const b = parse(z.object({ year: z.number().int(), date: zDate }), body);
     return this.db.forTenant(u.tenantId, async (tx) => {
       const assets = (await tx.fixedAsset.findMany({ where: { companyId, status: 'EN_SERVICE' } })).filter((a) => !(a.bookedYears as Record<string, string>)[b.year]);
-      const defs = assets.map((a) => this.assetDef(a));
-      const lines = dotationLines(defs, b.year);
+      const chart = await this.chart(tx, companyId);
+      const defs = assets.map((a) => this.assetDef(a, chart));
+      // Dotations (681/28) et amortissements dérogatoires (851/151 ou 151/861).
+      const lines = [...dotationLines(defs, b.year), ...impairmentLines(defs, b.year), ...derogatoryLines(defs, b.year)];
       if (lines.length < 2) throw domainError('AUCUNE_DOTATION', 'Aucune dotation à comptabiliser pour cet exercice.');
       const draft = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `AMORT-${b.year}`, label: `Dotations aux amortissements ${b.year}`, lines });
       for (const a of assets) {
@@ -125,15 +138,70 @@ export class ComplementsController {
   dispose(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('id') id: string, @Body() body: unknown) {
     return this.db.forTenant(u.tenantId, async (tx) => {
       const d = await dec(tx, companyId);
-      const b = parse(z.object({ date: zDate, price: zAmount(d), counterpart: zAccount.optional() }), body);
+      const b = parse(z.object({ date: zDate, price: zAmount(d), counterpart: zAccount.optional(), componentIndex: z.number().int().min(0).optional() }), body);
       const a = await tx.fixedAsset.findFirstOrThrow({ where: { id, companyId } });
       if (a.status !== 'EN_SERVICE') throw domainError('DEJA_CEDEE', 'Immobilisation déjà cédée.');
-      const booked = Object.values(a.bookedYears as Record<string, string>).reduce((s, v) => s + BigInt(v), 0n);
-      const r = disposalLines(this.assetDef(a), b.date, b.price, b.counterpart, booked);
-      const draft = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `CESSION-${a.code}`, label: `Cession ${a.label}`, lines: r.lines });
-      await tx.fixedAsset.update({ where: { id }, data: { status: 'CEDE', disposalDate: b.date, disposalPrice: b.price } });
-      await this.audit.log(tx, u.tenantId, u.userId, 'IMMOBILISATION_CEDEE', `asset:${id}`, { vnc: r.vnc, price: b.price });
+      const def = this.assetDef(a, await this.chart(tx, companyId));
+      const bookedYears = a.bookedYears as Record<string, string>;
+      // Sortie d'un seul composant (renouvellement, application 33 du guide) : l'immobilisation reste en service.
+      const partial = b.componentIndex !== undefined && def.components.length > 1;
+      if (b.componentIndex !== undefined && !def.components[b.componentIndex]) throw domainError('COMPOSANT_INCONNU', 'Composant introuvable.');
+      const booked = partial
+        ? Object.keys(bookedYears).reduce((s, y) => s + (componentSchedule(def.components[b.componentIndex!]!, def.inServiceDate).find((r) => r.year === Number(y))?.dotation ?? 0n), 0n)
+        : Object.values(bookedYears).reduce((s, v) => s + BigInt(v), 0n);
+      const r = disposalLines(def, b.date, b.price, b.counterpart, booked, partial ? b.componentIndex : undefined);
+      const label = partial ? `Sortie du composant « ${def.components[b.componentIndex!]!.label} » — ${a.label}` : `Cession ${a.label}`;
+      const draft = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `CESSION-${a.code}`, label, lines: r.lines });
+      if (partial) {
+        const components = (a.components as unknown[]).filter((_, i) => i !== b.componentIndex);
+        await tx.fixedAsset.update({ where: { id }, data: { components: components as never } });
+      } else {
+        await tx.fixedAsset.update({ where: { id }, data: { status: 'CEDE', disposalDate: b.date, disposalPrice: b.price } });
+      }
+      await this.audit.log(tx, u.tenantId, u.userId, partial ? 'COMPOSANT_SORTI' : 'IMMOBILISATION_CEDEE', `asset:${id}`, { vnc: r.vnc, price: b.price, component: b.componentIndex });
       return { draft, vnc: r.vnc, gainOrLoss: r.gainOrLoss };
+    });
+  }
+
+  /**
+   * Test de dépréciation à la clôture (application 44 du guide) : valeur actuelle estimée d'un composant.
+   * La dépréciation ou la reprise et la révision du plan sont reprises dans l'écriture des dotations.
+   */
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('assets/:id/value-test')
+  valueTest(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('id') id: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({ year: z.number().int(), componentIndex: z.number().int().min(0).default(0), actualValue: zAmount(d) }), body);
+      const a = await tx.fixedAsset.findFirstOrThrow({ where: { id, companyId } });
+      if ((a.bookedYears as Record<string, string>)[b.year]) throw domainError('EXERCICE_DEJA_DOTE', 'Les dotations de cet exercice sont déjà comptabilisées.');
+      const comps = a.components as { method: string; valueTests?: { year: number; actualValue: string }[] }[];
+      const comp = comps[b.componentIndex];
+      if (!comp) throw domainError('COMPOSANT_INCONNU', 'Composant introuvable.');
+      if (comp.method !== 'LINEAIRE') throw domainError('METHODE_NON_GEREE', 'Test de dépréciation disponible pour les composants amortis en linéaire.');
+      comp.valueTests = [...(comp.valueTests ?? []).filter((t) => t.year !== b.year), { year: b.year, actualValue: b.actualValue.toString() }];
+      await this.audit.log(tx, u.tenantId, u.userId, 'TEST_DEPRECIATION', `asset:${id}`, { year: b.year, actualValue: b.actualValue });
+      await tx.fixedAsset.update({ where: { id }, data: { components: comps as never } });
+      const def = this.assetDef({ ...a, components: comps });
+      return { schedule: def.components.map((c) => ({ label: c.label, rows: componentSchedule(c, def.inServiceDate) })) };
+    });
+  }
+
+  /** Ajout d'un composant (renouvellement ou dépense ultérieure immobilisée). */
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('assets/:id/components')
+  addComponent(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Param('id') id: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({
+        label: z.string().min(1), cost: zAmount(d), method: z.enum(['LINEAIRE', 'DEGRESSIF', 'DEGRESSIF_COEFFICIENT', 'UNITES_OEUVRE', 'NON_AMORTISSABLE']),
+        years: z.number().int().min(0).max(100), degressiveCoefficient: z.string().optional(),
+      }), body);
+      const a = await tx.fixedAsset.findFirstOrThrow({ where: { id, companyId } });
+      if (a.status !== 'EN_SERVICE') throw domainError('DEJA_CEDEE', 'Immobilisation cédée.');
+      const components = [...(a.components as unknown[]), { ...b, cost: b.cost.toString() }];
+      await this.audit.log(tx, u.tenantId, u.userId, 'COMPOSANT_AJOUTE', `asset:${id}`, { label: b.label });
+      return tx.fixedAsset.update({ where: { id }, data: { components: components as never } });
     });
   }
 
