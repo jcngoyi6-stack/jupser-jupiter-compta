@@ -62,11 +62,34 @@ export function isCollective(n: string, prefixes = DEFAULT_COLLECTIVE_PREFIXES):
   return prefixes.some((p) => n.startsWith(p));
 }
 
+/** Découpe une ligne CSV (séparateur « ; », champs éventuellement entre guillemets). */
+export function splitCsvLine(line: string, sep = ';'): string[] {
+  const out: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]!;
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else cur += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === sep) {
+      out.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
 export function parseChartCsv(csv: string): ChartAccount[] {
   const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
   const out: ChartAccount[] = [];
   for (const line of lines.slice(1)) {
-    const [compte6, officiel, intitule, niveau, , imputable, classe, , parent, nature] = line.split(';');
+    const [compte6, officiel, intitule, niveau, , imputable, classe, , parent, nature] = splitCsvLine(line);
     if (!compte6) continue; // rubriques à 2 chiffres : non imputables, sans numéro à 6 chiffres
     out.push({
       number: compte6,
@@ -87,7 +110,7 @@ export function parseChartHeadings(csv: string): { official: string; label: stri
   return csv
     .split(/\r?\n/)
     .slice(1)
-    .map((l) => l.split(';'))
+    .map((l) => splitCsvLine(l))
     .filter((c) => c[0] === '' && c[1])
     .map((c) => ({ official: c[1]!, label: c[2] ?? '', class: Number(c[6]) }));
 }

@@ -48,3 +48,36 @@ export function openingEntryLines(closingRows: BalanceRow[]): EntryLineInput[] {
     .filter((r) => r.closingDebit !== r.closingCredit)
     .map((r) => ({ account: r.account, debit: r.closingDebit, credit: r.closingCredit }));
 }
+
+/**
+ * À-nouveaux détaillés : un solde par compte et, pour les comptes de tiers, par tiers
+ * (les comptes collectifs exigent un tiers sur chaque ligne).
+ */
+export function openingEntryLinesByThirdParty(
+  closingLines: { account: string; debit: bigint; credit: bigint; thirdPartyId?: string | null }[],
+): EntryLineInput[] {
+  const byAcc = new Map<string, bigint>();
+  for (const l of closingLines.filter((x) => ['6', '7', '8'].includes(x.account[0]!))) {
+    byAcc.set(l.account, (byAcc.get(l.account) ?? 0n) + l.debit - l.credit);
+  }
+  if ([...byAcc.values()].some((v) => v !== 0n)) {
+    throw new Error('Les comptes de gestion (classes 6 à 8) doivent être soldés avant les à-nouveaux.');
+  }
+  const m = new Map<string, { account: string; thirdPartyId: string | null; net: bigint }>();
+  for (const l of closingLines) {
+    if (!['1', '2', '3', '4', '5'].includes(l.account[0]!)) continue;
+    const key = `${l.account}|${l.thirdPartyId ?? ''}`;
+    const g = m.get(key) ?? { account: l.account, thirdPartyId: l.thirdPartyId ?? null, net: 0n };
+    g.net += l.debit - l.credit;
+    m.set(key, g);
+  }
+  return [...m.values()]
+    .filter((g) => g.net !== 0n)
+    .sort((a, b) => a.account.localeCompare(b.account))
+    .map((g) => ({
+      account: g.account,
+      thirdPartyId: g.thirdPartyId,
+      debit: g.net > 0n ? g.net : 0n,
+      credit: g.net < 0n ? -g.net : 0n,
+    }));
+}

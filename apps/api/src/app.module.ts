@@ -1,0 +1,48 @@
+import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { AccountingController } from './accounting/accounting.controller';
+import { ClosingService } from './accounting/closing.service';
+import { CompanyService } from './accounting/company.service';
+import { EntriesService } from './accounting/entries.service';
+import { AiController } from './ai/ai.controller';
+import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
+import { SecurityGuard } from './auth/guards';
+import { BillingController } from './billing/billing.controller';
+import { AuditService } from './common/audit.service';
+import { CryptoService } from './common/crypto.service';
+import { DbErrorFilter } from './common/errors';
+import { PrismaService } from './common/prisma.service';
+import { HealthController } from './common/health.controller';
+import { PayrollController } from './payroll/payroll.controller';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
+import { SalesController } from './sales/sales.controller';
+import { TaxController } from './tax/tax.controller';
+
+@Module({
+  controllers: [
+    HealthController,
+    AuthController,
+    AccountingController,
+    ReportsController,
+    TaxController,
+    PayrollController,
+    SalesController,
+    AiController,
+    BillingController,
+  ],
+  providers: [
+    PrismaService,
+    CryptoService,
+    AuditService,
+    AuthService,
+    CompanyService,
+    EntriesService,
+    ClosingService,
+    ReportsService,
+    { provide: APP_GUARD, useClass: SecurityGuard },
+    { provide: APP_FILTER, useClass: DbErrorFilter },
+  ],
+})
+export class AppModule {}

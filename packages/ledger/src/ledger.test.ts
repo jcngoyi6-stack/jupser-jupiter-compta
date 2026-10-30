@@ -347,3 +347,30 @@ describe('Benford et exercices', () => {
     expect(monthlyPeriods('2026-03-10', '2027-01-31')[0]!.start).toBe('2026-03-10');
   });
 });
+
+describe('CSV', () => {
+  it('gère les champs entre guillemets', async () => {
+    const { splitCsvLine } = await import('./accounts');
+    expect(splitCsvLine('a;"b;c";"d ""e""";')).toEqual(['a', 'b;c', 'd "e"', '']);
+    expect(chart.every((a) => Number.isInteger(a.class) && a.class >= 1 && a.class <= 9)).toBe(true);
+  });
+});
+
+describe('à-nouveaux détaillés par tiers', () => {
+  it('reprend un solde par compte et par tiers', async () => {
+    const { openingEntryLinesByThirdParty } = await import('./closing');
+    const lines = [
+      { account: '411100', debit: 100n, credit: 0n, thirdPartyId: 'C1' },
+      { account: '411100', debit: 50n, credit: 0n, thirdPartyId: 'C2' },
+      { account: '411100', debit: 0n, credit: 50n, thirdPartyId: 'C2' },
+      { account: '521100', debit: 0n, credit: 100n },
+      { account: '706100', debit: 10n, credit: 10n },
+    ];
+    const an = openingEntryLinesByThirdParty(lines);
+    expect(an).toEqual([
+      { account: '411100', thirdPartyId: 'C1', debit: 100n, credit: 0n },
+      { account: '521100', thirdPartyId: null, debit: 0n, credit: 100n },
+    ]);
+    expect(() => openingEntryLinesByThirdParty([{ account: '706100', debit: 0n, credit: 5n }])).toThrow();
+  });
+});

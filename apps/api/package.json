@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "build": "prisma generate --no-hints && tsc -p tsconfig.build.json",
     "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
     "start": "node dist/main.js",
     "dev": "tsc -p tsconfig.build.json && node dist/main.js",
-    "db:setup": "node scripts/db-setup.js",
+    "db:setup": "bash scripts/db-setup.sh && prisma migrate deploy",
     "db:seed": "node dist/seed.js",
-    "test": "vitest run"
+    "test": "tsc -p tsconfig.build.json && vitest run",
+    "db:migrate": "prisma migrate deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
