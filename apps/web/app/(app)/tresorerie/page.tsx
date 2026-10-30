@@ -19,6 +19,11 @@ export default function Tresorerie() {
   const convQ = useMutation({ mutationFn: () => api<any>('/fx-rates/convert', { method: 'POST', body: { ...conv, quote: company!.currency, date: today() } }), onError: (e) => setMsg({ kind: 'error', text: errorText(e) }) });
   const ok = (text: string) => () => { setMsg({ kind: 'ok', text }); qc.invalidateQueries(); };
   const err = (e: unknown) => setMsg({ kind: 'error', text: errorText(e) });
+  const fetchRates = useMutation({
+    mutationFn: () => api<any>('/fx-rates/fetch', { method: 'POST', body: { quote: company!.currency, date: today() } }),
+    onSuccess: (r) => { setMsg(r.manualNeeded ? { kind: 'error', text: `Aucun cours récupéré${r.errors.length ? ` (${r.errors.map((e: any) => e.provider).join(', ')} indisponible)` : ''} : saisissez le cours manuellement en indiquant la source.` } : { kind: 'ok', text: `${r.saved.length} cours enregistré(s).${r.errors.length ? ` Sources indisponibles : ${r.errors.map((e: any) => e.provider).join(', ')}.` : ''}` }); qc.invalidateQueries(); },
+    onError: err,
+  });
   const addRate = useMutation({ mutationFn: () => api('/fx-rates', { method: 'POST', body: { ...rate, quote: company!.currency } }), onSuccess: ok('Cours enregistré (source et date tracées).'), onError: err });
   const reval = useMutation({ mutationFn: () => api<any>(`/companies/${company!.id}/fx/revaluation`, { method: 'POST', body: { date: today() } }), onSuccess: (r: any) => { setMsg({ kind: 'ok', text: `${r.drafts.length} écriture(s) d’écart de conversion proposée(s) en brouillon.` }); qc.invalidateQueries(); }, onError: err });
   const letter = useMutation({ mutationFn: () => api<any>(`/companies/${company!.id}/lettering/auto`, { method: 'POST', body: { account: letterAcc } }), onSuccess: (r: any) => { setMsg({ kind: 'ok', text: `${r.groups.length} lettrage(s) effectué(s).` }); qc.invalidateQueries(); }, onError: err });
@@ -29,7 +34,7 @@ export default function Tresorerie() {
       {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="card space-y-3">
-          <h2>Cours de change</h2>
+          <div className="flex items-center justify-between"><h2>Cours de change</h2>{can('CHEF_COMPTABLE', 'COMPTABLE', 'CAISSIER') && <button className="btn-ghost" disabled={fetchRates.isPending} onClick={() => fetchRates.mutate()}>Récupérer les cours du jour</button>}</div>
           {can('CHEF_COMPTABLE', 'COMPTABLE', 'CAISSIER') && (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
               <select className="input" value={rate.currency} onChange={(e) => setRate({ ...rate, currency: e.target.value })}><option>USD</option><option>EUR</option></select>

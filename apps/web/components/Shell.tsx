@@ -2,7 +2,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
-import { t } from '@/lib/i18n';
+import { useEffect, useState } from 'react';
+import { LANGS, saveLang, storedLang, t, tl, type Lang } from '@/lib/i18n';
 import { useSession } from './session';
 
 type Item = { href: string; label: string; roles?: string[]; module?: string; staff?: boolean; needsCompany?: boolean };
@@ -70,6 +71,7 @@ const MENU: { title: string; items: Item[] }[] = [
     items: [
       { href: '/audit', label: t('nav.audit'), roles: ['AUDITEUR', 'CHEF_COMPTABLE', 'EXPERT_EXTERNE'] },
       { href: '/utilisateurs', label: t('nav.users'), roles: ['ADMIN'] },
+      { href: '/securite', label: 'Sécurité et postes' },
       { href: '/abonnement', label: t('nav.subscription'), roles: ['ADMIN'] },
       { href: '/console', label: t('nav.console'), staff: true },
     ],
@@ -80,6 +82,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { me, companies, company, setCompanyId, can, has } = useSession();
   const path = usePathname();
   const visible = (i: Item) => (i.staff ? me.isStaff : (!i.roles || can(...i.roles)) && (!i.module || has(i.module)) && (!i.needsCompany || !!company));
+  const [lang, setLang] = useState<Lang>('fr');
+  useEffect(() => setLang(storedLang()), []);
+  const hrefs = MENU.flatMap((g) => g.items.map((i) => i.href));
+  const activeHref = hrefs.filter((h) => (h === '/' ? path === '/' : path === h || path.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0];
   const logout = async () => {
     await api('/auth/logout', { method: 'POST' });
     window.location.href = '/connexion';
@@ -93,7 +99,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <div className="text-lg font-bold">
               Jupiter <span className="text-turquoise">Compta</span>
             </div>
-            <div className="text-[10px] text-slate-300">{t('tagline')}</div>
+            <div className="text-[10px] text-slate-300">{t('tagline', lang)}</div>
           </div>
         </Link>
         <nav className="flex-1 overflow-y-auto px-3 pb-4">
@@ -102,12 +108,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
             if (!items.length) return null;
             return (
               <div key={g.title} className="mt-4">
-                <div className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">{g.title}</div>
+                <div className="px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">{tl(g.title, lang)}</div>
                 {items.map((i) => {
-                  const active = i.href === '/' ? path === '/' : path.startsWith(i.href);
+                  const active = i.href === activeHref;
                   return (
                     <Link key={i.href} href={i.href} className={`mt-0.5 block rounded-md px-3 py-1.5 text-sm ${active ? 'bg-turquoise font-semibold text-white' : 'text-slate-200 hover:bg-nuit-700'}`}>
-                      {i.label}
+                      {tl(i.label, lang)}
                     </Link>
                   );
                 })}
@@ -115,7 +121,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="border-t border-nuit-700 px-5 py-3 text-[10px] text-slate-400">
+        <div className="border-t border-nuit-700 px-5 pt-3">
+          <select aria-label="Langue" className="w-full rounded bg-nuit-700 px-2 py-1 text-xs text-slate-200" value={lang} onChange={(e) => { const l = e.target.value as Lang; setLang(l); saveLang(l); }}>
+            {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+          </select>
+        </div>
+        <div className="px-5 py-3 text-[10px] text-slate-400">
           Édité par <span className="font-semibold text-slate-200">JUPSER</span> — Jupiter Services SARLU
         </div>
       </aside>

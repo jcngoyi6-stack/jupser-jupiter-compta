@@ -12,6 +12,7 @@ export default function Console() {
   const rules = useQuery({ queryKey: ['rules-all'], queryFn: () => api<any[]>('/tax-rules?country=CD') });
   const [f, setF] = useState({ name: '', type: 'ENTREPRISE', edition: 'ESSENTIEL', adminEmail: '', adminName: '', adminPassword: '' });
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [license, setLicense] = useState<{ tenant: string; token: string } | null>(null);
   const err = (e: unknown) => setMsg({ kind: 'error', text: errorText(e) });
   const create = useMutation({ mutationFn: () => api('/console/tenants', { method: 'POST', body: f }), onSuccess: () => { setMsg({ kind: 'ok', text: 'Client créé (essai 30 jours).' }); qc.invalidateQueries(); }, onError: err });
   const sub = useMutation({ mutationFn: ({ id, body }: { id: string; body: unknown }) => api(`/console/tenants/${id}/subscription`, { method: 'POST', body }), onSuccess: () => qc.invalidateQueries(), onError: err });
@@ -47,13 +48,29 @@ export default function Console() {
                 <td>{date(x.paidUntil ?? x.trialEndsAt)}</td><td>{x._count.memberships}</td><td>{x._count.companies}</td>
                 <td className="whitespace-nowrap">
                   <select className="input inline w-28 py-1" value={x.edition} onChange={(e) => sub.mutate({ id: x.id, body: { edition: e.target.value } })}><option>TPE</option><option>ESSENTIEL</option><option>PRO</option><option>ERP</option></select>{' '}
-                  <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() + 1); sub.mutate({ id: x.id, body: { paidUntil: d.toISOString().slice(0, 10) } }); }}>+1 mois payé</button>
+                  <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() + 1); sub.mutate({ id: x.id, body: { paidUntil: d.toISOString().slice(0, 10) } }); }}>+1 mois payé</button>{' '}
+                  <button className="btn-ghost px-2 py-1 text-xs" onClick={() => {
+                    const until = prompt('Licence hors ligne — date de fin (AAAA-MM-JJ) :', `${new Date().getUTCFullYear() + 1}-12-31`);
+                    if (!until) return;
+                    const fp = prompt('Empreinte de l’installation (64 caractères hexadécimaux), vide pour une licence non liée :', '') || null;
+                    api<any>(`/console/tenants/${x.id}/licenses`, { method: 'POST', body: { expiresAt: until, fingerprint: fp } })
+                      .then((r) => { setLicense({ tenant: x.name, token: r.token }); setMsg({ kind: 'ok', text: 'Licence signée (Ed25519) émise.' }); })
+                      .catch(err);
+                  }}>Licence hors ligne</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {license && (
+        <div className="card space-y-2">
+          <h2>Licence de {license.tenant}</h2>
+          <p className="text-sm text-slate-600">À copier dans l’installation sur site (tolérance hors connexion : 30 jours).</p>
+          <textarea readOnly className="input h-28 font-mono text-xs" value={license.token} />
+          <button className="btn-ghost" onClick={() => navigator.clipboard.writeText(license.token)}>Copier</button>
+        </div>
+      )}
       <div className="card overflow-x-auto p-0">
         <h2 className="px-4 pt-3">Référentiel RDC — règles fiscales et sociales</h2>
         <table className="table mt-1">

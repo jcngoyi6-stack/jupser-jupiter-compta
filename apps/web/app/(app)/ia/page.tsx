@@ -5,6 +5,7 @@ import { useThirdParties } from '@/components/AccountInput';
 import { useSession } from '@/components/session';
 import { Alert, PageTitle, Status } from '@/components/ui';
 import { api, errorText } from '@/lib/api';
+import { readBinary } from '@/lib/file';
 import { date, today } from '@/lib/format';
 
 export default function Ia() {
@@ -24,6 +25,15 @@ export default function Ia() {
   const propose = useMutation({
     mutationFn: () => api<any>(`/ai/companies/${company!.id}/purchase-proposal`, { method: 'POST', body: inv }),
     onSuccess: (r) => { setMsg({ kind: r.warnings.length ? 'warn' : 'ok', text: `Écriture proposée (BROUILLON_IA). ${r.warnings.join(' ')}` }); qc.invalidateQueries(); },
+    onError: (e) => setMsg({ kind: 'error', text: errorText(e) }),
+  });
+  const ocr = useMutation({
+    mutationFn: async (file: File) => api<any>(`/ai/companies/${company!.id}/ocr`, { method: 'POST', body: await readBinary(file) }),
+    onSuccess: (r) => {
+      const fmt = (v: string | null) => { if (v === null) return ''; const neg = v.startsWith('-'); const a = neg ? v.slice(1) : v; const d = company!.currency === 'CDF' || company!.currency === 'USD' || company!.currency === 'EUR' ? 2 : 0; const p = a.padStart(d + 1, '0'); return (neg ? '-' : '') + (d ? `${p.slice(0, -d)},${p.slice(-d)}` : p); };
+      setInv({ ...inv, supplierThirdPartyId: r.supplier?.id ?? inv.supplierThirdPartyId, date: r.date ?? inv.date, number: r.number ?? '', netAmount: fmt(r.netAmount), vatAmount: fmt(r.vatAmount), grossAmount: fmt(r.grossAmount), description: r.description ?? '' });
+      setMsg({ kind: r.warnings.length || !r.supplier ? 'warn' : 'ok', text: `Pièce lue (confiance ${Math.round(r.confidence * 100)} %) : vérifiez chaque champ avant de proposer l’écriture.${r.supplier ? '' : ` Fournisseur « ${r.supplierName ?? '?'} » non reconnu : choisissez-le.`} ${r.warnings.join(' ')}` });
+    },
     onError: (e) => setMsg({ kind: 'error', text: errorText(e) }),
   });
   const decide = useMutation({
@@ -53,7 +63,9 @@ export default function Ia() {
         {company && can('CHEF_COMPTABLE', 'COMPTABLE', 'EXPERT_EXTERNE') && (
           <div className="card space-y-2">
             <h2>Pièce → écriture</h2>
-            <p className="text-xs text-slate-500">Saisissez les champs lus sur la facture (lecture automatique des PDF et photos par OCR : à brancher via OcrProvider).</p>
+            <label className="block text-sm">Lire une pièce (photo ou PDF)<input type="file" accept="image/*,application/pdf" className="mt-1 block" onChange={(e) => e.target.files?.[0] && ocr.mutate(e.target.files[0])} /></label>
+            {ocr.isPending && <p className="text-sm text-slate-500">Lecture de la pièce…</p>}
+            <p className="text-xs text-slate-500">Les champs lus restent modifiables : l’écriture n’est proposée qu’en brouillon et doit être acceptée par un humain.</p>
             <select className="input" value={inv.supplierThirdPartyId} onChange={(e) => setInv({ ...inv, supplierThirdPartyId: e.target.value })}>
               <option value="">Fournisseur…</option>
               {tps.data?.filter((t) => t.type === 'FOURNISSEUR').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}

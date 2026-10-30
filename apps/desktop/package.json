@@ -1,0 +1,13 @@
+{
+  "name": "@jupiter/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Application de bureau Jupiter Compta (Tauri 2) — enveloppe sécurisée de l'application web.",
+  "scripts": {
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.1.0"
+  }
+}

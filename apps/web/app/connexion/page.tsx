@@ -7,6 +7,8 @@ type Step = 'login' | 'code' | 'setup';
 
 function Login() {
   const params = useSearchParams();
+  const [org, setOrg] = useState('');
+  const ssoError = params.get('sso_erreur');
   const [step, setStep] = useState<Step>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -94,10 +96,20 @@ function Login() {
               <input id="code" className="input text-center text-lg tracking-[0.5em]" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} autoFocus required />
             </div>
           )}
+          {ssoError && !err && <p className="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">Connexion SSO refusée ({ssoError.replace(/_/g, ' ').toLowerCase()}).</p>}
           {err && <p className="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
           <button className="btn-primary mt-6 w-full" disabled={busy}>
             {busy ? '…' : step === 'login' ? 'Se connecter' : 'Valider'}
           </button>
+          {step === 'login' && (
+            <details className="mt-4 text-sm">
+              <summary className="cursor-pointer text-center text-turquoise-700">Connexion entreprise (SSO)</summary>
+              <div className="mt-2 flex gap-2">
+                <input className="input" placeholder="Identifiant de votre organisation" value={org} onChange={(e) => setOrg(e.target.value.toLowerCase())} />
+                <button type="button" className="btn-ghost" disabled={org.length < 3} onClick={() => { window.location.href = `/api/auth/sso/${encodeURIComponent(org)}/start${email ? `?login_hint=${encodeURIComponent(email)}` : ''}`; }}>Continuer</button>
+              </div>
+            </details>
+          )}
           <p className="mt-6 text-center text-xs text-slate-400">Précision. Conformité. Sérénité.</p>
         </form>
         <div className="mt-6 flex items-center gap-2 text-xs text-slate-300">

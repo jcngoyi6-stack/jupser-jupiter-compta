@@ -8,3 +8,11 @@ export async function readFileForApi(file: File): Promise<{ content?: string; ba
   }
   return { content: await file.text(), fileName: file.name };
 }
+
+/** Lit un fichier binaire (photo, PDF) en base64 pour l'OCR. */
+export async function readBinary(file: File): Promise<{ base64: string; mediaType: string; fileName: string }> {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return { base64: btoa(bin), mediaType: file.type || (/\.pdf$/i.test(file.name) ? 'application/pdf' : 'image/jpeg'), fileName: file.name };
+}

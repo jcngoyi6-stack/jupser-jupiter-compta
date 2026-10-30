@@ -12,7 +12,10 @@ export default function Abonnement() {
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
   const pay = useMutation({
     mutationFn: (b: { method: string; months: number }) => api<any>('/billing/checkout', { method: 'POST', body: b }),
-    onSuccess: (r) => setMsg({ kind: 'info', text: `${r.instructions} Référence : ${r.payment.externalRef}` }),
+    onSuccess: (r) => {
+      if (r.redirectUrl) window.location.href = r.redirectUrl;
+      else setMsg({ kind: 'info', text: `${r.instructions} Référence : ${r.payment.externalRef}` });
+    },
     onError: (e) => setMsg({ kind: 'error', text: errorText(e) }),
   });
   const d = q.data;
