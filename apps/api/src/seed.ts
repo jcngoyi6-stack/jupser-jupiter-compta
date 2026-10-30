@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { EDITION_MODULES } from '@jupiter/licensing';
-import { rdcSeedRules } from '@jupiter/tax-engine';
 import { CompanyService } from './accounting/company.service';
 import { EntriesService } from './accounting/entries.service';
 import { AppModule } from './app.module';
@@ -9,6 +8,7 @@ import { AuthService } from './auth/auth.service';
 import type { SessionUser } from './auth/decorators';
 import { AuditService } from './common/audit.service';
 import { PrismaService } from './common/prisma.service';
+import { seedTaxRules } from './common/reference';
 
 /**
  * Données de démonstration FICTIVES (aucune donnée réelle de client — CLAUDE.md).
@@ -22,10 +22,8 @@ async function main() {
   const entries = app.get(EntriesService);
   const audit = app.get(AuditService);
 
-  if ((await db.client.taxRule.count()) === 0) {
-    await db.client.taxRule.createMany({ data: rdcSeedRules().map((r) => ({ ...r, value: r.value as never })) });
-    console.log('Règles fiscales RDC 2026 chargées (statut A_VALIDER).');
-  }
+  const added = await seedTaxRules(db);
+  if (added) console.log(`${added} règles fiscales et sociales chargées pour les 17 pays (statut A_VALIDER).`);
 
   const pw = process.env.SEED_PASSWORD ?? 'Jupiter-Demo-2026';
   const mkUser = async (email: string, fullName: string, staff = false) =>

@@ -145,6 +145,7 @@ export class AccountingController {
           attachmentThreshold: zAmount(dec).nullish(),
           fourEyesThreshold: zAmount(dec).nullish(),
           logoDataUrl: z.string().max(500_000).regex(/^data:image\/(png|jpeg|svg\+xml);base64,/).optional(),
+          einvoiceSettings: z.object({ enabled: z.boolean().optional(), nim: z.string().max(40).optional(), mode: z.enum(['PRODUCTION', 'SIMULATION']).optional() }).optional(),
         }),
         body,
       );
@@ -250,6 +251,9 @@ export class AccountingController {
         email: z.string().email().optional(),
         country: z.string().length(2).default('CD'),
         account: zAccount.optional(),
+        clientType: z.enum(['PP', 'PM', 'PC', 'PL', 'AO']).default('PM'),
+        address: z.string().optional(),
+        consentMarketing: z.boolean().default(false),
       }),
       body,
     );

@@ -16,7 +16,7 @@ const { PrismaService } = require('../dist/common/prisma.service');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { AuthService } = require('../dist/auth/auth.service');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { rdcSeedRules } = require('@jupiter/tax-engine');
+const { seedTaxRules } = require('../dist/common/reference');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { EDITION_MODULES } = require('@jupiter/licensing');
 
@@ -78,9 +78,7 @@ beforeAll(async () => {
   app = await createApp();
   await app.init();
   db = app.get(PrismaService);
-  if ((await db.client.taxRule.count()) === 0) {
-    await db.client.taxRule.createMany({ data: rdcSeedRules().map((r: { value: unknown }) => ({ ...r, value: r.value as never })) });
-  }
+  await seedTaxRules(db);
   A = await makeTenant('Tenant A', { admin: ['ADMIN'], compta: ['COMPTABLE'], chef: ['CHEF_COMPTABLE', 'PAIE', 'FISCALITE'], dg: ['DIRECTION'], auditeur: ['AUDITEUR'] });
   B = await makeTenant('Tenant B', { admin: ['ADMIN'] });
   await db.forTenant(A.tenant.id, (tx) =>
@@ -142,6 +140,7 @@ describe('Ouverture du dossier (docs/14)', () => {
       fiscalYearStart: `${YEAR}-01-01`, fiscalYearEnd: `${YEAR}-12-31`, shareCapital: '50000000', headcount: 10,
     });
     expect(r.status).toBe(201);
+    expect(r.status).toBe(201);
     companyId = r.body.company.id;
     fyId = r.body.fiscalYear.id;
     expect(r.body.company.currency).toBe('CDF');
@@ -149,7 +148,7 @@ describe('Ouverture du dossier (docs/14)', () => {
     expect(r.body.fiscalYear.periods).toHaveLength(12);
     const acc = await compta.get(`/api/companies/${companyId}/accounts?q=5711`);
     expect(acc.body[0].number).toBe('571100');
-    const c = await compta.post(`/api/companies/${companyId}/third-parties`).set(H).send({ type: 'CLIENT', code: 'C1', name: 'Client Un' });
+    const c = await compta.post(`/api/companies/${companyId}/third-parties`).set(H).send({ type: 'CLIENT', code: 'C1', name: 'Client Un', taxId: 'A7654321C' });
     clientId = c.body.id;
     const f = await compta.post(`/api/companies/${companyId}/third-parties`).set(H).send({ type: 'FOURNISSEUR', code: 'F1', name: 'Fournisseur Un' });
     supplierId = f.body.id;
@@ -276,18 +275,27 @@ describe('L0 — isolation des locataires (RLS)', () => {
 });
 
 describe('Ventes, documents QR (L7b) et JUPSER IA (L4)', () => {
+  it('RDC : refuse la facture normalisée sans NIF de la société', async () => {
+    const r = await compta.post(`/api/companies/${companyId}/invoices`).set(H).send({ date: `${YEAR}-04-05`, thirdPartyId: clientId, lines: [{ description: 'X', quantity: 1, unitPrice: '1000', vat: 'NORMAL' }] });
+    expect(r.body.code).toBe('NIF_MANQUANT');
+    await admin.patch(`/api/companies/${companyId}`).set(H).send({ taxId: 'A1234567B', einvoiceSettings: { nim: 'SIM-TEST-01' } });
+  });
   it('émet une facture avec QR, génère l’écriture, vérifie publiquement, signale l’annulation', async () => {
-    const inv = await compta.post(`/api/companies/${companyId}/invoices`).set(H).send({
+    const inv = await compta.post(`/api/companies/${companyId}/invoices`).set(H).send({ 
       date: `${YEAR}-04-05`, thirdPartyId: clientId, lines: [{ description: 'Conseil', quantity: 2, unitPrice: '500000', vat: 'NORMAL' }],
     });
     expect(inv.status).toBe(201);
     expect(inv.body.totalGross).toBe('116000000');
     expect(inv.body.qrDataUrl).toMatch(/^data:image\/png/);
     expect(inv.body.banner).toMatch(/Estimation/);
+    // facture normalisée RDC : éléments de sécurité du dispositif électronique fiscal
+    expect(inv.body.einvoice).toMatchObject({ mode: 'SIMULATION', nim: 'SIM-TEST-01', counters: '1/1 FV' });
+    expect(inv.body.einvoice.codeDefDgi).toMatch(/^[0-9A-F-]{29}$/);
     const pub = await request(app.getHttpServer() as never).get(`/api/verify/${inv.body.hash}`);
     expect(pub.body).toMatchObject({ authentic: true, number: inv.body.number, cancelled: false, issuer: 'Société Test SARL' });
     const av = await compta.post(`/api/companies/${companyId}/invoices/${inv.body.id}/credit-note`).set(H).send({ date: `${YEAR}-04-06`, reason: 'Erreur de prix' });
     expect(av.status).toBe(201);
+    expect(av.body.einvoice.counters).toMatch(/FA$/);
     const pub2 = await request(app.getHttpServer() as never).get(`/api/verify/${inv.body.hash}`);
     expect(pub2.body.cancelled).toBe(true);
     expect((await request(app.getHttpServer() as never).get(`/api/verify/${'0'.repeat(64)}`)).body.authentic).toBe(false);
@@ -328,6 +336,20 @@ describe('L5 — fiscalité et paie RDC', () => {
     expect(emp.body[0].elements[0].amount).toBe('100000');
     const raw = await db.forTenant(A.tenant.id, (tx) => tx.employee.findFirst());
     expect(raw.salaryEnc).toMatch(/^v1\./); // salaire chiffré en base
+  });
+});
+
+describe('Packs pays (17 États)', () => {
+  it('ouvre un dossier ivoirien en XOF et refuse une paie tant que le barème ITS n’est pas validé', async () => {
+    const r = await admin.post('/api/companies').set(H).send({ name: 'Filiale Abidjan SA', legalForm: 'SA', country: 'CI', activity: 'NEGOCE', expectedTurnover: '500000000', fiscalYearStart: `${YEAR}-01-01`, fiscalYearEnd: `${YEAR}-12-31` });
+    expect(r.status).toBe(201);
+    expect(r.body.company.currency).toBe('XOF');
+    const ci = r.body.company.id;
+    await chef.post(`/api/companies/${ci}/payroll/employees`).set(H).send({ matricule: 'A1', fullName: 'Agent', hireDate: `${YEAR}-01-01`, currency: 'XOF', dependents: 0, elements: [{ code: 'BASE', label: 'Base', amount: '300000', taxable: true, contributable: true }] });
+    const p = await chef.post(`/api/companies/${ci}/payroll/runs`).set(H).send({ period: `${YEAR}-05`, payDate: `${YEAR}-05-31` });
+    expect(p.body.code).toBe('PACK_PAYS_INCOMPLET');
+    const rules = await chef.get('/api/tax-rules?country=CI');
+    expect(rules.body.find((x: { tax: string; param: string }) => x.tax === 'TVA' && x.param === 'taux_normal').value).toBe('0.18');
   });
 });
 

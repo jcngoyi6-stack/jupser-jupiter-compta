@@ -62,6 +62,18 @@ export default function Facture({ params }: { params: Promise<{ id: string }> })
             <tr className="total"><td colSpan={4} className="text-right">Total TTC ({d.currency})</td><td className="text-right"><Money v={d.totalGross} dec={dec} /></td></tr>
           </tbody>
         </table>
+        {d.einvoice && (
+          <div className={`mt-6 flex items-center justify-between rounded-md border p-3 text-xs ${d.einvoice.mode === 'SIMULATION' ? 'border-amber-400 bg-amber-50' : 'border-nuit'}`}>
+            <div className="space-y-0.5">
+              <div className="font-bold text-nuit">FACTURE NORMALISÉE — éléments de sécurité du dispositif électronique fiscal (DGI)</div>
+              {d.einvoice.mode === 'SIMULATION' && <div className="font-bold text-amber-800">SIMULATION — sans valeur fiscale</div>}
+              <div>Code DEF/DGI : <span className="font-mono font-semibold">{d.einvoice.codeDefDgi}</span></div>
+              <div>NIM : {d.einvoice.nim} · Compteurs : {d.einvoice.counters}</div>
+              <div>Date et heure DEF : {new Date(d.einvoice.dateTime).toLocaleString('fr-FR')}</div>
+            </div>
+            {d.defQrDataUrl && <img src={d.defQrDataUrl} alt="QR DGI" className="h-28 w-28" />}
+          </div>
+        )}
         <div className="mt-8 flex items-end justify-between">
           <div className="max-w-sm text-[10px] text-slate-500">
             Document vérifiable : scannez le code QR ou rendez-vous sur {d.url}<br />

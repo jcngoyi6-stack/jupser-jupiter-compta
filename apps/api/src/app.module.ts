@@ -17,6 +17,7 @@ import { HealthController } from './common/health.controller';
 import { PayrollController } from './payroll/payroll.controller';
 import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
+import { EInvoiceService } from './sales/einvoice.service';
 import { SalesController } from './sales/sales.controller';
 import { TaxController } from './tax/tax.controller';
 
@@ -41,6 +42,7 @@ import { TaxController } from './tax/tax.controller';
     EntriesService,
     ClosingService,
     ReportsService,
+    EInvoiceService,
     { provide: APP_GUARD, useClass: SecurityGuard },
     { provide: APP_FILTER, useClass: DbErrorFilter },
   ],

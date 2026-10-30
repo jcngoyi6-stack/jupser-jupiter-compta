@@ -15,6 +15,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
     "@jupiter/ai": "workspace:*",
+    "@jupiter/einvoice": "workspace:*",
     "@jupiter/fx": "workspace:*",
     "@jupiter/ledger": "workspace:*",
     "@jupiter/licensing": "workspace:*",

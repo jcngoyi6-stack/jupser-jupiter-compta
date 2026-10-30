@@ -32,6 +32,9 @@ importers:
       '@jupiter/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@jupiter/einvoice':
+        specifier: workspace:*
+        version: link:../../packages/einvoice
       '@jupiter/fx':
         specifier: workspace:*
         version: link:../../packages/fx
@@ -159,6 +162,12 @@ importers:
         version: 5.9.3
 
   packages/ai:
+    dependencies:
+      '@jupiter/ledger':
+        specifier: workspace:*
+        version: link:../ledger
+
+  packages/einvoice:
     dependencies:
       '@jupiter/ledger':
         specifier: workspace:*

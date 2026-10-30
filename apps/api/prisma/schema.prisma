@@ -108,6 +108,7 @@ model Company {
   attachmentThreshold BigInt?      @map("attachment_threshold")
   fourEyesThreshold   BigInt?      @map("four_eyes_threshold")
   docSequences        Json         @default("{}") @map("doc_sequences")
+  einvoiceSettings    Json         @default("{}") @map("einvoice_settings")
   logoDataUrl     String?          @map("logo_data_url")
   systemDecision  Json?            @map("system_decision")
   createdAt       DateTime         @default(now()) @map("created_at")
@@ -204,6 +205,10 @@ model ThirdParty {
   email     String?
   country   String  @default("CD")
   account   String  // compte collectif (6 chiffres)
+  clientType String @default("PM") @map("client_type") // facture normalisée : PP, PM, PC, PL, AO
+  address   String?
+  consentMarketing Boolean @default(false) @map("consent_marketing")
+  unsubscribed     Boolean @default(false)
 
   @@unique([companyId, code])
   @@map("third_party")
@@ -356,6 +361,8 @@ model SalesDocument {
   status      String   @default("EMISE") // EMISE, ANNULEE
   hash        String   @unique
   cancelledById String? @map("cancelled_by_id") @db.Uuid
+  einvoice    Json?    // éléments de sécurité du DEF (code DEF/DGI, NIM, compteurs, QR)
+  paymentMethod String @default("VIREMENT") @map("payment_method")
   entryId     String?  @map("entry_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
 

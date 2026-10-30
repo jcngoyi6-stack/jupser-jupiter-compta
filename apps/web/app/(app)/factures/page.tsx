@@ -8,7 +8,7 @@ import { Alert, Money, PageTitle, Status } from '@/components/ui';
 import { api, errorText } from '@/lib/api';
 import { date, today } from '@/lib/format';
 
-interface L { description: string; quantity: string; unitPrice: string; vat: 'NORMAL' | 'REDUIT' | 'EXONERE' }
+interface L { description: string; quantity: string; unitPrice: string; vat: 'NORMAL' | 'REDUIT' | 'EXONERE' | 'EXPORT' }
 
 export default function Factures() {
   const { company, dec } = useSession();
@@ -17,10 +17,11 @@ export default function Factures() {
   const docs = useQuery({ queryKey: ['sales', company?.id], queryFn: () => api<any[]>(`/companies/${company!.id}/sales-documents`), enabled: !!company });
   const [client, setClient] = useState('');
   const [dt, setDt] = useState(today());
+  const [pay, setPay] = useState('CREDIT');
   const [lines, setLines] = useState<L[]>([{ description: '', quantity: '1', unitPrice: '', vat: 'NORMAL' }]);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const create = useMutation({
-    mutationFn: () => api<any>(`/companies/${company!.id}/invoices`, { method: 'POST', body: { date: dt, thirdPartyId: client, lines: lines.map((l) => ({ ...l, quantity: Number(l.quantity.replace(',', '.')) })) } }),
+    mutationFn: () => api<any>(`/companies/${company!.id}/invoices`, { method: 'POST', body: { date: dt, thirdPartyId: client, paymentMethod: pay, exportSale: lines.some((l) => l.vat === 'EXPORT'), lines: lines.map((l) => ({ ...l, quantity: Number(l.quantity.replace(',', '.')) })) } }),
     onSuccess: (d) => { setMsg({ kind: 'ok', text: `Facture ${d.number} émise — écriture ${d.entryNumber} générée automatiquement.` }); setLines([{ description: '', quantity: '1', unitPrice: '', vat: 'NORMAL' }]); qc.invalidateQueries(); },
     onError: (e) => setMsg({ kind: 'error', text: errorText(e) }),
   });
@@ -28,7 +29,7 @@ export default function Factures() {
   const set = (i: number, p: Partial<L>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...p } : l)));
   return (
     <div className="space-y-4">
-      <PageTitle title="Factures avec code QR" sub="Une facture émise génère son écriture comptable (journal VTE) ; elle ne s’annule que par avoir" />
+      <PageTitle title="Factures avec code QR" sub="Une facture émise génère son écriture comptable (journal VTE) ; elle ne s’annule que par avoir. En RDC : facture normalisée certifiée par le dispositif électronique fiscal (DGI)." />
       <div className="card space-y-3">
         <h2>Nouvelle facture</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -40,6 +41,7 @@ export default function Factures() {
             </select>
           </div>
           <div><label className="label">Date</label><input type="date" className="input" value={dt} onChange={(e) => setDt(e.target.value)} /></div>
+          <div><label className="label">Règlement</label><select className="input" value={pay} onChange={(e) => setPay(e.target.value)}><option value="CREDIT">À crédit</option><option value="ESPECES">Espèces</option><option value="VIREMENT">Virement</option><option value="MOBILE_MONEY">Mobile money</option><option value="CARTE">Carte</option><option value="CHEQUE">Chèque</option></select></div>
         </div>
         <table className="table">
           <thead><tr><th>Désignation</th><th className="w-24">Qté</th><th className="w-44">Prix unitaire HT</th><th className="w-40">TVA</th><th></th></tr></thead>
@@ -51,7 +53,7 @@ export default function Factures() {
                 <td><input className="input num text-right" value={l.unitPrice} onChange={(e) => set(i, { unitPrice: e.target.value })} /></td>
                 <td>
                   <select className="input" value={l.vat} onChange={(e) => set(i, { vat: e.target.value as L['vat'] })}>
-                    <option value="NORMAL">Taux normal</option><option value="REDUIT">Taux réduit</option><option value="EXONERE">Exonéré</option>
+                    <option value="NORMAL">Taux normal</option><option value="REDUIT">Taux réduit</option><option value="EXONERE">Exonéré</option><option value="EXPORT">Exportation</option>
                   </select>
                 </td>
                 <td><button className="text-xs text-red-600" disabled={lines.length === 1} onClick={() => setLines(lines.filter((_, j) => j !== i))}>Suppr.</button></td>

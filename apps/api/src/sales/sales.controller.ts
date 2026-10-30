@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { canonicalJson, decimalsOf, sha256 } from '@jupiter/ledger';
-import { RuleSet, RuleTrace, vatFromNet, type TaxRule } from '@jupiter/tax-engine';
+import { applyRate, RuleSet, RuleTrace, vatFromNet, type TaxRule } from '@jupiter/tax-engine';
 import QRCode from 'qrcode';
 import { z } from 'zod';
 import { EntriesService } from '../accounting/entries.service';
@@ -10,6 +10,7 @@ import { AuditService } from '../common/audit.service';
 import { config } from '../common/config';
 import { domainError, parse, zAccount, zAmount, zDate } from '../common/http';
 import { PrismaService, type Tx } from '../common/prisma.service';
+import { EInvoiceService } from './einvoice.service';
 
 /**
  * Documents commerciaux avec QR (docs/13) : facture → écriture comptable automatique (journal VTE),
@@ -22,6 +23,7 @@ export class SalesController {
     private readonly db: PrismaService,
     private readonly entries: EntriesService,
     private readonly audit: AuditService,
+    private readonly einvoice: EInvoiceService,
   ) {}
 
   private async nextNumber(tx: Tx, companyId: string, type: string, year: string) {
@@ -52,7 +54,9 @@ export class SalesController {
       const d = await tx.salesDocument.findFirstOrThrow({ where: { id, companyId } });
       const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
       const client = await tx.thirdParty.findUniqueOrThrow({ where: { id: d.thirdPartyId } });
-      return { ...d, company, client, ...(await this.qr(d.hash)) };
+      const def = d.einvoice as { qrCode?: string } | null;
+      const defQr = def?.qrCode ? await QRCode.toDataURL(def.qrCode, { margin: 1, width: 180 }) : null;
+      return { ...d, company, client, defQrDataUrl: defQr, ...(await this.qr(d.hash)) };
     });
   }
 
@@ -67,8 +71,10 @@ export class SalesController {
         z.object({
           date: zDate,
           thirdPartyId: z.string().uuid(),
+          paymentMethod: z.enum(['ESPECES', 'VIREMENT', 'CARTE', 'MOBILE_MONEY', 'CHEQUE', 'CREDIT', 'AUTRE']).default('CREDIT'),
+          exportSale: z.boolean().default(false),
           lines: z
-            .array(z.object({ description: z.string().min(1), quantity: z.number().positive().max(1e9), unitPrice: zAmount(dec), vat: z.enum(['NORMAL', 'REDUIT', 'EXONERE']), account: zAccount.default('706100') }))
+            .array(z.object({ description: z.string().min(1), quantity: z.number().positive().max(1e9), unitPrice: zAmount(dec), vat: z.enum(['NORMAL', 'REDUIT', 'EXONERE', 'EXPORT']), account: zAccount.default('706100') }))
             .min(1),
         }),
         body,
@@ -77,8 +83,12 @@ export class SalesController {
       if (!client) throw domainError('CLIENT_INCONNU', 'Client introuvable.');
       const rules = new RuleSet((await tx.taxRule.findMany()).map((r) => ({ ...r, value: r.value }) as TaxRule));
       const trace = new RuleTrace();
-      const rateOf = (k: 'NORMAL' | 'REDUIT' | 'EXONERE') =>
-        k === 'EXONERE' ? '0' : trace.use(rules.find<string>(company.country, 'TVA', k === 'NORMAL' ? 'taux_normal' : 'taux_reduit', b.date));
+      const rateOf = (k: 'NORMAL' | 'REDUIT' | 'EXONERE' | 'EXPORT') => {
+        if (k === 'EXONERE' || k === 'EXPORT') return '0';
+        const r = trace.use(rules.find<string | null>(company.country, 'TVA', k === 'NORMAL' ? 'taux_normal' : 'taux_reduit', b.date));
+        if (r === null) throw domainError('PACK_PAYS_INCOMPLET', `Taux de TVA ${k === 'NORMAL' ? 'normal' : 'réduit'} non renseigné pour ${company.country} (à saisir par le fiscaliste).`);
+        return r;
+      };
       const computed = b.lines.map((l) => {
         if (!Number.isInteger(l.quantity * 1000)) throw domainError('QUANTITE', 'Quantité : 3 décimales maximum.');
         const net = (l.unitPrice * BigInt(Math.round(l.quantity * 1000)) + 500n) / 1000n;
@@ -109,6 +119,24 @@ export class SalesController {
         'VENTE',
       );
       const posted = await this.entries.validate(tx, u, companyId, draft.id);
+      // RDC : facture normalisée — éléments de sécurité du DEF obtenus avant l'émission (sinon annulation de la transaction)
+      const def = this.einvoice.required(company)
+        ? await this.einvoice.certify(company, {
+            type: EInvoiceService.typeFor('FACTURE', b.exportSale),
+            reference: null,
+            client: { type: client.clientType as never, name: client.name, taxId: client.taxId, address: client.address },
+            operator: { id: u.userId, name: u.fullName },
+            items: computed.map((l) => ({
+              name: l.description,
+              quantity: (Math.round(l.quantity * 1000) / 1000).toString(),
+              unitPriceTtc: BigInt(l.unitPrice) + applyRate(BigInt(l.unitPrice), l.vatRate),
+              taxGroup: this.einvoice.taxGroup(l.vatKind),
+            })),
+            payment: [],
+            internalNumber: number,
+            date: b.date,
+          })
+        : null;
       const doc = await tx.salesDocument.create({
         data: {
           tenantId: u.tenantId,
@@ -124,6 +152,8 @@ export class SalesController {
           currency: company.currency,
           hash,
           entryId: posted.entry.id,
+          paymentMethod: b.paymentMethod,
+          einvoice: def ? (def as never) : undefined,
         },
       });
       await this.audit.log(tx, u.tenantId, u.userId, 'FACTURE_EMISE', `sales_document:${doc.id}`, { number, hash });
@@ -157,6 +187,26 @@ export class SalesController {
         'VENTE',
       );
       const posted = await this.entries.validate(tx, u, companyId, draft.id);
+      const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
+      const orig = inv.einvoice as { codeDefDgi?: string } | null;
+      const client = await tx.thirdParty.findUniqueOrThrow({ where: { id: inv.thirdPartyId } });
+      const def = orig && this.einvoice.required(company)
+        ? await this.einvoice.certify(company, {
+            type: EInvoiceService.typeFor('AVOIR', (inv.lines as { vatKind?: string }[]).some((l) => l.vatKind === 'EXPORT')),
+            reference: orig.codeDefDgi ?? null,
+            client: { type: client.clientType as never, name: client.name, taxId: client.taxId, address: client.address },
+            operator: { id: u.userId, name: u.fullName },
+            items: (inv.lines as { description: string; quantity: number; net: string; vat: string; vatKind: string }[]).map((l) => ({
+              name: l.description,
+              quantity: '1',
+              unitPriceTtc: BigInt(l.net) + BigInt(l.vat),
+              taxGroup: this.einvoice.taxGroup(l.vatKind),
+            })),
+            payment: [],
+            internalNumber: number,
+            date: b.date,
+          })
+        : null;
       const hash = sha256(canonicalJson({ issuer: companyId, number, date: b.date, cancels: inv.hash, total: inv.totalGross }));
       const avoir = await tx.salesDocument.create({
         data: {
@@ -173,6 +223,7 @@ export class SalesController {
           currency: inv.currency,
           hash,
           entryId: posted.entry.id,
+          einvoice: def ? (def as never) : undefined,
         },
       });
       await tx.salesDocument.update({ where: { id: inv.id }, data: { status: 'ANNULEE', cancelledById: avoir.id } });

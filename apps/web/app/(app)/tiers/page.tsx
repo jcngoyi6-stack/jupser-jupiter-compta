@@ -10,10 +10,10 @@ export default function Tiers() {
   const { company } = useSession();
   const qc = useQueryClient();
   const tps = useThirdParties();
-  const [f, setF] = useState({ type: 'CLIENT', code: '', name: '', taxId: '', phone: '', email: '' });
+  const [f, setF] = useState({ type: 'CLIENT', code: '', name: '', taxId: '', phone: '', email: '', clientType: 'PM', address: '' });
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const create = useMutation({
-    mutationFn: () => api(`/companies/${company!.id}/third-parties`, { method: 'POST', body: { ...f, taxId: f.taxId || undefined, phone: f.phone || undefined, email: f.email || undefined } }),
+    mutationFn: () => api(`/companies/${company!.id}/third-parties`, { method: 'POST', body: { ...f, taxId: f.taxId || undefined, phone: f.phone || undefined, email: f.email || undefined, address: f.address || undefined } }),
     onSuccess: () => { setMsg({ kind: 'ok', text: 'Tiers créé.' }); setF({ ...f, code: '', name: '', taxId: '', phone: '', email: '' }); qc.invalidateQueries({ queryKey: ['third-parties'] }); },
     onError: (e) => setMsg({ kind: 'error', text: errorText(e) }),
   });
@@ -29,6 +29,10 @@ export default function Tiers() {
         <input className="input md:col-span-2" placeholder="Raison sociale / nom" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
         <input className="input" placeholder="NIF" value={f.taxId} onChange={(e) => setF({ ...f, taxId: e.target.value })} />
         <input className="input" placeholder="Téléphone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+        <select className="input" value={f.clientType} onChange={(e) => setF({ ...f, clientType: e.target.value })} title="Type de client (facture normalisée)">
+          <option value="PM">Personne morale</option><option value="PP">Personne physique</option><option value="PC">Professionnel</option><option value="PL">Profession libérale</option><option value="AO">Administration / organisme</option>
+        </select>
+        <input className="input md:col-span-2" placeholder="Adresse" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
         <button className="btn-primary" onClick={() => create.mutate()}>Ajouter</button>
       </div>
       {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}

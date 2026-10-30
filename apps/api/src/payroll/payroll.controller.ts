@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { pickRate, type FxRate } from '@jupiter/fx';
+import { convert, pickRate, type FxRate } from '@jupiter/fx';
+import { computeGenericPayslip, MissingValueError } from '@jupiter/tax-engine';
 import { decimalsOf } from '@jupiter/ledger';
 import { computePayslip, payrollEntryLines, type PayElement, type Payslip } from '@jupiter/payroll';
 import { z } from 'zod';
@@ -51,7 +52,7 @@ export class PayrollController {
         fullName: z.string().min(2),
         position: z.string().optional(),
         hireDate: zDate,
-        currency: z.enum(['CDF', 'USD']),
+        currency: z.enum(['CDF', 'USD', 'EUR', 'XOF', 'XAF', 'GNF', 'KMF']),
         dependents: z.number().int().min(0).max(30),
         elements: z.array(zElement).min(1),
       }),
@@ -91,6 +92,25 @@ export class PayrollController {
     });
   }
 
+  /** Paie des 16 autres pays : moteur générique alimenté par le pack pays (barème saisi par le fiscaliste). */
+  private generic(rules: Awaited<ReturnType<typeof loadRules>>, company: { country: string; currency: string }, e: { id: string; fullName: string; matricule: string; currency: string }, elements: PayElement[], payDate: string, rate: string | null) {
+    const dec = decimalsOf(company.currency);
+    const local = elements.map((x) => ({ ...x, local: rate ? convert(x.amount, rate, decimalsOf(e.currency), dec) : x.amount }));
+    const sumIf = (f: (x: (typeof local)[number]) => boolean) => local.filter(f).reduce((s, x) => s + x.local, 0n);
+    try {
+      const g = computeGenericPayslip(rules, { country: company.country, payDate, decimals: dec, gross: sumIf(() => true), contributableBase: sumIf((x) => x.contributable), taxableBase: sumIf((x) => x.taxable) });
+      return {
+        employeeId: e.id, fullName: e.fullName, matricule: e.matricule, rate,
+        gross: g.gross, cnssEmployee: g.employeeContributions, irpp: g.incomeTax, net: g.net, otherDeductions: 0n,
+        employer: { cnssPensions: g.employerContributions, cnssRisks: 0n, cnssFamily: 0n, inpp: 0n, onem: 0n, total: g.employerContributions },
+        totalCost: g.totalCost, convertedElements: local, banner: g.banner, contributions: g.contributions,
+      } as unknown as Payslip & { fullName: string; matricule: string };
+    } catch (err) {
+      if (err instanceof MissingValueError) throw domainError('PACK_PAYS_INCOMPLET', err.message);
+      throw err;
+    }
+  }
+
   /** Calcul de la paie du mois et écriture de paie en brouillon (validation à quatre yeux). */
   @Post('runs')
   run(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
@@ -110,6 +130,10 @@ export class PayrollController {
         const rate = e.currency === company.currency ? null : pickRate(rates, e.currency, company.currency, b.payDate);
         if (e.currency !== company.currency && !rate) {
           throw domainError('COURS_ABSENT', `Cours officiel ${e.currency}/${company.currency} du ${b.payDate} manquant (BCC).`);
+        }
+        if (company.country !== 'CD') {
+          slips.push(this.generic(rules, company, e, elements, b.payDate, rate?.rate ?? null));
+          continue;
         }
         const s = computePayslip(rules, {
           employeeId: e.id,

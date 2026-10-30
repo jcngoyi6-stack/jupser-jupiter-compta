@@ -254,3 +254,5 @@ export function rdcSeedRules(): TaxRule[] {
     { ...base, tax: 'SMIG', param: 'journalier_cdf', value: null, legalRef: 'Décret n°25/22 du 30/05/2025 — TODO(fiscaliste) : montant' },
   ];
 }
+
+export * from './packs';
