@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AccountingController } from './accounting/accounting.controller';
 import { ComplementsController, ConsolidationController } from './accounting/complements.controller';
+import { AnalyticsController } from './analytics/analytics.controller';
+import { AnalyticsService } from './analytics/analytics.service';
 import { CabinetController } from './cabinet/cabinet.controller';
 import { SecurityController } from './security/security.controller';
 import { SsoController } from './security/sso.controller';
@@ -41,6 +43,7 @@ import { TaxController } from './tax/tax.controller';
     AccountingController,
     ComplementsController,
     CabinetController,
+    AnalyticsController,
     SecurityController,
     SsoController,
     ProjectsController,
@@ -61,6 +64,7 @@ import { TaxController } from './tax/tax.controller';
   providers: [
     PrismaService,
     PaymentsService,
+    AnalyticsService,
     CryptoService,
     AuditService,
     AuthService,

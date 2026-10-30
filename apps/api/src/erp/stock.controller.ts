@@ -255,7 +255,8 @@ export class StockController {
       const costs = new Map<string, bigint>();
       for (const c of comps) costs.set(c.itemId, (await this.stock.valuation(tx, c.itemId)).unitCost);
       const routing = (bom.routing as { poste: string; minutes: number; hourlyRate: string }[]).map((r) => ({ ...r, hourlyRate: BigInt(r.hourlyRate) }));
-      const sheet = costSheet(comps, routing, b.qty, (id) => costs.get(id) ?? 0n, bom.overheadRate);
+      const base = costSheet(comps, routing, b.qty, (id) => costs.get(id) ?? 0n, bom.overheadRate);
+      const sheet = await this.withAnalyticOverhead(tx, companyId, b.date, base, routing, b.qty);
       const needs = netRequirements(explode(comps, b.qty), () => 0n);
       if (b.simulate) return { sheet, needs };
       const count = await tx.workOrder.count({ where: { companyId } });
@@ -268,6 +269,26 @@ export class StockController {
       await this.stock.move(tx, u, companyId, { itemId: product.id, warehouseId: b.warehouseId, date: b.date, type: 'PRODUCTION', qtyMilli: b.qty, unitCost: sheet.unitCost, reference: number }, true, product.variationAccount);
       return tx.workOrder.create({ data: { tenantId: u.tenantId, companyId, number, bomId: bom.id, qtyMilli: b.qty, date: b.date, status: 'TERMINE', costSheet: JSON.parse(JSON.stringify(sheet, (_k, v) => (typeof v === 'bigint' ? v.toString() : v))) } });
     });
+  }
+
+  /**
+   * Interconnexion avec la comptabilité analytique : si une période analytique validée existe, les frais
+   * d'atelier sont imputés au coût de l'unité d'œuvre (heure) des centres dont le code est celui du poste
+   * de la gamme, à la place du taux forfaitaire de la nomenclature.
+   */
+  private async withAnalyticOverhead(tx: Tx, companyId: string, date: string, sheet: ReturnType<typeof costSheet>, routing: { poste: string; minutes: number }[], qtyMilli: bigint) {
+    const period = await tx.analyticPeriod.findFirst({ where: { companyId, status: 'VALIDE', toDate: { lte: date } }, orderBy: { toDate: 'desc' } });
+    if (!period) return { ...sheet, overheadSource: 'TAUX_NOMENCLATURE' };
+    const units = ((period.results as { distribution?: { unitCosts?: { centre: string; unitCost: number | null }[] } }).distribution?.unitCosts ?? []);
+    const d = await dec(tx, companyId);
+    const centres = routing
+      .map((r) => ({ poste: r.poste, uo: units.find((x) => x.centre === r.poste)?.unitCost, hours: (r.minutes * Number(qtyMilli)) / 1000 / 60 }))
+      .filter((r) => r.uo !== null && r.uo !== undefined)
+      .map((r) => ({ centre: r.poste, hours: r.hours, unitCost: r.uo!, amount: BigInt(Math.round(r.hours * r.uo! * 10 ** d)) }));
+    if (!centres.length) return { ...sheet, overheadSource: 'TAUX_NOMENCLATURE' };
+    const overhead = centres.reduce((s, c) => s + c.amount, 0n);
+    const total = sheet.materialCost + sheet.labourCost + overhead;
+    return { ...sheet, overhead, total, unitCost: qtyMilli > 0n ? (total * 1000n + qtyMilli / 2n) / qtyMilli : 0n, overheadSource: `CAGE:${period.label}`, analyticCentres: centres };
   }
 
   @RequiresModule('PRODUCTION')

@@ -911,6 +911,39 @@ model ProjectEvaluation {
   @@map("project_evaluation")
 }
 
+// ======================= Comptabilité analytique de gestion (CAGE) =======================
+/** Paramétrage analytique d'une société : centres, clés, unités d'œuvre, règles d'incorporation, standards. */
+model AnalyticConfig {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @unique @map("company_id") @db.Uuid
+  settings  Json
+  updatedBy String   @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("analytic_config")
+}
+
+/** Période analytique calculée (données collectées, résultats, journal classe 9), validée par un humain. */
+model AnalyticPeriod {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  label       String
+  fromDate    String    @map("from_date")
+  toDate      String    @map("to_date")
+  input       Json
+  results     Json
+  status      String    @default("BROUILLON") // BROUILLON, VALIDE
+  createdBy   String    @map("created_by") @db.Uuid
+  validatedBy String?   @map("validated_by") @db.Uuid
+  validatedAt DateTime? @map("validated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([companyId, toDate])
+  @@map("analytic_period")
+}
+
 // ======================= Licences hors ligne =======================
 model License {
   id          String    @id @default(uuid()) @db.Uuid

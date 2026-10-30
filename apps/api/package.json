@@ -18,6 +18,7 @@
     "@jupiter/advisory": "workspace:*",
     "@jupiter/ai": "workspace:*",
     "@jupiter/connectors": "workspace:*",
+    "@jupiter/cost-accounting": "workspace:*",
     "@jupiter/einvoice": "workspace:*",
     "@jupiter/fx": "workspace:*",
     "@jupiter/ledger": "workspace:*",

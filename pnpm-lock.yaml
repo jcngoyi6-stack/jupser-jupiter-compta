@@ -41,6 +41,9 @@ importers:
       '@jupiter/connectors':
         specifier: workspace:*
         version: link:../../packages/connectors
+      '@jupiter/cost-accounting':
+        specifier: workspace:*
+        version: link:../../packages/cost-accounting
       '@jupiter/einvoice':
         specifier: workspace:*
         version: link:../../packages/einvoice

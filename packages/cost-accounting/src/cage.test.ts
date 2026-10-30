@@ -52,8 +52,9 @@ describe('charges incorporables (exemple AFOM & Fils, trimestre)', () => {
     expect(d.incorporable).toBe(101);
   });
   it('concordance des résultats', () => {
-    const c = reconcile({ analyticResult: 1000, supplementary: 930, nonIncorporableCharges: 462.5, nonIncorporatedProducts: 50, calculatedDifference: 100, rationalImputationDifference: 20, inventoryDifference: -5, generalLedgerResult: 1392.5 });
-    expect(c.computedGeneralResult).toBe(1392.5);
+    // R(CG) = 1000 + 930 − 462,5 + 50 + 100 − 20 − 30 + 15 − 5 = 1 577,5
+    const c = reconcile({ analyticResult: 1000, supplementary: 930, nonIncorporableCharges: 462.5, nonIncorporatedProducts: 50, calculatedDifference: 100, rationalImputationDifference: 20, nonImputedCharges: 30, stockVariationDifference: 15, inventoryDifference: -5, generalLedgerResult: 1577.5 });
+    expect(c.computedGeneralResult).toBe(1577.5);
     expect(c.reconciled).toBe(true);
     expect(reconcile({ analyticResult: 1, supplementary: 0, nonIncorporableCharges: 0, nonIncorporatedProducts: 0, calculatedDifference: 0 }).reconciled).toBeNull();
   });

@@ -24,7 +24,9 @@ export const CAGE_ACCOUNTS: Record<string, string> = {
   '972': 'Charges supplétives',
   '973': 'Différences sur charges calculées',
   '975': 'Différences d’inventaire',
+  '976': 'Produits non incorporés',
   '977': 'Différences d’arrondi et de rapprochement',
+  '978': 'Écarts de variation des stocks',
   '981': 'Résultats analytiques par produit',
 };
 

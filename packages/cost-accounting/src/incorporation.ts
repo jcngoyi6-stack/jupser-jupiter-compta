@@ -87,9 +87,11 @@ export interface ReconciliationItem { label: string; amount: number; account97?:
 /**
  * Concordance : résultat de la comptabilité générale reconstitué depuis le résultat analytique.
  * R(CG) = R(CAGE) + charges supplétives − charges non incorporables + produits non incorporés
- *         − différences sur charges calculées (économique − comptable)
- *         − différences d'imputation rationnelle (coût de sous-activité positif)
- *         + différences d'inventaire (stock réel − stock théorique).
+ *         + différences sur charges calculées (économique − comptable : la CAGE a supporté plus de charges)
+ *         − coût de sous-activité (+ boni de suractivité)
+ *         − charges incorporables non imputées aux coûts
+ *         + écart de variation des stocks (comptabilité générale − CAGE)
+ *         + différences d'inventaire (stock réel − stock théorique, lorsque la CG retient le stock réel).
  */
 export function reconcile(p: {
   analyticResult: number;
@@ -98,8 +100,9 @@ export function reconcile(p: {
   nonIncorporatedProducts: number;
   calculatedDifference: number;
   rationalImputationDifference?: number;
+  nonImputedCharges?: number;
+  stockVariationDifference?: number;
   inventoryDifference?: number;
-  roundingDifference?: number;
   generalLedgerResult?: number;
 }) {
   const items: ReconciliationItem[] = [
@@ -107,10 +110,11 @@ export function reconcile(p: {
     { label: '+ Charges supplétives', amount: p.supplementary, account97: '972' },
     { label: '− Charges non incorporables', amount: -p.nonIncorporableCharges, account97: '971' },
     { label: '+ Produits non incorporés', amount: p.nonIncorporatedProducts, account97: '976' },
-    { label: '− Différences sur charges calculées', amount: -p.calculatedDifference, account97: '973' },
+    { label: '+ Différences sur charges calculées', amount: p.calculatedDifference, account97: '973' },
     { label: '− Coût de sous-activité (+ boni de suractivité)', amount: -(p.rationalImputationDifference ?? 0), account97: '974' },
+    { label: '− Charges incorporables non imputées aux coûts', amount: -(p.nonImputedCharges ?? 0), account97: '977' },
+    { label: '± Écart de variation des stocks (CG − CAGE)', amount: p.stockVariationDifference ?? 0, account97: '978' },
     { label: '± Différences d’inventaire', amount: p.inventoryDifference ?? 0, account97: '975' },
-    { label: '± Arrondis', amount: p.roundingDifference ?? 0, account97: '977' },
   ];
   const computed = items.reduce((s, i) => s + i.amount, 0);
   const gap = p.generalLedgerResult === undefined ? null : p.generalLedgerResult - computed;

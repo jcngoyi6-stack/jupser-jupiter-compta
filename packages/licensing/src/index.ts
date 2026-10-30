@@ -11,6 +11,7 @@ export const MODULES = [
   'IA_GUIDE',
   'FISCALITE',
   'ANALYSE_FINANCIERE',
+  'COMPTABILITE_ANALYTIQUE',
   'BUDGET',
   'STOCKS',
   'IA_ANALYSTE',
@@ -32,7 +33,7 @@ export type ModuleCode = (typeof MODULES)[number];
 export type EditionCode = 'TPE' | 'ESSENTIEL' | 'PRO' | 'ERP';
 
 const ESSENTIEL: ModuleCode[] = ['COMPTABILITE', 'ETATS_FINANCIERS', 'TRESORERIE', 'DOCUMENTS_QR', 'COLLABORATION', 'IA_GUIDE'];
-const PRO: ModuleCode[] = [...ESSENTIEL, 'FISCALITE', 'ANALYSE_FINANCIERE', 'BUDGET', 'STOCKS', 'IA_ANALYSTE'];
+const PRO: ModuleCode[] = [...ESSENTIEL, 'FISCALITE', 'ANALYSE_FINANCIERE', 'COMPTABILITE_ANALYTIQUE', 'BUDGET', 'STOCKS', 'IA_ANALYSTE'];
 
 export const EDITION_MODULES: Record<EditionCode, ModuleCode[]> = {
   TPE: ['SMT', 'DOCUMENTS_QR', 'TRESORERIE', 'IA_GUIDE'],
