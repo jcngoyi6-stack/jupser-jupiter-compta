@@ -48,6 +48,16 @@ const MENU: { title: string; items: Item[] }[] = [
     ],
   },
   {
+    title: 'Cabinet et conseil',
+    items: [
+      { href: '/cabinet', label: 'Portefeuille et missions', module: 'CABINET' },
+      { href: '/cabinet/balance', label: 'États depuis une balance', module: 'CABINET' },
+      { href: '/cabinet/manuel', label: 'Manuel de procédures', module: 'CABINET' },
+      { href: '/cabinet/evaluation', label: 'Évaluation et restructuration', module: 'CABINET' },
+      { href: '/projets', label: 'Projets d’investissement', module: 'ANALYSE_FINANCIERE', roles: ['DIRECTION', 'CHEF_COMPTABLE', 'COMPTABLE', 'EXPERT_EXTERNE', 'AUDITEUR'] },
+    ],
+  },
+  {
     title: 'Bureau',
     items: [
       { href: '/collaboration', label: 'Collaboration', module: 'COLLABORATION' },

@@ -36,3 +36,23 @@ export function errorText(e: unknown): string {
   }
   return e instanceof Error ? e.message : String(e);
 }
+
+/** Télécharge un fichier produit par l'API (Word, Excel) via POST ou GET. */
+export async function apiDownload(path: string, fileName: string, body?: unknown): Promise<void> {
+  const res = await fetch(`/api${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'JupiterCompta' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    credentials: 'same-origin',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, data?.code ?? 'ERREUR', data?.message ?? 'Erreur', data?.details);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
