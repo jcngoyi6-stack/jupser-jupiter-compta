@@ -66,15 +66,22 @@ export class TaxController {
     const lines = await tx.entryLine.findMany({
       where: { entry: { companyId, status: { in: ['VALIDE', 'CONTREPASSE'] }, date: { gte: from, lte: to }, origin: { not: 'TVA' } }, account: { startsWith: '44' } },
     });
-    const collected = lines.filter((l) => l.account.startsWith('443')).reduce((s, l) => s + l.credit - l.debit, 0n);
-    const deductible = lines.filter((l) => l.account.startsWith('445')).reduce((s, l) => s + l.debit - l.credit, 0n);
+    const byAccount = (prefix: string, sign: 1n | -1n) => {
+      const m: Record<string, bigint> = {};
+      for (const l of lines.filter((x) => x.account.startsWith(prefix))) m[l.account] = (m[l.account] ?? 0n) + sign * (l.credit - l.debit);
+      return m;
+    };
+    const collectedByAccount = byAccount('443', 1n);
+    const deductibleByAccount = byAccount('445', -1n);
+    const collected = Object.values(collectedByAccount).reduce((s, v) => s + v, 0n);
+    const deductible = Object.values(deductibleByAccount).reduce((s, v) => s + v, 0n);
     const creditLines = await tx.entryLine.findMany({ where: { account: '444900', entry: { companyId, status: 'VALIDE', date: { lt: from } } } });
     const previousCredit = creditLines.reduce((s, l) => s + l.debit - l.credit, 0n);
     const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
     const trace = new RuleTrace();
     const rules = await loadRules(tx);
     trace.use(rules.find(company.country, 'TVA', 'taux_normal', to));
-    return { from, to, ...vatReturn({ collected, deductible, previousCredit: previousCredit > 0n ? previousCredit : 0n }), trace };
+    return { from, to, ...vatReturn({ collected, deductible, previousCredit: previousCredit > 0n ? previousCredit : 0n, collectedByAccount, deductibleByAccount }), trace };
   }
 
   /** Écriture de liquidation de TVA proposée en brouillon (validation humaine). */

@@ -74,7 +74,10 @@ export interface RevaluationResult {
 /**
  * Réévaluation de clôture (prudence) : écarts de conversion en 478 (actif, perte latente) / 479 (passif,
  * gain latent) ; les gains latents ne passent jamais en résultat ; les pertes latentes sont provisionnées
- * (697100 / 194000).
+ * (guide d'application, applications 84 et 87) :
+ * - créances et dettes d'exploitation : 659100 / 499100 (provision pour risques à court terme sur opérations
+ *   d'exploitation ; le guide écrit 4911, qui est « Créances litigieuses » dans le plan révisé) ;
+ * - créances et dettes financières : 697100 / 194000 (provisions pour pertes de change).
  */
 export function revalue(item: OpenFxItem, closingRate: string, localDecimals: number): RevaluationResult {
   const closingLocal = convert(item.foreignOutstanding, closingRate, item.currencyDecimals, localDecimals);
@@ -107,27 +110,29 @@ export function revalue(item: OpenFxItem, closingRate: string, localDecimals: nu
       }
     }
     if (latent === 'PERTE') {
-      provisionLines.push({ account: '697100', debit: abs, credit: 0n });
-      provisionLines.push({ account: '194000', debit: 0n, credit: abs });
+      provisionLines.push({ account: item.financial ? '697100' : '659100', debit: abs, credit: 0n });
+      provisionLines.push({ account: item.financial ? '194000' : '499100', debit: 0n, credit: abs });
     }
   }
   return { item, closingLocal, difference, latent, lines, provisionLines };
 }
 
 /**
- * Écart de change réalisé au règlement : 676 (perte) / 776 (gain).
+ * Écart de change réalisé au règlement (guide d'application, applications 84 et 86) :
+ * créances et dettes commerciales 656 (perte) / 756 (gain) ; opérations financières 676 / 776.
  * Retourne la ligne d'écart à ajouter à l'écriture de règlement.
  */
 export function realizedDifference(
   kind: 'CREANCE' | 'DETTE',
   bookedLocal: bigint,
   settledLocal: bigint,
+  financial = false,
 ): { gainOrLoss: 'GAIN' | 'PERTE' | 'NUL'; line: EntryLineInput | null } {
   // Créance : on encaisse settledLocal pour solder bookedLocal ; dette : on décaisse settledLocal.
   const delta = kind === 'CREANCE' ? settledLocal - bookedLocal : bookedLocal - settledLocal;
   if (delta === 0n) return { gainOrLoss: 'NUL', line: null };
-  if (delta > 0n) return { gainOrLoss: 'GAIN', line: { account: '776000', debit: 0n, credit: delta } };
-  return { gainOrLoss: 'PERTE', line: { account: '676000', debit: -delta, credit: 0n } };
+  if (delta > 0n) return { gainOrLoss: 'GAIN', line: { account: financial ? '776000' : '756000', debit: 0n, credit: delta } };
+  return { gainOrLoss: 'PERTE', line: { account: financial ? '676000' : '656000', debit: -delta, credit: 0n } };
 }
 
 /**

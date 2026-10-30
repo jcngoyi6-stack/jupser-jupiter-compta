@@ -97,3 +97,70 @@ describe('guide d’application — dépréciation des immobilisations', () => {
     expect(impairmentLines(incorp, 2026)[0]!.account).toBe('691300');
   });
 });
+
+describe('guide d’application — régularisations (applications 21 à 24)', async () => {
+  const { accrualLines, reversalLines } = await import('./accruals');
+  it('application 21 : charges constatées d’avance en 476', () => {
+    const l = accrualLines([{ kind: 'CHARGE_CONSTATEE_AVANCE', account: '625200', amount: 12n }, { kind: 'CHARGE_CONSTATEE_AVANCE', account: '605500', amount: 6n }]);
+    expect(l.filter((x) => x.account === '476000').reduce((s, x) => s + x.debit, 0n)).toBe(18n);
+  });
+  it('application 22 : charges à payer (facture non parvenue avec TVA, congés payés, État)', () => {
+    expect(accrualLines([{ kind: 'CHARGE_A_PAYER', account: '601300', amount: 50n, vat: 5n, counterparty: 'FOURNISSEUR' }])).toEqual([
+      { account: '601300', debit: 50n, credit: 0n, label: undefined }, { account: '445500', debit: 5n, credit: 0n, label: undefined },
+      { account: '408100', debit: 0n, credit: 55n, thirdPartyId: null, label: undefined },
+    ]);
+    expect(accrualLines([{ kind: 'CHARGE_A_PAYER', account: '661100', amount: 140n, counterparty: 'PERSONNEL_CONGES' }])[1]!.account).toBe('428100');
+    expect(accrualLines([{ kind: 'CHARGE_A_PAYER', account: '664100', amount: 35n, counterparty: 'ORGANISMES_SOCIAUX_CONGES' }])[1]!.account).toBe('438200');
+    expect(accrualLines([{ kind: 'CHARGE_A_PAYER', account: '641200', amount: 21n, counterparty: 'ETAT' }])[1]!.account).toBe('448600');
+    expect(accrualLines([{ kind: 'CHARGE_A_PAYER', account: '245100', amount: 120n, counterparty: 'FOURNISSEUR_INVESTISSEMENT' }])[1]!.account).toBe('481800');
+    expect(() => accrualLines([{ kind: 'CHARGE_A_PAYER', account: '601100', amount: 1n, counterparty: 'CLIENT' }])).toThrow('TIERS_INADAPTE');
+    expect(() => accrualLines([{ kind: 'CHARGE_A_PAYER', account: '601100', amount: 0n }])).toThrow('MONTANT_INVALIDE');
+  });
+  it('application 23 : produits constatés d’avance en 477', () => {
+    const l = accrualLines([{ kind: 'PRODUIT_CONSTATE_AVANCE', account: '706300', amount: 9n }, { kind: 'PRODUIT_CONSTATE_AVANCE', account: '771300', amount: 4n }]);
+    expect(l.filter((x) => x.account === '477000').reduce((s, x) => s + x.credit, 0n)).toBe(13n);
+  });
+  it('application 24 : produits à recevoir (facture à établir avec TVA, avoir à obtenir, subvention)', () => {
+    expect(accrualLines([{ kind: 'PRODUIT_A_RECEVOIR', account: '702300', amount: 40n, vat: 4n }])).toEqual([
+      { account: '418100', debit: 44n, credit: 0n, thirdPartyId: null, label: undefined }, { account: '702300', debit: 0n, credit: 40n, label: undefined },
+      { account: '443500', debit: 0n, credit: 4n, label: undefined },
+    ]);
+    const avoir = accrualLines([{ kind: 'PRODUIT_A_RECEVOIR', account: '601900', amount: 20n, vat: 2n, counterparty: 'FOURNISSEUR' }]);
+    expect(avoir.map((x) => x.account)).toEqual(['409800', '601900', '445500']);
+    expect(accrualLines([{ kind: 'PRODUIT_A_RECEVOIR', account: '718100', amount: 15n, counterparty: 'ETAT_SUBVENTION' }])[0]!.account).toBe('449500');
+    expect(() => accrualLines([{ kind: 'PRODUIT_A_RECEVOIR', account: '7', amount: 1n, counterparty: 'BANQUE_INTERETS' }])).toThrow('TIERS_INADAPTE');
+    const r = reversalLines([{ account: '476000', debit: 5n, credit: 0n }]);
+    expect(r).toEqual([{ account: '476000', debit: 0n, credit: 5n }]);
+  });
+});
+
+describe('guide d’application — application 65 : affectation du résultat', async () => {
+  const { appropriationLines, openingAccount } = await import('./closing');
+  const M = 1_000_000n;
+  it('répartition du bénéfice en instance d’affectation', () => {
+    expect(appropriationLines(150n * M, { legalReserve: 15n * M, statutoryReserve: 20n * M, optionalReserves: 25n * M, dividends: 89n * M, carryForward: 1n * M })).toEqual([
+      { account: '130100', debit: 150n * M, credit: 0n }, { account: '111000', debit: 0n, credit: 15n * M }, { account: '112000', debit: 0n, credit: 20n * M },
+      { account: '118100', debit: 0n, credit: 25n * M }, { account: '465000', debit: 0n, credit: 89n * M }, { account: '121000', debit: 0n, credit: 1n * M },
+    ]);
+    expect(() => appropriationLines(10n, { dividends: 11n })).toThrow('AFFECTATION_DESEQUILIBREE');
+    expect(appropriationLines(-5n, {})).toEqual([{ account: '129100', debit: 5n, credit: 0n }, { account: '130900', debit: 0n, credit: 5n }]);
+    expect(appropriationLines(10n, { dividends: 12n, carryForward: -2n }).at(-1)).toEqual({ account: '129100', debit: 2n, credit: 0n });
+  });
+  it('à l’ouverture, le résultat est repris en instance d’affectation', () => {
+    expect([openingAccount('131000'), openingAccount('139000'), openingAccount('101300')]).toEqual(['130100', '130900', '101300']);
+  });
+});
+
+describe('guide d’application — applications 74 et 75 : provisions pour risques', async () => {
+  const { provisionLines } = await import('./accruals');
+  it('dotation puis reprise de la provision pour litige', () => {
+    const M = 1_000_000n;
+    expect(provisionLines('EXPLOITATION', '192000', 15_600_000n, 0n)).toEqual([{ account: '691100', debit: 15_600_000n, credit: 0n }, { account: '192000', debit: 0n, credit: 15_600_000n }]);
+    expect(provisionLines('EXPLOITATION', '191000', 15n * M, 10n * M)[0]).toEqual({ account: '691100', debit: 5n * M, credit: 0n });
+    expect(provisionLines('EXPLOITATION', '191000', 0n, 15n * M)).toEqual([{ account: '191000', debit: 15n * M, credit: 0n }, { account: '791100', debit: 0n, credit: 15n * M }]);
+    expect(provisionLines('FINANCIERE', '194000', 212_500n, 312_500n)[1]).toEqual({ account: '797100', debit: 0n, credit: 100_000n });
+    expect(provisionLines('HAO', '198000', 1n, 0n)[0]!.account).toBe('854000');
+    expect(provisionLines('HAO', '198000', 1n, 1n)).toEqual([]);
+    expect(() => provisionLines('EXPLOITATION', '499100', 1n, 0n)).toThrow('COMPTE_PROVISION_19_ATTENDU');
+  });
+});

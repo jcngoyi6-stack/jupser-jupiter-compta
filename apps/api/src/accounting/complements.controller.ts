@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Header, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
+  accrualLines, appropriationLines, provisionLines, reversalLines,
   budgetReport, componentSchedule, decimalsOf, derogatoryLines, disposalLines, impairmentLines, mirrorAccounts, dotationLines, monthlyForecast, netByAccount, parseBalance, parseBankStatement,
   parseJournal, proposeMatches, reconciliationStatement, suggestMapping, weeklyForecast, addDays,
   type AssetDef, type CashItem,
@@ -202,6 +203,94 @@ export class ComplementsController {
       const components = [...(a.components as unknown[]), { ...b, cost: b.cost.toString() }];
       await this.audit.log(tx, u.tenantId, u.userId, 'COMPOSANT_AJOUTE', `asset:${id}`, { label: b.label });
       return tx.fixedAsset.update({ where: { id }, data: { components: components as never } });
+    });
+  }
+
+  // ================= Régularisations, provisions, affectation (guide d'application) =================
+  /**
+   * Régularisations de fin d'exercice (applications 21 à 24) : écriture en brouillon à la clôture et,
+   * si l'exercice suivant est ouvert, sa contre-passation au premier jour (contre-passation immédiate).
+   */
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('closing/accruals')
+  accruals(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({
+        date: zDate,
+        items: z.array(z.object({
+          kind: z.enum(['CHARGE_CONSTATEE_AVANCE', 'PRODUIT_CONSTATE_AVANCE', 'CHARGE_A_PAYER', 'PRODUIT_A_RECEVOIR']),
+          account: zAccount, amount: zAmount(d), vat: zAmount(d).optional(), label: z.string().max(200).optional(), thirdPartyId: z.string().uuid().optional(),
+          counterparty: z.enum(['FOURNISSEUR', 'FOURNISSEUR_INVESTISSEMENT', 'FOURNISSEUR_INTERETS', 'CLIENT', 'PERSONNEL', 'PERSONNEL_CONGES', 'ORGANISMES_SOCIAUX', 'ORGANISMES_SOCIAUX_CONGES', 'ETAT', 'ETAT_SUBVENTION', 'BANQUE_INTERETS']).optional(),
+        })).min(1),
+      }), body);
+      let lines;
+      try {
+        lines = accrualLines(b.items);
+      } catch (e) {
+        throw domainError((e as Error).message, (e as Error).message === 'TIERS_INADAPTE' ? 'Contrepartie inadaptée à ce type de régularisation.' : 'Montant invalide.');
+      }
+      const entry = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `REGUL-${b.date}`, label: 'Régularisations de fin d’exercice', lines });
+      const next = new Date(`${b.date}T00:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      const reverseOn = next.toISOString().slice(0, 10);
+      const nextFy = await tx.fiscalYear.findFirst({ where: { companyId, startDate: { lte: reverseOn }, endDate: { gte: reverseOn }, closed: false } });
+      const reversal = nextFy
+        ? await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: reverseOn, pieceRef: `EXT-REGUL-${b.date}`, label: 'Contre-passation des régularisations', lines: reversalLines(lines) })
+        : null;
+      await this.audit.log(tx, u.tenantId, u.userId, 'REGULARISATIONS', `company:${companyId}`, { items: b.items.length, reversal: !!reversal });
+      return { entry, reversal, message: reversal ? null : `Exercice suivant non ouvert : la contre-passation au ${reverseOn} sera à générer à son ouverture.` };
+    });
+  }
+
+  /** Provisions pour risques et charges (applications 71 à 75) : ajustement du compte 19x au montant requis. */
+  @Roles(...ACCOUNTING_WRITE)
+  @Post('closing/provisions')
+  provisions(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({ date: zDate, items: z.array(z.object({ account: zAccount, nature: z.enum(['EXPLOITATION', 'FINANCIERE', 'HAO']).default('EXPLOITATION'), required: zAmount(d), label: z.string().optional() })).min(1) }), body);
+      const lines = [];
+      for (const it of b.items) {
+        const agg = await tx.entryLine.aggregate({ where: { account: it.account, entry: { companyId, status: { in: ['VALIDE', 'CONTREPASSE'] }, date: { lte: b.date } } }, _sum: { debit: true, credit: true } });
+        const booked = (agg._sum.credit ?? 0n) - (agg._sum.debit ?? 0n);
+        try {
+          lines.push(...provisionLines(it.nature, it.account, it.required, booked));
+        } catch {
+          throw domainError('COMPTE_PROVISION_19_ATTENDU', `${it.account} : compte de provision pour risques et charges (19x) attendu.`);
+        }
+      }
+      if (!lines.length) return { entry: null, message: 'Provisions déjà au niveau requis.' };
+      const entry = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `PROV-${b.date}`, label: 'Provisions pour risques et charges', lines });
+      return { entry };
+    });
+  }
+
+  /** Affectation du résultat selon la décision de l'assemblée (application 65). */
+  @Roles('CHEF_COMPTABLE', 'EXPERT_EXTERNE')
+  @Post('closing/appropriation')
+  appropriation(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({
+        date: zDate, decision: z.string().min(3).max(200),
+        legalReserve: zAmount(d).default('0'), statutoryReserve: zAmount(d).default('0'), optionalReserves: zAmount(d).default('0'),
+        dividends: zAmount(d).default('0'), carryForward: z.union([z.string(), z.number()]).default('0'),
+      }), body);
+      const carry = parse(z.object({ v: z.union([z.string(), z.number()]).transform((v) => { const t = String(v).trim(); const neg = t.startsWith('-'); const a = parse(zAmount(d), neg ? t.slice(1) : t); return neg ? -a : a; }) }), { v: b.carryForward }).v;
+      const sums = await tx.entryLine.groupBy({ by: ['account'], where: { account: { in: ['130100', '130900'] }, entry: { companyId, status: { in: ['VALIDE', 'CONTREPASSE'] }, date: { lte: b.date } } }, _sum: { debit: true, credit: true } });
+      const bal = (a: string) => { const x = sums.find((y) => y.account === a); return (x?._sum.credit ?? 0n) - (x?._sum.debit ?? 0n); };
+      const result = bal('130100') + bal('130900');
+      if (result === 0n) throw domainError('AUCUN_RESULTAT_EN_INSTANCE', 'Aucun résultat en instance d’affectation (1301 / 1309).');
+      let lines;
+      try {
+        lines = appropriationLines(result, { legalReserve: b.legalReserve, statutoryReserve: b.statutoryReserve, optionalReserves: b.optionalReserves, dividends: b.dividends, carryForward: carry });
+      } catch {
+        throw domainError('AFFECTATION_DESEQUILIBREE', `La répartition doit être égale au résultat en instance d’affectation (${result}).`);
+      }
+      const entry = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `AGO-${b.date}`, label: `Affectation du résultat — ${b.decision}`, lines });
+      await this.audit.log(tx, u.tenantId, u.userId, 'AFFECTATION_RESULTAT', `company:${companyId}`, { decision: b.decision });
+      return { entry, result };
     });
   }
 

@@ -15,6 +15,16 @@ export function netResult(rows: BalanceRow[]): bigint {
 }
 
 /**
+ * À l'ouverture, le résultat de l'exercice précédent est repris « en instance d'affectation »
+ * (1301 bénéfice, 1309 perte) jusqu'à la décision de l'assemblée (guide d'application, application 65).
+ */
+export function openingAccount(account: string): string {
+  if (account.startsWith('131')) return '130100';
+  if (account.startsWith('139')) return '130900';
+  return account;
+}
+
+/**
  * Écriture de détermination du résultat : solde les comptes de gestion (6, 7, 8) vers 131 / 139.
  */
 export function resultDeterminationLines(rows: BalanceRow[]): EntryLineInput[] {
@@ -46,7 +56,7 @@ export function openingEntryLines(closingRows: BalanceRow[]): EntryLineInput[] {
   return closingRows
     .filter((r) => ['1', '2', '3', '4', '5'].includes(r.account[0]!))
     .filter((r) => r.closingDebit !== r.closingCredit)
-    .map((r) => ({ account: r.account, debit: r.closingDebit, credit: r.closingCredit }));
+    .map((r) => ({ account: openingAccount(r.account), debit: r.closingDebit, credit: r.closingCredit }));
 }
 
 /**
@@ -66,8 +76,9 @@ export function openingEntryLinesByThirdParty(
   const m = new Map<string, { account: string; thirdPartyId: string | null; net: bigint }>();
   for (const l of closingLines) {
     if (!['1', '2', '3', '4', '5'].includes(l.account[0]!)) continue;
-    const key = `${l.account}|${l.thirdPartyId ?? ''}`;
-    const g = m.get(key) ?? { account: l.account, thirdPartyId: l.thirdPartyId ?? null, net: 0n };
+    const account = openingAccount(l.account);
+    const key = `${account}|${l.thirdPartyId ?? ''}`;
+    const g = m.get(key) ?? { account, thirdPartyId: l.thirdPartyId ?? null, net: 0n };
     g.net += l.debit - l.credit;
     m.set(key, g);
   }
@@ -80,4 +91,35 @@ export function openingEntryLinesByThirdParty(
       debit: g.net > 0n ? g.net : 0n,
       credit: g.net < 0n ? -g.net : 0n,
     }));
+}
+
+export interface Appropriation {
+  legalReserve?: bigint;
+  statutoryReserve?: bigint;
+  optionalReserves?: bigint;
+  dividends?: bigint;
+  /** Report à nouveau : positif = créditeur (121), négatif = débiteur (1291). */
+  carryForward?: bigint;
+}
+
+/**
+ * Affectation du résultat selon la décision de l'assemblée (guide d'application, application 65) :
+ * le résultat en instance d'affectation (1301 / 1309) est réparti en réserves (111, 112, 1181),
+ * dividendes (465) et report à nouveau (121 / 1291). Une perte est reportée à nouveau (1291).
+ */
+export function appropriationLines(result: bigint, a: Appropriation): EntryLineInput[] {
+  if (result < 0n) {
+    return [{ account: '129100', debit: -result, credit: 0n }, { account: '130900', debit: 0n, credit: -result }];
+  }
+  const parts: [string, bigint][] = [
+    ['111000', a.legalReserve ?? 0n], ['112000', a.statutoryReserve ?? 0n], ['118100', a.optionalReserves ?? 0n], ['465000', a.dividends ?? 0n],
+  ];
+  const carry = a.carryForward ?? 0n;
+  const allocated = parts.reduce((s, [, v]) => s + v, 0n) + carry;
+  if (allocated !== result) throw new Error('AFFECTATION_DESEQUILIBREE');
+  const lines: EntryLineInput[] = [{ account: '130100', debit: result, credit: 0n }];
+  for (const [account, v] of parts) if (v > 0n) lines.push({ account, debit: 0n, credit: v });
+  if (carry > 0n) lines.push({ account: '121000', debit: 0n, credit: carry });
+  if (carry < 0n) lines.push({ account: '129100', debit: -carry, credit: 0n });
+  return lines;
 }

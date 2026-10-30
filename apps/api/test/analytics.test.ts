@@ -86,6 +86,10 @@ describe('collecte et calcul', () => {
     const ate = res.distribution.unitCosts.find((u: any) => u.centre === 'ATE');
     expect(ate.quantity).toBe(1);
     expect(ate.unitCost).toBeGreaterThan(5000);
+    // Application 52 du guide : le coût de l'UO servant à valoriser les stocks exclut l'administration générale.
+    const ateStock = res.distribution.stockUnitCosts.find((u: any) => u.centre === 'ATE');
+    expect(ateStock.unitCost).toBeLessThan(ate.unitCost);
+    expect(ateStock.excludedAdministration).toBeGreaterThan(0);
     for (const e of res.journal.entries) {
       const dr = e.lines.reduce((s: number, l: any) => s + l.debit, 0);
       const cr = e.lines.reduce((s: number, l: any) => s + l.credit, 0);

@@ -50,7 +50,7 @@ describe('écarts de change — 10 cas de référence', () => {
       } else expect(r.lines).toHaveLength(0);
       // prudence : gain latent jamais en résultat ; perte latente provisionnée
       expect(r.lines.some((l) => l.account.startsWith('7'))).toBe(false);
-      if (c.latent === 'PERTE') expect(r.provisionLines.map((l) => l.account)).toEqual(['697100', '194000']);
+      if (c.latent === 'PERTE') expect(r.provisionLines.map((l) => l.account)).toEqual(['659100', '499100']);
       else expect(r.provisionLines).toHaveLength(0);
     });
   }
@@ -62,13 +62,27 @@ describe('écarts de change — 10 cas de référence', () => {
     expect(revalue({ ...base, kind: 'DETTE', financial: true, bookedLocal: 1n }, '2700', 2).lines[0]!.account).toBe('478400');
     expect(revalue({ ...base, kind: 'CREANCE', financial: true, bookedLocal: 1n }, '2700', 2).lines[1]!.account).toBe('479200');
   });
-  it('cas 8 : gain de change réalisé sur créance → 776', () => {
-    const r = realizedDifference('CREANCE', 2_800_000_00n, 2_850_000_00n);
-    expect(r).toEqual({ gainOrLoss: 'GAIN', line: { account: '776000', debit: 0n, credit: 50_000_00n } });
+  it('cas 8 : gain de change réalisé sur créance commerciale → 756, financière → 776', () => {
+    expect(realizedDifference('CREANCE', 2_800_000_00n, 2_850_000_00n)).toEqual({ gainOrLoss: 'GAIN', line: { account: '756000', debit: 0n, credit: 50_000_00n } });
+    expect(realizedDifference('CREANCE', 2_800_000_00n, 2_850_000_00n, true).line!.account).toBe('776000');
   });
-  it('cas 9 : perte de change réalisée sur dette → 676', () => {
-    const r = realizedDifference('DETTE', 2_800_000_00n, 2_850_000_00n);
-    expect(r).toEqual({ gainOrLoss: 'PERTE', line: { account: '676000', debit: 50_000_00n, credit: 0n } });
+  it('cas 9 : perte de change réalisée sur dette commerciale → 656, financière → 676', () => {
+    expect(realizedDifference('DETTE', 2_800_000_00n, 2_850_000_00n)).toEqual({ gainOrLoss: 'PERTE', line: { account: '656000', debit: 50_000_00n, credit: 0n } });
+    expect(realizedDifference('DETTE', 2_800_000_00n, 2_850_000_00n, true).line!.account).toBe('676000');
+  });
+  it('guide, application 84 : créance de 250 000 reals à 190 F, clôture à 180 F puis à 210 F, règlement à 175 F puis à 215 F', () => {
+    const item = { account: '411100', kind: 'CREANCE' as const, currency: 'BRL', foreignOutstanding: 250_000n, bookedLocal: 47_500_000n, currencyDecimals: 0 };
+    const h1 = revalue(item, '180', 0);
+    expect(h1.lines).toEqual([{ account: '478100', debit: 2_500_000n, credit: 0n }, { account: '411100', thirdPartyId: null, debit: 0n, credit: 2_500_000n }]);
+    expect(h1.provisionLines).toEqual([{ account: '659100', debit: 2_500_000n, credit: 0n }, { account: '499100', debit: 0n, credit: 2_500_000n }]);
+    const h2 = revalue(item, '210', 0);
+    expect(h2.lines[1]).toEqual({ account: '479100', debit: 0n, credit: 5_000_000n });
+    expect(h2.provisionLines).toEqual([]);
+    expect(realizedDifference('CREANCE', 47_500_000n, 43_750_000n).line).toEqual({ account: '656000', debit: 3_750_000n, credit: 0n });
+    expect(realizedDifference('CREANCE', 47_500_000n, 53_750_000n).line).toEqual({ account: '756000', debit: 0n, credit: 6_250_000n });
+  });
+  it('perte latente sur dette financière → provision pour pertes de change 697100 / 194000', () => {
+    expect(revalue({ ...base, kind: 'DETTE', financial: true, bookedLocal: 1n }, '2700', 2).provisionLines.map((l) => l.account)).toEqual(['697100', '194000']);
   });
   it('cas 10 : règlement au cours historique → aucun écart', () => {
     expect(realizedDifference('DETTE', 10n, 10n)).toEqual({ gainOrLoss: 'NUL', line: null });

@@ -110,6 +110,9 @@ export interface VatReturnInput {
   collected: bigint; // TVA facturée (443x) de la période
   deductible: bigint; // TVA récupérable (445x) de la période
   previousCredit: bigint; // crédit reporté (4449)
+  /** Soldes par sous-compte (4431 ventes, 4432 services, 4433 travaux, 4434 livraisons à soi-même ; 4451 immobilisations, 4452 achats, 4453 transport…). */
+  collectedByAccount?: Record<string, bigint>;
+  deductibleByAccount?: Record<string, bigint>;
 }
 
 export function vatReturn(i: VatReturnInput) {
@@ -121,12 +124,17 @@ export function vatReturn(i: VatReturnInput) {
   };
 }
 
-/** Écriture de liquidation de TVA (443x / 445x / 4441 / 4449). */
+/**
+ * Écriture de liquidation de TVA (guide d'application, application 7) : chaque sous-compte 443x et 445x
+ * est soldé ; le solde est porté en 4441 (TVA due) ou en 4449 (crédit de TVA à reporter).
+ */
 export function vatSettlementLines(i: VatReturnInput) {
   const r = vatReturn(i);
   const lines: { account: string; debit: bigint; credit: bigint }[] = [];
-  if (i.collected) lines.push({ account: '443100', debit: i.collected, credit: 0n });
-  if (i.deductible) lines.push({ account: '445200', debit: 0n, credit: i.deductible });
+  const collected = i.collectedByAccount ?? (i.collected ? { '443100': i.collected } : {});
+  const deductible = i.deductibleByAccount ?? (i.deductible ? { '445200': i.deductible } : {});
+  for (const [account, v] of Object.entries(collected).sort()) if (v) lines.push(v > 0n ? { account, debit: v, credit: 0n } : { account, debit: 0n, credit: -v });
+  for (const [account, v] of Object.entries(deductible).sort()) if (v) lines.push(v > 0n ? { account, debit: 0n, credit: v } : { account, debit: -v, credit: 0n });
   if (i.previousCredit) lines.push({ account: '444900', debit: 0n, credit: i.previousCredit });
   if (r.due) lines.push({ account: '444100', debit: 0n, credit: r.due });
   if (r.creditToCarry) lines.push({ account: '444900', debit: r.creditToCarry, credit: 0n });

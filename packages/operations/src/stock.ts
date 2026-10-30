@@ -46,7 +46,9 @@ export function applyMove(v: Valuation, m: Move, method: 'CMUP' | 'FIFO'): { val
   let cost: bigint;
   let layers = v.layers.map((l) => ({ ...l }));
   if (method === 'CMUP') {
-    cost = out === v.qtyMilli ? v.value : valueOf(out, v.unitCost);
+    // Sortie au prorata de la valeur du stock (et non coût unitaire arrondi × quantité) : pas de dérive
+    // d'arrondi sur les grandes quantités (guide d'application, application 101).
+    cost = out === v.qtyMilli ? v.value : divRound(v.value * out, v.qtyMilli);
     // les couches ne servent qu'au FIFO ; on les consomme quand même pour rester cohérent
     let rest = out;
     for (const l of layers) {
@@ -68,7 +70,7 @@ export function applyMove(v: Valuation, m: Move, method: 'CMUP' | 'FIFO'): { val
   layers = layers.filter((l) => l.qtyMilli > 0n);
   const qty = v.qtyMilli - out;
   const value = qty === 0n ? 0n : v.value - cost;
-  return { valuation: { qtyMilli: qty, value, unitCost: qty > 0n ? (method === 'CMUP' ? v.unitCost : divRound(value * MILLI, qty)) : 0n, layers }, cost };
+  return { valuation: { qtyMilli: qty, value, unitCost: qty > 0n ? divRound(value * MILLI, qty) : 0n, layers }, cost };
 }
 
 export function valuate(moves: Move[], method: 'CMUP' | 'FIFO') {

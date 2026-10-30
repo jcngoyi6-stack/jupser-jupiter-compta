@@ -236,6 +236,18 @@ export class AnalyticsService {
       return { centre: c.code, fixed: r2(fixed), coefficient: r.coefficient, imputedFixed: r2(r.imputedFixed), difference: r2(r.difference), nature: r.nature };
     });
     const uc = unitCosts(centres, imputed, d.units);
+    // Coût de l'UO « stockable » (guide d'application, application 52) : sans les frais d'administration générale.
+    // La répartition secondaire étant linéaire, on la refait sans les charges primaires des centres d'administration.
+    const adminCodes = new Set(settings.centres.filter((c) => c.fn === 'ADMINISTRATION').map((c) => c.code));
+    const stockPrimary = Object.fromEntries(Object.entries(prim.totals).map(([k, v]) => [k, adminCodes.has(k) ? 0 : v]));
+    const stockSec = secondaryDistribution(centres, stockPrimary, settings.transfers).totals;
+    const stockUnitCosts = settings.centres.filter((c) => c.kind === 'PRINCIPAL').map((c) => {
+      const total = stockSec[c.code] ?? 0;
+      const r = rational.find((x) => x.centre === c.code);
+      const imputedTotal = r ? total * (1 - c.fixedShare!) + total * c.fixedShare! * r.coefficient : total;
+      const q = d.units[c.code] ?? 0;
+      return { centre: c.code, total: r2(imputedTotal), excludedAdministration: r2((imputed[c.code] ?? 0) - imputedTotal), unitCost: q > 0 ? imputedTotal / q : null };
+    });
     const unitMap = Object.fromEntries(uc.filter((u) => u.unitCost !== null).map((u) => [u.centre, u.unitCost!]));
     const missingUnits = uc.filter((u) => u.unitCost === null && Math.abs(u.total) > 0.005).map((u) => u.centre);
 
@@ -287,7 +299,7 @@ export class AnalyticsService {
     return {
       period: { from: d.from, to: d.to, months: r2(months), currency: d.currency },
       incorporation: inc,
-      distribution: { primary: prim, secondary: sec, unitCosts: uc, missingUnits, rational, directCharges: r2(directCharges), unallocated },
+      distribution: { primary: prim, secondary: sec, unitCosts: uc, stockUnitCosts, missingUnits, rational, directCharges: r2(directCharges), unallocated },
       centres: centreReport,
       costs,
       concordance: { ...concordance, nonImputedDetail },

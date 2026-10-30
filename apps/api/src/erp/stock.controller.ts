@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { decimalsOf } from '@jupiter/ledger';
-import { costSheet, inventoryVariance, ITEM_ACCOUNTS, netRequirements, explode } from '@jupiter/operations';
+import { costSheet, impairmentAdjustmentLines, IMPAIRMENT_ACCOUNTS, inventoryVariance, ITEM_ACCOUNTS, netRequirements, explode, requiredImpairment, type WriteDownBasis } from '@jupiter/operations';
 import { applyRate } from '@jupiter/tax-engine';
 import { z } from 'zod';
 import { EntriesService } from '../accounting/entries.service';
@@ -272,6 +272,54 @@ export class StockController {
   }
 
   /**
+   * Dépréciation des stocks à l'inventaire (applications 53 et 54 du guide d'application) : valeur actuelle
+   * de chaque article (valeur nette de réalisation ou coût de remplacement), ajustement des comptes 39x
+   * au niveau requis ; écriture proposée en brouillon.
+   */
+  @Roles('CHEF_COMPTABLE', 'COMPTABLE', 'EXPERT_EXTERNE')
+  @Post('stock/impairment')
+  impairment(@CurrentUser() u: SessionUser, @Param('companyId') companyId: string, @Body() body: unknown) {
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const d = await dec(tx, companyId);
+      const b = parse(z.object({
+        date: zDate,
+        items: z.array(z.object({
+          itemId: z.string().uuid(),
+          contractPrice: zAmount(d).optional(), probablePrice: zAmount(d).optional(), costsToSell: zAmount(d).default('0'),
+          replacementValue: zAmount(d).optional(),
+        })).min(1),
+      }), body);
+      const required: Record<string, bigint> = {};
+      const detail = [];
+      for (const it of b.items) {
+        const item = await tx.stockItem.findFirst({ where: { id: it.itemId, companyId } });
+        if (!item) throw domainError('ARTICLE_INCONNU', 'Article introuvable.');
+        const v = await this.stock.valuation(tx, item.id);
+        const basis: WriteDownBasis = it.replacementValue !== undefined
+          ? { mode: 'COUT_REMPLACEMENT', replacementValue: it.replacementValue }
+          : { mode: 'VNR', contractPrice: it.contractPrice, probablePrice: it.probablePrice, costsToSell: it.costsToSell };
+        let r;
+        try {
+          r = requiredImpairment(v.value, basis);
+        } catch {
+          throw domainError('PRIX_DE_VENTE_REQUIS', `${item.label} : prix du contrat ou prix de vente probable requis.`);
+        }
+        const acc = IMPAIRMENT_ACCOUNTS[item.kind] ?? '391000';
+        required[acc] = (required[acc] ?? 0n) + r.impairment;
+        detail.push({ item: item.code, cost: v.value, actualValue: r.actual, impairment: r.impairment, account: acc, basis: basis.mode });
+      }
+      const accounts = Object.keys(required);
+      const bal = await tx.entryLine.groupBy({ by: ['account'], where: { account: { in: accounts }, entry: { companyId, status: { in: ['VALIDE', 'CONTREPASSE'] }, date: { lte: b.date } } }, _sum: { debit: true, credit: true } });
+      const booked = Object.fromEntries(bal.map((x) => [x.account, (x._sum.credit ?? 0n) - (x._sum.debit ?? 0n)]));
+      const lines = impairmentAdjustmentLines(required, booked);
+      if (!lines.length) return { detail, entry: null, message: 'Dépréciations déjà au niveau requis.' };
+      const entry = await this.entries.createDraft(tx, u, companyId, { journalCode: 'OD', date: b.date, pieceRef: `DEPR-STOCK-${b.date}`, label: 'Dépréciation des stocks à l’inventaire', lines });
+      await this.audit.log(tx, u.tenantId, u.userId, 'DEPRECIATION_STOCKS', `company:${companyId}`, { items: detail.length });
+      return { detail, entry };
+    });
+  }
+
+  /**
    * Interconnexion avec la comptabilité analytique : si une période analytique validée existe, les frais
    * d'atelier sont imputés au coût de l'unité d'œuvre (heure) des centres dont le code est celui du poste
    * de la gamme, à la place du taux forfaitaire de la nomenclature.
@@ -279,7 +327,10 @@ export class StockController {
   private async withAnalyticOverhead(tx: Tx, companyId: string, date: string, sheet: ReturnType<typeof costSheet>, routing: { poste: string; minutes: number }[], qtyMilli: bigint) {
     const period = await tx.analyticPeriod.findFirst({ where: { companyId, status: 'VALIDE', toDate: { lte: date } }, orderBy: { toDate: 'desc' } });
     if (!period) return { ...sheet, overheadSource: 'TAUX_NOMENCLATURE' };
-    const units = ((period.results as { distribution?: { unitCosts?: { centre: string; unitCost: number | null }[] } }).distribution?.unitCosts ?? []);
+    // Valorisation des stocks : coût de l'UO hors administration générale (application 52 du guide) ;
+    // les périodes calculées avant cette règle n'ont que le coût complet.
+    const dist = (period.results as { distribution?: { unitCosts?: { centre: string; unitCost: number | null }[]; stockUnitCosts?: { centre: string; unitCost: number | null }[] } }).distribution;
+    const units = dist?.stockUnitCosts ?? dist?.unitCosts ?? [];
     const d = await dec(tx, companyId);
     const centres = routing
       .map((r) => ({ poste: r.poste, uo: units.find((x) => x.centre === r.poste)?.unitCost, hours: (r.minutes * Number(qtyMilli)) / 1000 / 60 }))
