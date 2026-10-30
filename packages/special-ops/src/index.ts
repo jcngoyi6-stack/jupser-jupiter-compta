@@ -13,3 +13,5 @@ export * from './revaluation';
 export * from './third-parties';
 export * from './mergers';
 export * from './joint-ops';
+export * from './misc-ops';
+export * from './transition';
