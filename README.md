@@ -22,6 +22,10 @@ Monorepo pnpm + Turborepo, TypeScript strict. Le dossier de conception d'origine
 | `apps/web` | Interface Next.js (App Router, Tailwind, TanStack Query, PWA), une interface par rôle, console JUPSER intégrée, français/anglais/portugais/espagnol |
 | `apps/desktop` | Application de bureau Tauri 2 (Windows, macOS, Linux) — voir son README |
 
+## Essai en un clic (Docker)
+
+Voir [`ESSAI_LOCAL.md`](ESSAI_LOCAL.md) : sous Windows, double-cliquer sur `ESSAYER-JUPITER-COMPTA.bat` (Docker Desktop requis), puis ouvrir http://localhost:3000.
+
 ## Démarrage (développement)
 
 Prérequis : Node 22, pnpm 10, PostgreSQL 16.
