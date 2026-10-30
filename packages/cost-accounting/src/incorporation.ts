@@ -107,14 +107,14 @@ export function reconcile(p: {
 }) {
   const items: ReconciliationItem[] = [
     { label: 'Résultat analytique', amount: p.analyticResult },
-    { label: '+ Charges supplétives', amount: p.supplementary, account97: '972' },
-    { label: '− Charges non incorporables', amount: -p.nonIncorporableCharges, account97: '971' },
-    { label: '+ Produits non incorporés', amount: p.nonIncorporatedProducts, account97: '976' },
-    { label: '+ Différences sur charges calculées', amount: p.calculatedDifference, account97: '973' },
-    { label: '− Coût de sous-activité (+ boni de suractivité)', amount: -(p.rationalImputationDifference ?? 0), account97: '974' },
-    { label: '− Charges incorporables non imputées aux coûts', amount: -(p.nonImputedCharges ?? 0), account97: '977' },
-    { label: '± Écart de variation des stocks (CG − CAGE)', amount: p.stockVariationDifference ?? 0, account97: '978' },
-    { label: '± Différences d’inventaire', amount: p.inventoryDifference ?? 0, account97: '975' },
+    { label: '+ Charges supplétives', amount: p.supplementary, account97: '972000' },
+    { label: '− Charges non incorporables', amount: -p.nonIncorporableCharges, account97: '971000' },
+    { label: '+ Produits non incorporés', amount: p.nonIncorporatedProducts, account97: '976000' },
+    { label: '+ Différences sur charges calculées', amount: p.calculatedDifference, account97: '973000' },
+    { label: '− Coût de sous-activité (+ boni de suractivité)', amount: -(p.rationalImputationDifference ?? 0), account97: '974000' },
+    { label: '− Charges incorporables non imputées aux coûts', amount: -(p.nonImputedCharges ?? 0), account97: '977000' },
+    { label: '± Écart de variation des stocks (CG − CAGE)', amount: p.stockVariationDifference ?? 0, account97: '978000' },
+    { label: '± Différences d’inventaire', amount: p.inventoryDifference ?? 0, account97: '975000' },
   ];
   const computed = items.reduce((s, i) => s + i.amount, 0);
   const gap = p.generalLedgerResult === undefined ? null : p.generalLedgerResult - computed;

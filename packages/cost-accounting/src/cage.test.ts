@@ -182,12 +182,12 @@ describe('enchaînement des coûts complets', () => {
       expect(Math.abs(d - c), e.ref).toBeLessThan(0.005);
     }
     const bal = (a: string) => j.balance.find((b) => b.account === a)?.balance ?? 0;
-    close(bal('981'), -Math.round(r.analyticResult * 100) / 100, 0.02);
-    close(bal('951'), 46400);
+    close(bal('981000'), -Math.round(r.analyticResult * 100) / 100, 0.02);
+    close(bal('951000'), 46400);
     expect(Math.abs(bal(centreAccount(centresChain, 'DIS')))).toBeLessThan(0.01);
-    expect(bal('977')).not.toBe(0);
+    expect(bal('977000')).not.toBe(0);
     expect(j.entries.some((e) => e.ref === 'CAGE-08')).toBe(true);
-    expect(centreAccount(centresChain, 'ATE')).toBe('9302');
+    expect(centreAccount(centresChain, 'ATE')).toBe('930200');
     expect(trialBalance([])).toEqual([]);
   });
   it('journal avec différences d’inventaire et répartition secondaire', () => {

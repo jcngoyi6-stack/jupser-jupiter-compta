@@ -1352,3 +1352,31 @@ compte_6;compte_officiel;intitule;niveau;type;imputable_par_defaut;classe;libell
 899000;899;DÉGRÈVEMENTS ET ANNULATIONS D’IMPÔTS SUR RÉSULTATS ANTÉRIEURS;3;compte;non;8;Comptes des autres charges et des autres produits;89;gestion
 899100;8991;Dégrèvements;4;sous-compte;oui;8;Comptes des autres charges et des autres produits;899;gestion
 899400;8994;Annulations pour pertes rétroactives;4;sous-compte;oui;8;Comptes des autres charges et des autres produits;899;gestion
+920000;92;COMPTES RÉFLÉCHIS;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
+921000;921;Stocks réfléchis;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;92;cage
+926000;926;Charges réfléchies;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;92;cage
+927000;927;Produits réfléchis;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;92;cage
+930000;93;COMPTES DE RECLASSEMENTS (centres d’analyse : 930100, 930200…);3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
+940000;94;COMPTES DE COÛTS — charges directes à imputer;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
+941000;941;Coûts d’achat;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;94;cage
+942000;942;Coûts de production;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;94;cage
+943000;943;Coûts de distribution;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;94;cage
+944000;944;Coûts de revient des produits vendus;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;94;cage
+950000;95;COMPTES DE STOCKS;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
+951000;951;Stocks de matières et fournitures;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;95;cage
+952000;952;Stocks d’en-cours;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;95;cage
+953000;953;Sous-produits et déchets;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;95;cage
+955000;955;Stocks de produits;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;95;cage
+960000;96;COMPTES D’ÉCARTS SUR COÛTS PRÉÉTABLIS;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
+970000;97;COMPTES DE DIFFÉRENCES DE TRAITEMENT COMPTABLE;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
+971000;971;Charges non incorporables;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+972000;972;Charges supplétives;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+973000;973;Différences sur charges calculées;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+974000;974;Différences d’imputation rationnelle;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+975000;975;Différences d’inventaire;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+976000;976;Produits non incorporés;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+977000;977;Différences d’arrondi et de rapprochement;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+978000;978;Écarts de variation des stocks;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;97;cage
+980000;98;COMPTES DE RÉSULTATS;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage
+981000;981;Résultats analytiques par produit;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;98;cage
+990000;99;COMPTES DE LIAISONS INTERNES;3;compte;non;9;Comptabilité analytique de gestion (CAGE) — plan validé par JUPSER le 30/10/2026;9;cage

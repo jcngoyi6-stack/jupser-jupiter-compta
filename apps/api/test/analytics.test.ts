@@ -91,7 +91,7 @@ describe('collecte et calcul', () => {
       const cr = e.lines.reduce((s: number, l: any) => s + l.credit, 0);
       expect(Math.abs(dr - cr), e.ref).toBeLessThan(0.005);
     }
-    expect(res.journal.balance.some((b: any) => b.account === '981')).toBe(true);
+    expect(res.journal.balance.some((b: any) => b.account === '981000')).toBe(true);
     const byPeriod = await compta.post(`/api/companies/${cid}/analytics/compute`).set(H).send({ from, to });
     expect(byPeriod.body.results.summary.analyticResult).toBe(res.summary.analyticResult);
     expect((await compta.post(`/api/companies/${cid}/analytics/compute`).set(H).send({})).body.code).toBe('DONNEES_MANQUANTES');

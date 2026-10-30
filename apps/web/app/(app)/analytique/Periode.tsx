@@ -164,7 +164,7 @@ export default function Periode() {
 
           {view === 'journal' && (
             <div className="card overflow-x-auto p-0">
-              <p className="p-3 text-xs text-slate-500">Subdivisions des comptes 92 à 99 proposées par Jupiter Compta (libres selon l’AUDCIF) — à valider par l’expert-comptable.</p>
+              <p className="p-3 text-xs text-slate-500">Plan analytique à 6 chiffres (comptes 92 à 99) validé par JUPSER le 30/10/2026 ; chaque entité peut créer des sous-comptes.</p>
               <table className="table text-sm">
                 <thead><tr><th>Pièce</th><th>Compte</th><th>Libellé</th><th>Axe</th><th className="text-right">Débit</th><th className="text-right">Crédit</th></tr></thead>
                 <tbody>{res.journal.entries.flatMap((e: any) => [

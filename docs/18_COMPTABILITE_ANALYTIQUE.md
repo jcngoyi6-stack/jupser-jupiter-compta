@@ -2,7 +2,7 @@
 
 Sources : Acte uniforme relatif au droit comptable et à l'information financière (AUDCIF) et SYSCOHADA révisé (classe 9, comptes 92 à 99 ; guide d'application, subdivision « par fonction » des comptes de gestion) ; cours et exercices corrigés de comptabilité analytique de gestion déposés par JUPSER.
 
-L'AUDCIF définit la CAGE comme « un système d'analyse et de traitement autonome de données permettant de calculer des coûts et des résultats analytiques ». Elle n'est ni normalisée ni obligatoire : le module propose un paramétrage par défaut que chaque entité adapte, et toutes les subdivisions de la classe 9 sont « à valider par l'expert-comptable ».
+L'AUDCIF définit la CAGE comme « un système d'analyse et de traitement autonome de données permettant de calculer des coûts et des résultats analytiques ». Elle n'est ni normalisée ni obligatoire : le module propose un paramétrage par défaut que chaque entité adapte, et le plan analytique à 6 chiffres de la classe 9 a été **validé par JUPSER le 30/10/2026** (chaque entité peut y créer des sous-comptes).
 
 ## 1. Interconnexion avec le reste de l'ERP
 
@@ -21,7 +21,7 @@ L'AUDCIF définit la CAGE comme « un système d'analyse et de traitement autono
 2. **Centres d'analyse** : répartition primaire (codes analytiques puis clés par préfixe de compte), répartition secondaire en cascade ou **prestations réciproques** résolues par système d'équations, unités d'œuvre et taux de frais, **imputation rationnelle** (part fixe, activité normale → coût de sous-activité ou boni).
 3. **Enchaînement des coûts** : coût d'achat → stocks de matières (CMUP de période, CMUP après chaque entrée, PEPS ; DEPS refusé) → coût de production (en-cours, sous-produits, déchets) → stocks de produits → coût de revient → résultat analytique par produit ; différences d'inventaire.
 4. **Concordance** (identité exacte) : R(CG) = R(CAGE) + supplétives − non incorporables + produits non incorporés + différences sur charges calculées − coût de sous-activité − charges non imputées + écart de variation des stocks (CG − CAGE).
-5. **Journal en classe 9** : 921 stocks réfléchis, 926/927 charges et produits réfléchis, 93xx centres, 940 charges directes à imputer, 941 à 944 coûts, 951 à 955 stocks, 971 à 978 différences, 981 résultats par produit. Chaque pièce est équilibrée.
+5. **Journal en classe 9** (comptes à 6 chiffres, présents dans le plan comptable de référence, non imputables en comptabilité générale) : 921000 stocks réfléchis, 926000/927000 charges et produits réfléchis, 930100, 930200… centres d'analyse, 940000 charges directes à imputer, 941000 à 944000 coûts, 951000 à 955000 stocks, 971000 à 978000 différences, 981000 résultats par produit. Chaque pièce est équilibrée.
 6. **Coûts partiels** : seuil de rentabilité (point mort, marge et indice de sécurité, levier opérationnel), multi-produits, coûts spécifiques, coût marginal (optimums technique et économique).
 7. **Méthode ABC** : ressources → activités → inducteurs → coûts des produits.
 8. **Contrôle de gestion** : fiches de coût standard, écarts sur matières et main-d'œuvre (quantité / prix), sur charges indirectes (budget / activité / rendement), sur chiffre d'affaires (prix / composition / volume) et sur marge ; écarts automatiques des ordres de fabrication réels contre les prix standards du paramétrage.
