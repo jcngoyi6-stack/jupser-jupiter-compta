@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-slate-50 text-slate-800 antialiased; }
+  h1 { @apply text-2xl font-bold text-nuit; }
+  h2 { @apply text-lg font-semibold text-nuit; }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-nuit text-white hover:bg-nuit-700; }
+  .btn-accent { @apply btn bg-turquoise text-white hover:bg-turquoise-600; }
+  .btn-ghost { @apply btn border border-slate-300 bg-white text-nuit hover:bg-slate-100; }
+  .btn-danger { @apply btn border border-red-300 bg-white text-red-700 hover:bg-red-50; }
+  .card { @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm; }
+  .input { @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-turquoise focus:ring-2 focus:ring-turquoise-100; }
+  .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .table { @apply w-full border-collapse text-sm; }
+  .table th { @apply border-b-2 border-nuit bg-nuit-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-nuit; }
+  .table td { @apply border-b border-slate-100 px-3 py-1.5; }
+  .table tr.total td { @apply border-t border-nuit bg-slate-50 font-bold text-nuit; }
+  .badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold; }
+  .banner-estimation { @apply rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  .card { box-shadow: none; border: none; padding: 0; }
+}

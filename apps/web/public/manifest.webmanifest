@@ -1,0 +1,14 @@
+{
+  "name": "Jupiter Compta",
+  "short_name": "Jupiter Compta",
+  "description": "ERP de gestion d'entreprise — SYSCOHADA révisé. Précision. Conformité. Sérénité.",
+  "lang": "fr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0D2747",
+  "icons": [
+    { "src": "/brand/icone_Jupiter_Compta_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/icone_Jupiter_Compta_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,34 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_OWNER_URL: postgresql://jupiter_owner:owner_dev_pw@localhost:5432/jupiter_test
+      DATABASE_URL: postgresql://jupiter_app:app_dev_pw@localhost:5432/jupiter_test
+      JWT_SECRET: ci-secret-0123456789abcdef0123456789abcdef
+      MASTER_KEY: ZGV2LW1hc3Rlci1rZXktMzItYnl0ZXMtbG9uZyEhISE=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Rôles et base de test
+        run: DB_NAME=jupiter_test PSQL="psql postgresql://postgres:postgres@localhost:5432/postgres -v ON_ERROR_STOP=1" bash apps/api/scripts/db-setup.sh
+      - run: pnpm --filter @jupiter/api exec prisma migrate deploy
+      - name: Packages métier (couverture ≥ 90 %)
+        run: pnpm turbo run test --filter "./packages/*"
+      - name: Tests d'acceptation API (dont isolation RLS entre locataires)
+        run: pnpm --filter @jupiter/api test
+      - run: pnpm --filter @jupiter/web build
+      - name: Audit des dépendances
+        run: pnpm audit --prod --audit-level high || true
