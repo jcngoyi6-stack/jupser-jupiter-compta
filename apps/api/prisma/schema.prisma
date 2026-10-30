@@ -52,6 +52,10 @@ model Tenant {
   subStatus    String     @default("ESSAI") @map("sub_status")
   trialEndsAt  DateTime?  @map("trial_ends_at") @db.Date
   paidUntil    DateTime?  @map("paid_until") @db.Date
+  /** Identifiant court pour l'authentification unique (SSO). */
+  slug         String?    @unique
+  /** { sso: { issuer, clientId, clientSecretEnc, emailDomains[] }, requireEnrolledDevices } */
+  security     Json       @default("{}")
   createdAt    DateTime   @default(now()) @map("created_at")
   memberships  Membership[]
   companies    Company[]
@@ -905,6 +909,19 @@ model ProjectEvaluation {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("project_evaluation")
+}
+
+// ======================= Licences hors ligne =======================
+model License {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  payload     Json
+  tokenHash   String    @map("token_hash")
+  issuedBy    String    @map("issued_by") @db.Uuid
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("license")
 }
 
 // ======================= Postes enrôlés =======================

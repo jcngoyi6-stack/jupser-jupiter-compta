@@ -1,7 +1,8 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Post } from '@nestjs/common';
+import { PaymentError, type PaymentProvider } from '@jupiter/connectors';
 import { ApiTags } from '@nestjs/swagger';
 import { computeStatus, EDITION_MODULES, quoteEnterprise, type EditionCode, type PriceGrid, type SubscriptionStatus } from '@jupiter/licensing';
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { AllowWithoutMfa, CurrentUser, JupserStaff, Public, Roles, type SessionUser } from '../auth/decorators';
@@ -10,6 +11,7 @@ import { config } from '../common/config';
 import { readData } from '../common/data';
 import { domainError, parse } from '../common/http';
 import { PrismaService } from '../common/prisma.service';
+import { PaymentsService } from './payments.service';
 
 const grid = (): PriceGrid => (JSON.parse(readData('tarifs_modules.json')) as { entreprises: PriceGrid }).entreprises;
 
@@ -24,6 +26,7 @@ export class BillingController {
     private readonly db: PrismaService,
     private readonly audit: AuditService,
     private readonly auth: AuthService,
+    private readonly payments: PaymentsService,
   ) {}
 
   @AllowWithoutMfa()
@@ -51,41 +54,71 @@ export class BillingController {
     const users = await this.db.client.membership.count({ where: { tenantId: t.id } });
     const q = quoteEnterprise(grid(), t.edition as EditionCode, [], Math.max(users, 1));
     const amount = b.months === 12 ? q.annualUsdCents : q.monthlyUsdCents;
+    const company = await this.db.forTenant(u.tenantId, (tx) => tx.company.findFirst({ select: { country: true } }));
+    let provider: PaymentProvider;
+    try {
+      provider = this.payments.choose(company?.country ?? 'CD', 'USD');
+    } catch {
+      throw domainError('AUCUN_PRESTATAIRE', 'Aucun prestataire de paiement configuré.');
+    }
+    const ref = randomUUID();
+    let checkout;
+    try {
+      checkout = await provider.createCheckout({
+        reference: ref, amountMinor: BigInt(amount), currency: 'USD', description: `Abonnement Jupiter Compta ${t.edition} ${b.months} mois`,
+        customer: { name: t.name, email: u.email, phone: b.operator }, method: b.method,
+        returnUrl: `${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/abonnement?paiement=${ref}`,
+        notifyUrl: `${process.env.PUBLIC_API_URL ?? 'http://localhost:4000'}/api/billing/webhook/${provider.code.toLowerCase()}`,
+      });
+    } catch (e) {
+      throw domainError(e instanceof PaymentError ? e.code : 'PRESTATAIRE', (e as Error).message);
+    }
     const p = await this.db.forTenant(u.tenantId, async (tx) => {
-      const pay = await tx.payment.create({ data: { tenantId: u.tenantId, provider: 'SIMULATEUR', method: b.method, amountCents: amount, months: b.months, externalRef: randomUUID() } });
-      await this.audit.log(tx, u.tenantId, u.userId, 'PAIEMENT_INITIE', `payment:${pay.id}`, { method: b.method, amount });
+      const pay = await tx.payment.create({ data: { tenantId: u.tenantId, provider: provider.code, method: b.method, amountCents: amount, months: b.months, externalRef: ref } });
+      await this.audit.log(tx, u.tenantId, u.userId, 'PAIEMENT_INITIE', `payment:${pay.id}`, { method: b.method, amount, provider: provider.code });
       return pay;
     });
-    return { payment: p, instructions: b.method === 'MOBILE_MONEY' ? 'Une demande de paiement est envoyée sur le téléphone (simulation).' : 'Redirection vers la page sécurisée du prestataire (simulation).' };
+    return { payment: p, redirectUrl: checkout.redirectUrl, instructions: checkout.instructions };
   }
 
-  /** Webhook du prestataire : signature HMAC-SHA256 vérifiée, traitement idempotent. */
+  /**
+   * Notification d'un prestataire : signature contrôlée, statut revérifié auprès du prestataire
+   * (montant et devise comparés), traitement idempotent.
+   */
   @Public()
-  @Post('billing/webhook/simulator')
+  @Post('billing/webhook/:provider')
   @HttpCode(200)
-  async webhook(@Body() body: unknown, @Headers('x-signature') signature?: string) {
-    const raw = JSON.stringify(body);
-    const expected = createHmac('sha256', config.webhookSecret).update(raw).digest('hex');
-    if (!signature || signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-      throw domainError('SIGNATURE', 'Signature du webhook invalide.');
+  async webhook(@Param('provider') code: string, @Body() body: unknown, @Headers() headers: Record<string, string | undefined>) {
+    const provider = this.payments.byCode(code);
+    if (!provider) throw domainError('PRESTATAIRE_INCONNU', 'Prestataire inconnu.');
+    let ref: string;
+    try {
+      ref = provider.parseNotification(body, headers);
+    } catch (e) {
+      throw domainError(e instanceof PaymentError ? e.code : 'NOTIFICATION_INVALIDE', (e as Error).message);
     }
-    const b = parse(z.object({ externalRef: z.string().uuid(), status: z.enum(['PAYE', 'ECHEC']) }), body);
-    // la table payment est sous RLS : on retrouve le locataire en parcourant les locataires (V0)
-    const tenantId = await this.findPaymentTenant(b.externalRef);
+    const tenantId = await this.findPaymentTenant(ref);
     if (!tenantId) throw domainError('PAIEMENT_INCONNU', 'Paiement inconnu.');
+    const verified = await provider.verify(ref);
     return this.db.forTenant(tenantId, async (tx) => {
-      const p = await tx.payment.findUniqueOrThrow({ where: { externalRef: b.externalRef } });
+      const p = await tx.payment.findUniqueOrThrow({ where: { externalRef: ref } });
+      if (p.provider !== provider.code) throw domainError('PRESTATAIRE_INCOHERENT', 'Notification d’un autre prestataire.');
       if (p.status !== 'EN_ATTENTE') return { idempotent: true, status: p.status };
-      await tx.payment.update({ where: { id: p.id }, data: { status: b.status, paidAt: b.status === 'PAYE' ? new Date() : null } });
-      if (b.status === 'PAYE') {
+      if (verified.status === 'EN_ATTENTE') return { status: 'EN_ATTENTE' };
+      if (verified.status === 'PAYE' && verified.amountMinor !== null && (verified.amountMinor < p.amountCents || verified.currency !== 'USD')) {
+        await this.audit.log(tx, tenantId, 'PRESTATAIRE', 'PAIEMENT_MONTANT_INCOHERENT', `payment:${p.id}`, { expected: p.amountCents.toString(), received: verified.amountMinor.toString(), currency: verified.currency });
+        throw domainError('MONTANT_INCOHERENT', 'Montant payé différent du montant attendu.');
+      }
+      await tx.payment.update({ where: { id: p.id }, data: { status: verified.status, paidAt: verified.status === 'PAYE' ? new Date() : null } });
+      if (verified.status === 'PAYE') {
         const t = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId } });
         const base = t.paidUntil && t.paidUntil > new Date() ? t.paidUntil : new Date();
         const until = new Date(base);
         until.setUTCMonth(until.getUTCMonth() + p.months);
         await tx.tenant.update({ where: { id: tenantId }, data: { paidUntil: until, subStatus: 'ACTIF' } });
       }
-      await this.audit.log(tx, tenantId, 'PRESTATAIRE', 'PAIEMENT_' + b.status, `payment:${p.id}`);
-      return { status: b.status };
+      await this.audit.log(tx, tenantId, 'PRESTATAIRE', 'PAIEMENT_' + verified.status, `payment:${p.id}`);
+      return { status: verified.status };
     });
   }
 

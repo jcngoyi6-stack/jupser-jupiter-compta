@@ -137,3 +137,4 @@ export class MockLlmProvider implements LlmProvider {
     return "Je ne sais pas répondre avec certitude. Mode hors ligne (aucune clé d'API configurée) : consultez l'AUDCIF ou votre expert-comptable.";
   }
 }
+export * from './ocr';

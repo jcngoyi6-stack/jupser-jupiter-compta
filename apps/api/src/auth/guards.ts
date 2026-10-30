@@ -4,6 +4,7 @@ import { accessMode, computeStatus, isAllowed, type ModuleCode, type Subscriptio
 import type { Request, Response } from 'express';
 import { config } from '../common/config';
 import { PrismaService } from '../common/prisma.service';
+import { verifyDeviceSignature } from '../security/device-signature';
 import { AuthService } from './auth.service';
 import { ALLOW_NO_MFA, IS_PUBLIC, MFA_ROLES, MODULE, ROLES, STAFF, type Role, type SessionUser } from './decorators';
 
@@ -81,6 +82,15 @@ export class SecurityGuard implements CanActivate {
             ? 'Abonnement impayé : accès en lecture seule (consultation et exports permis).'
             : 'Abonnement suspendu. Contactez JUPSER.',
       });
+    }
+    // Postes enrôlés obligatoires : chaque requête est signée par la clé Ed25519 du poste (docs/08).
+    if ((tenant.security as { requireEnrolledDevices?: boolean } | null)?.requireEnrolledDevices && !meta<boolean>(ALLOW_NO_MFA)) {
+      const deviceId = req.header('x-device-id') ?? '';
+      const device = /^[0-9a-f-]{36}$/.test(deviceId) ? await this.db.forTenant(user.tenantId, (tx) => tx.device.findUnique({ where: { id: deviceId } })) : null;
+      const ok = !!device && device.status === 'ACTIF' && device.userId === user.userId &&
+        verifyDeviceSignature({ publicKeyPem: device.publicKey, method: req.method, path: req.originalUrl.split('?')[0]!, ts: req.header('x-device-timestamp') ?? '', signature: req.header('x-device-signature') ?? '', nowSec: Math.floor(Date.now() / 1000) });
+      if (!ok) throw new ForbiddenException({ code: 'POSTE_NON_AUTORISE', message: 'Ce poste n’est pas enrôlé ou sa signature est invalide.' });
+      await this.db.forTenant(user.tenantId, (tx) => tx.device.update({ where: { id: device!.id }, data: { lastSeenAt: new Date() } }));
     }
     const mod = meta<ModuleCode>(MODULE);
     if (mod && !tenant.modules.includes(mod)) {

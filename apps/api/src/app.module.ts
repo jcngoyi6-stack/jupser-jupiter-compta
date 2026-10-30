@@ -3,6 +3,8 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AccountingController } from './accounting/accounting.controller';
 import { ComplementsController, ConsolidationController } from './accounting/complements.controller';
 import { CabinetController } from './cabinet/cabinet.controller';
+import { SecurityController } from './security/security.controller';
+import { SsoController } from './security/sso.controller';
 import { ProjectsController } from './projects/projects.controller';
 import { ClosingService } from './accounting/closing.service';
 import { CompanyService } from './accounting/company.service';
@@ -12,6 +14,7 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { SecurityGuard } from './auth/guards';
 import { BillingController } from './billing/billing.controller';
+import { PaymentsService } from './billing/payments.service';
 import { AuditService } from './common/audit.service';
 import { CryptoService } from './common/crypto.service';
 import { DbErrorFilter } from './common/errors';
@@ -38,6 +41,8 @@ import { TaxController } from './tax/tax.controller';
     AccountingController,
     ComplementsController,
     CabinetController,
+    SecurityController,
+    SsoController,
     ProjectsController,
     ConsolidationController,
     ReportsController,
@@ -55,6 +60,7 @@ import { TaxController } from './tax/tax.controller';
   ],
   providers: [
     PrismaService,
+    PaymentsService,
     CryptoService,
     AuditService,
     AuthService,

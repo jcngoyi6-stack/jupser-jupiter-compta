@@ -3,6 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { convert, pickRate, revalue, type FxRate } from '@jupiter/fx';
 import { decimalsOf } from '@jupiter/ledger';
 import { corporateTax, monthlyDeadlines, RuleSet, RuleTrace, vatReturn, vatSettlementLines, type TaxRule } from '@jupiter/tax-engine';
+import { bccProvider, fetchWithFallback, FixedPegProvider, HttpJsonFxProvider, type FxRateProvider } from '@jupiter/connectors';
 import { z } from 'zod';
 import { EntriesService } from '../accounting/entries.service';
 import { ACCOUNTING_WRITE, CurrentUser, JupserStaff, RequiresModule, Roles, type SessionUser } from '../auth/decorators';
@@ -143,6 +144,30 @@ export class TaxController {
       const r = await tx.fxRate.create({ data: { ...b, rate: b.rate.replace(',', '.'), tenantId: u.tenantId } });
       await this.audit.log(tx, u.tenantId, u.userId, 'COURS_SAISI', `fx:${b.currency}/${b.quote}`, b);
       return r;
+    });
+  }
+
+  /** Récupération automatique des cours : parités fixes, BCC (RDC), source de secours ; échecs signalés. */
+  @Roles(...ACCOUNTING_WRITE, 'CAISSIER')
+  @Post('fx-rates/fetch')
+  @HttpCode(200)
+  async fetchRates(@CurrentUser() u: SessionUser, @Body() body: unknown) {
+    const b = parse(z.object({ quote: z.string().length(3), date: zDate }), body);
+    const providers: FxRateProvider[] = [new FixedPegProvider()];
+    if (process.env.FX_BCC_URL) providers.push(bccProvider(process.env.FX_BCC_URL));
+    if (process.env.FX_FALLBACK_URL) {
+      const url = process.env.FX_FALLBACK_URL;
+      providers.push(new HttpJsonFxProvider('SECOURS', { url: (q, d) => `${url}${url.includes('?') ? '&' : '?'}base=${q}&date=${d}`, extract: (j) => j?.rates ?? {}, source: 'Fournisseur commercial (secours)', quotes: ['CDF', 'XOF', 'XAF', 'GNF', 'KMF'], type: 'MARCHE' }));
+    }
+    const { rates, errors } = await fetchWithFallback(providers, b.quote, b.date);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const saved = [];
+      for (const r of rates) {
+        const exists = await tx.fxRate.findFirst({ where: { currency: r.currency, quote: r.quote, date: r.date, source: r.source } });
+        if (!exists) saved.push(await tx.fxRate.create({ data: { ...r, tenantId: u.tenantId } }));
+      }
+      await this.audit.log(tx, u.tenantId, u.userId, 'COURS_RECUPERES', `fx:${b.quote}`, { count: saved.length, errors });
+      return { saved, errors, manualNeeded: rates.length === 0 };
     });
   }
 
