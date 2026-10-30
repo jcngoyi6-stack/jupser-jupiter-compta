@@ -1,0 +1,43 @@
+ref;libelle;comptes_ou_formule;signe
+TA;Ventes de marchandises;701;+
+RA;Achats de marchandises;601;-
+RB;Variation de stocks de marchandises;6031;-/+
+XA;MARGE COMMERCIALE;TA-RA-RB;=
+TB;Ventes de produits fabriqués;702,703,704;+
+TC;Travaux, services vendus;705,706;+
+TD;Produits accessoires;707;+
+XB;CHIFFRE D'AFFAIRES;TA+TB+TC+TD;=
+TE;Production stockée (ou déstockage);73;-/+
+TF;Production immobilisée;72;+
+TG;Subventions d'exploitation;71;+
+TH;Autres produits;75;+
+TI;Transferts de charges d'exploitation;781;+
+RC;Achats de matières premières et fournitures liées;602;-
+RD;Variation de stocks de matières premières;6032;-/+
+RE;Autres achats;604,605,608;-
+RF;Variation de stocks d'autres approvisionnements;6033;-/+
+RG;Transports;61;-
+RH;Services extérieurs;62,63;-
+RI;Impôts et taxes;64;-
+RJ;Autres charges;65;-
+XC;VALEUR AJOUTÉE;XB+RA+RB+(TE..TI)-(RC..RJ);=
+RK;Charges de personnel;66;-
+XD;EXCÉDENT BRUT D'EXPLOITATION;XC-RK;=
+TJ;Reprises d'amortissements, provisions et dépréciations;791,798,799;+
+RL;Dotations aux amortissements, provisions et dépréciations;681,691;-
+XE;RÉSULTAT D'EXPLOITATION;XD+TJ-RL;=
+TK;Revenus financiers et assimilés;77;+
+TL;Reprises de provisions et dépréciations financières;797;+
+TM;Transferts de charges financières;787;+
+RM;Frais financiers et charges assimilées;67;-
+RN;Dotations aux provisions et dépréciations financières;697;-
+XF;RÉSULTAT FINANCIER;TK+TL+TM-RM-RN;=
+XG;RÉSULTAT DES ACTIVITÉS ORDINAIRES;XE+XF;=
+TN;Produits des cessions d'immobilisations;82;+
+TO;Autres produits HAO;84,86,88;+
+RO;Valeurs comptables des cessions d'immobilisations;81;-
+RP;Autres charges HAO;83,85;-
+XH;RÉSULTAT HORS ACTIVITÉS ORDINAIRES;TN+TO-RO-RP;=
+RQ;Participation des travailleurs;87;-
+RS;Impôts sur le résultat;89;-
+XI;RÉSULTAT NET;XG+XH-RQ-RS;=

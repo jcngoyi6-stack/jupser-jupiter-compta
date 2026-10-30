@@ -1,0 +1,424 @@
+{
+ "_avertissement": "Données de pré-remplissage NON OPPOSABLES. Chaque pack pays doit être validé par un fiscaliste JUPSER (statut VALIDE, date d'effet, texte de référence) avant tout calcul présenté comme officiel. Revalider à chaque loi de finances.",
+ "version": "2026-10-29",
+ "pays": [
+  {
+   "code": "CD",
+   "nom": "République démocratique du Congo",
+   "zone": "Hors zone monétaire",
+   "devise": "CDF (+USD usuel)",
+   "banque_centrale": "Banque centrale du Congo (BCC)",
+   "source_cours": "Taux indicatif quotidien BCC (USD/CDF, EUR/CDF)",
+   "impot_societes": "30 % (loi n°23/053, IS en vigueur depuis le 01/01/2026)",
+   "minimum_impot": "1 % du chiffre d'affaires",
+   "tva": {
+    "normal": 0.16
+   },
+   "impot_salaires": "IRPP retenu à la source sur les rémunérations (régime IS-IRPP) : barème annuel 3/15/30/40 %, minimum 2 000 FC/mois, plafond 30 % du revenu imposable — voir paie_rdc_2026.json",
+   "cotisations_sociales": {
+    "CNSS_employeur": 0.13,
+    "CNSS_salarie": 0.05
+   },
+   "autres_prelevements_salaires": {
+    "INPP_employeur": "3 % (1-50 trav.) / 2 % (51-300) / 1 % (>300) — certaines sources citent 3,5/3/2 % : à trancher",
+    "ONEM_employeur": 0.002,
+    "IERE_expatries": "25 % (vérifier maintien après la réforme 2026)"
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne-haute",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "BJ",
+   "nom": "Bénin",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "30 % (taux réduits possibles selon secteur)",
+   "minimum_impot": "Minimum d'imposition sur CA",
+   "tva": {
+    "normal": 0.18
+   },
+   "impot_salaires": "ITS — barème progressif",
+   "cotisations_sociales": {
+    "CNSS_employeur": 0.154,
+    "CNSS_salarie": 0.036
+   },
+   "autres_prelevements_salaires": {
+    "VPS_employeur": 0.04
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "BF",
+   "nom": "Burkina Faso",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "27,5 %",
+   "minimum_impot": "Minimum forfaitaire de perception",
+   "tva": {
+    "normal": 0.18
+   },
+   "impot_salaires": "IUTS — barème progressif avec abattements",
+   "cotisations_sociales": {
+    "CNSS_employeur": 0.16,
+    "CNSS_salarie": 0.055
+   },
+   "autres_prelevements_salaires": {
+    "TPA_employeur": 0.03
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "CI",
+   "nom": "Côte d'Ivoire",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "25 %",
+   "minimum_impot": "Impôt minimum forfaitaire",
+   "tva": {
+    "normal": 0.18,
+    "reduit": 0.09
+   },
+   "impot_salaires": "ITS (barème réformé en 2024) + CMU",
+   "cotisations_sociales": {
+    "CNPS_employeur": "≈ 16 % à 19 % selon taux AT",
+    "CNPS_salarie_retraite": 0.063
+   },
+   "autres_prelevements_salaires": {
+    "Impot_employeur_nationaux": 0.012,
+    "Impot_employeur_expatries": 0.104,
+    "Taxe_apprentissage": 0.004,
+    "FPC": 0.012
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "GW",
+   "nom": "Guinée-Bissau",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "25 %",
+   "minimum_impot": "À confirmer",
+   "tva": "IGV (taux à confirmer)",
+   "impot_salaires": "Impôt professionnel — barème",
+   "cotisations_sociales": {
+    "INSS_employeur": "à confirmer",
+    "INSS_salarie": "à confirmer"
+   },
+   "autres_prelevements_salaires": {},
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "faible",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "ML",
+   "nom": "Mali",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "30 %",
+   "minimum_impot": "Impôt minimum forfaitaire",
+   "tva": {
+    "normal": 0.18,
+    "reduit": 0.05
+   },
+   "impot_salaires": "ITS — barème progressif",
+   "cotisations_sociales": {
+    "INPS_employeur": "≈ 16,4 % + AMO 3,5 %",
+    "INPS_salarie": "3,6 % + AMO 3,06 %"
+   },
+   "autres_prelevements_salaires": {
+    "Contribution_forfaitaire_employeur": 0.035,
+    "Taxe_formation_professionnelle": 0.02,
+    "Taxe_logement": 0.01
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "NE",
+   "nom": "Niger",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "30 %",
+   "minimum_impot": "Minimum forfaitaire",
+   "tva": {
+    "normal": 0.19,
+    "reduit": 0.1
+   },
+   "impot_salaires": "IUTS — barème progressif",
+   "cotisations_sociales": {
+    "CNSS_employeur": 0.164,
+    "CNSS_salarie": 0.0525
+   },
+   "autres_prelevements_salaires": {},
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "SN",
+   "nom": "Sénégal",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "30 %",
+   "minimum_impot": "Minimum fiscal",
+   "tva": {
+    "normal": 0.18,
+    "reduit": 0.1
+   },
+   "impot_salaires": "IR salaires avec quotient familial + TRIMF",
+   "cotisations_sociales": {
+    "IPRES_employeur": "8,4 % (+3,6 % cadres)",
+    "IPRES_salarie": "5,6 % (+2,4 % cadres)",
+    "CSS_employeur": "PF 7 % + AT 1 à 5 % (plafonné)"
+   },
+   "autres_prelevements_salaires": {
+    "CFCE_employeur": 0.03
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "TG",
+   "nom": "Togo",
+   "zone": "UEMOA",
+   "devise": "XOF",
+   "banque_centrale": "BCEAO",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XOF ; autres devises : cours BCEAO publié",
+   "impot_societes": "27 %",
+   "minimum_impot": "Minimum forfaitaire",
+   "tva": {
+    "normal": 0.18,
+    "reduit": 0.1
+   },
+   "impot_salaires": "IRPP traitements et salaires — barème",
+   "cotisations_sociales": {
+    "CNSS_employeur": 0.175,
+    "CNSS_salarie": 0.04
+   },
+   "autres_prelevements_salaires": {
+    "AMU": "à confirmer"
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "CM",
+   "nom": "Cameroun",
+   "zone": "CEMAC",
+   "devise": "XAF",
+   "banque_centrale": "BEAC",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XAF ; autres devises : cours BEAC publié",
+   "impot_societes": "30 % + 10 % CAC = 33 % (taux réduit PME possible)",
+   "minimum_impot": "Minimum de perception (% du CA)",
+   "tva": {
+    "normal": 0.1925,
+    "note": "17,5 % + 10 % CAC"
+   },
+   "impot_salaires": "IRPP + CAC, abattements forfaitaires",
+   "cotisations_sociales": {
+    "CNPS_employeur": "PF 7 % + pension 4,2 % + AT 1,75 à 5 % (plafond)",
+    "CNPS_salarie": 0.042
+   },
+   "autres_prelevements_salaires": {
+    "CFC_salarie": 0.01,
+    "CFC_employeur": 0.015,
+    "FNE_employeur": 0.01,
+    "RAV": "barème",
+    "TDL": "barème"
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "CF",
+   "nom": "République centrafricaine",
+   "zone": "CEMAC",
+   "devise": "XAF",
+   "banque_centrale": "BEAC",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XAF ; autres devises : cours BEAC publié",
+   "impot_societes": "30 %",
+   "minimum_impot": "Minimum forfaitaire",
+   "tva": {
+    "normal": 0.19
+   },
+   "impot_salaires": "IRPP — barème",
+   "cotisations_sociales": {
+    "CNSS_employeur": "à confirmer",
+    "CNSS_salarie": "à confirmer"
+   },
+   "autres_prelevements_salaires": {},
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "faible",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "CG",
+   "nom": "Congo",
+   "zone": "CEMAC",
+   "devise": "XAF",
+   "banque_centrale": "BEAC",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XAF ; autres devises : cours BEAC publié",
+   "impot_societes": "28 % (à confirmer selon loi de finances)",
+   "minimum_impot": "Minimum de perception",
+   "tva": {
+    "normal": 0.18,
+    "note": "+ centimes additionnels 5 %"
+   },
+   "impot_salaires": "IRPP — barème + TUS",
+   "cotisations_sociales": {
+    "CNSS_employeur": "≈ 20 % (à confirmer)",
+    "CNSS_salarie": 0.04
+   },
+   "autres_prelevements_salaires": {
+    "TUS": "taxe unique sur les salaires (à confirmer)"
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "faible",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "GA",
+   "nom": "Gabon",
+   "zone": "CEMAC",
+   "devise": "XAF",
+   "banque_centrale": "BEAC",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XAF ; autres devises : cours BEAC publié",
+   "impot_societes": "30 %",
+   "minimum_impot": "Minimum forfaitaire",
+   "tva": {
+    "normal": 0.18,
+    "reduit": 0.1
+   },
+   "impot_salaires": "IRPP — barème (+ TCS)",
+   "cotisations_sociales": {
+    "CNSS_employeur": 0.16,
+    "CNSS_salarie": 0.025,
+    "CNAMGS_employeur": 0.041,
+    "CNAMGS_salarie": 0.02
+   },
+   "autres_prelevements_salaires": {
+    "FNH": "à confirmer",
+    "TCS": "à confirmer"
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "GQ",
+   "nom": "Guinée équatoriale",
+   "zone": "CEMAC",
+   "devise": "XAF",
+   "banque_centrale": "BEAC",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XAF ; autres devises : cours BEAC publié",
+   "impot_societes": "35 % (à confirmer)",
+   "minimum_impot": "Minimum forfaitaire",
+   "tva": {
+    "normal": 0.15
+   },
+   "impot_salaires": "IRPF — barème",
+   "cotisations_sociales": {
+    "INSESO_employeur": 0.215,
+    "INSESO_salarie": 0.045
+   },
+   "autres_prelevements_salaires": {},
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "faible",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "TD",
+   "nom": "Tchad",
+   "zone": "CEMAC",
+   "devise": "XAF",
+   "banque_centrale": "BEAC",
+   "source_cours": "Parité fixe 1 EUR = 655,957 XAF ; autres devises : cours BEAC publié",
+   "impot_societes": "35 %",
+   "minimum_impot": "Minimum fiscal",
+   "tva": {
+    "normal": 0.18
+   },
+   "impot_salaires": "IRPP — barème",
+   "cotisations_sociales": {
+    "CNPS_employeur": 0.165,
+    "CNPS_salarie": 0.035
+   },
+   "autres_prelevements_salaires": {
+    "Taxe_apprentissage": "à confirmer",
+    "FIR": "à confirmer"
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "KM",
+   "nom": "Comores",
+   "zone": "Zone franc (hors UEMOA/CEMAC)",
+   "devise": "KMF",
+   "banque_centrale": "Banque centrale des Comores (BCC)",
+   "source_cours": "Parité fixe 1 EUR = 491,96775 KMF",
+   "impot_societes": "À confirmer",
+   "minimum_impot": "À confirmer",
+   "tva": "TCA (taxe sur la consommation) — taux à confirmer",
+   "impot_salaires": "IR salaires — barème",
+   "cotisations_sociales": {
+    "CNPS": "à confirmer"
+   },
+   "autres_prelevements_salaires": {},
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "faible",
+   "statut": "A_VALIDER"
+  },
+  {
+   "code": "GN",
+   "nom": "Guinée",
+   "zone": "Hors zone monétaire",
+   "devise": "GNF",
+   "banque_centrale": "Banque centrale de la République de Guinée (BCRG)",
+   "source_cours": "Cours de référence BCRG (flottant)",
+   "impot_societes": "25 % à 35 % selon activité (à confirmer)",
+   "minimum_impot": "Minimum forfaitaire",
+   "tva": {
+    "normal": 0.18
+   },
+   "impot_salaires": "RTS — retenue sur traitements et salaires, barème",
+   "cotisations_sociales": {
+    "CNSS_employeur": 0.18,
+    "CNSS_salarie": 0.05
+   },
+   "autres_prelevements_salaires": {
+    "VF_employeur": 0.06,
+    "TA_employeur": 0.015
+   },
+   "echeances_types": "Retenues sur salaires et TVA : déclaration mensuelle (généralement le 15 du mois suivant) ; DSF : au plus tard le 30 avril (à confirmer pays par pays)",
+   "confiance": "moyenne",
+   "statut": "A_VALIDER"
+  }
+ ]
+}

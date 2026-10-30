@@ -1,0 +1,97 @@
+{
+ "version": "2.0",
+ "devise": "USD",
+ "statut": "PROPOSITION_A_VALIDER_PAR_JUPSER",
+ "principe": "Prix mensuel = (prix de l'édition + prix des modules ajoutés) × nombre d'utilisateurs actifs ; pour les cabinets, forfait par palier selon le nombre de collaborateurs et de dossiers clients, puis supplément par collaborateur et par dossier.",
+ "entreprises": {
+  "editions": [
+   {
+    "code": "TPE",
+    "nom": "TPE / SMT",
+    "prix_utilisateur": 25,
+    "max_utilisateurs": 2,
+    "contenu": "Système minimal de trésorerie, recettes/dépenses, factures et reçus avec QR, états SMT"
+   },
+   {
+    "code": "ESSENTIEL",
+    "nom": "Essentiel",
+    "prix_utilisateur": 60,
+    "contenu": "Comptabilité générale complète (journal, grand-livre, balance, états financiers, notes annexes), tiers, trésorerie, factures/devis/reçus avec QR, messagerie interne, tâches et rappels, JUPSER IA Guide"
+   },
+   {
+    "code": "PRO",
+    "nom": "Pro",
+    "prix_utilisateur": 95,
+    "contenu": "Essentiel + fiscalité et simulateur + analyse financière + budget + stocks + JUPSER IA Analyste"
+   },
+   {
+    "code": "ERP",
+    "nom": "Entreprise (ERP complet)",
+    "prix_utilisateur": 140,
+    "contenu": "Tous les modules, JUPSER IA Agent, multi-sociétés, consolidation, API, SSO"
+   }
+  ],
+  "modules_a_la_carte_par_utilisateur": {
+   "FISCALITE": 20,
+   "GRH_PAIE_RECRUTEMENT": 25,
+   "PRESENCE_BIOMETRIQUE": 10,
+   "ANALYSE_FINANCIERE": 15,
+   "BUDGET": 10,
+   "STOCKS": 15,
+   "PRODUCTION": 20,
+   "MARKETING_CRM": 15,
+   "GED_ARCHIVAGE_IA": 15,
+   "COURRIER": 10,
+   "IA_AGENT": 25
+  },
+  "paliers": "Au-delà de 50 utilisateurs : sur devis (hébergement dédié possible)",
+  "remise_annuelle": "2 mois offerts",
+  "essai": "30 jours gratuits"
+ },
+ "cabinets": {
+  "paliers": [
+   {
+    "code": "CAB_ESSENTIEL",
+    "nom": "Cabinet Essentiel",
+    "prix_mensuel": 450,
+    "collaborateurs_inclus": 3,
+    "dossiers_inclus": 25,
+    "supplement_collaborateur": 60,
+    "supplement_dossier": 8,
+    "contenu": "Multi-dossiers, import de balances Excel, états financiers et notes, DSF en masse, portail client, lettre de mission"
+   },
+   {
+    "code": "CAB_PRO",
+    "nom": "Cabinet Pro",
+    "prix_mensuel": 950,
+    "collaborateurs_inclus": 8,
+    "dossiers_inclus": 75,
+    "supplement_collaborateur": 70,
+    "supplement_dossier": 7,
+    "contenu": "Cabinet Essentiel + audit (programme, feuilles de travail, rapports), analyse financière et diagnostic, gestion des missions, temps et honoraires"
+   },
+   {
+    "code": "CAB_PREMIUM",
+    "nom": "Cabinet Premium",
+    "prix_mensuel": 1900,
+    "collaborateurs_inclus": 20,
+    "dossiers_inclus": 200,
+    "supplement_collaborateur": 80,
+    "supplement_dossier": 6,
+    "contenu": "Cabinet Pro + évaluation d'entreprise et du patrimoine, restructuration, manuels de procédures sur mesure, marque du cabinet sur les rapports, JUPSER IA Agent"
+   },
+   {
+    "code": "CAB_RESEAU",
+    "nom": "Réseau / grands cabinets",
+    "prix_mensuel": "sur devis"
+   }
+  ]
+ },
+ "options": [
+  "Mise en service et reprise d'historique",
+  "Formation",
+  "Assistance prioritaire",
+  "Terminaux biométriques (vente ou location)",
+  "Hébergement dédié / sur site"
+ ]
+}

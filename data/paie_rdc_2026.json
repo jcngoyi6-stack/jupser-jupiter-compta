@@ -1,0 +1,97 @@
+{
+ "pays": "CD",
+ "version": "2026-01-01",
+ "statut": "A_VALIDER",
+ "sources": [
+  "Loi n°23/053 du 30/11/2023 (IS et IRPP), en vigueur le 01/01/2026",
+  "Loi de finances n°25/060 du 29/12/2025 (exercice 2026)",
+  "Décret 18/041 du 24/11/2018 (CNSS)",
+  "Décret n°25/22 du 30/05/2025 (SMIG)"
+ ],
+ "impot_remunerations": {
+  "libelle": "IRPP retenu à la source sur les rémunérations (régime IS-IRPP)",
+  "devise_calcul": "CDF",
+  "periodicite_bareme": "annuel (diviser les tranches par 12 en paie mensuelle)",
+  "tranches_annuelles": [
+   {
+    "de": 0,
+    "a": 1944000,
+    "taux": 0.03
+   },
+   {
+    "de": 1944000,
+    "a": 21600000,
+    "taux": 0.15
+   },
+   {
+    "de": 21600000,
+    "a": 43200000,
+    "taux": 0.3
+   },
+   {
+    "de": 43200000,
+    "a": null,
+    "taux": 0.4
+   }
+  ],
+  "minimum_mensuel": 2000,
+  "plafond_taux_revenu_imposable": 0.3,
+  "reduction_charges_famille": {
+   "taux_par_personne": 0.02,
+   "max_personnes": 9,
+   "a_valider": true
+  },
+  "base": "Rémunération imposable (hors avantages exonérés : logement et transport dans les limites légales) — déductibilité de la CNSS salariale : sources divergentes, à trancher par le fiscaliste",
+  "conversion": "Salaire en USD converti en CDF au taux officiel BCC du jour de paie"
+ },
+ "cnss": {
+  "salarie": 0.05,
+  "employeur_total": 0.13,
+  "detail_employeur": {
+   "pensions": 0.05,
+   "risques_professionnels": 0.015,
+   "prestations_familiales": 0.065
+  },
+  "echeance": "15 du mois suivant (à confirmer)"
+ },
+ "inpp": {
+  "options_a_trancher": [
+   {
+    "1-50": 0.03,
+    "51-300": 0.02,
+    ">300": 0.01
+   },
+   {
+    "1-50": 0.035,
+    "51-300": 0.03,
+    ">300": 0.02,
+    "public": 0.04
+   }
+  ],
+  "retenu_par_defaut": {
+   "1-50": 0.03,
+   "51-300": 0.02,
+   ">300": 0.01
+  }
+ },
+ "onem": {
+  "employeur": 0.002
+ },
+ "iere": {
+  "taux": 0.25,
+  "note": "Impôt exceptionnel sur rémunérations des expatriés — vérifier maintien en 2026"
+ },
+ "elements_non_imposables": [
+  "indemnité de logement (plafond légal)",
+  "indemnité de transport (plafond légal)",
+  "allocations familiales légales"
+ ],
+ "tva": {
+  "normal": 0.16,
+  "reduit": 0.08
+ },
+ "is": {
+  "taux": 0.3,
+  "minimum": "1 % du CA"
+ }
+}
