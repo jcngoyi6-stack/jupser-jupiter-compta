@@ -15,3 +15,4 @@ export * from './mergers';
 export * from './joint-ops';
 export * from './misc-ops';
 export * from './transition';
+export * from './group';
