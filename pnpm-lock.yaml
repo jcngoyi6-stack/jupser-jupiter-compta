@@ -199,6 +199,8 @@ importers:
         specifier: workspace:*
         version: link:../fx
 
+  packages/cost-accounting: {}
+
   packages/einvoice:
     dependencies:
       '@jupiter/ledger':

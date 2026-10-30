@@ -1,0 +1,14 @@
+{
+  "name": "@jupiter/cost-accounting",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Comptabilité analytique de gestion (CAGE) — SYSCOHADA révisé, classe 9 (comptes 92 à 99).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {}
+}
