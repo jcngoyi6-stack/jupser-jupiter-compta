@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AccountingController } from './accounting/accounting.controller';
 import { ComplementsController, ConsolidationController } from './accounting/complements.controller';
+import { CabinetController } from './cabinet/cabinet.controller';
+import { ProjectsController } from './projects/projects.controller';
 import { ClosingService } from './accounting/closing.service';
 import { CompanyService } from './accounting/company.service';
 import { EntriesService } from './accounting/entries.service';
@@ -35,6 +37,8 @@ import { TaxController } from './tax/tax.controller';
     AuthController,
     AccountingController,
     ComplementsController,
+    CabinetController,
+    ProjectsController,
     ConsolidationController,
     ReportsController,
     TaxController,
