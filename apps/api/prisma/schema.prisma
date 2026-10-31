@@ -218,6 +218,7 @@ model ThirdParty {
   address   String?
   consentMarketing Boolean @default(false) @map("consent_marketing")
   unsubscribed     Boolean @default(false)
+  groupCompanyId   String? @map("group_company_id") @db.Uuid // société du même groupe représentée par ce tiers
 
   @@unique([companyId, code])
   @@map("third_party")
@@ -970,4 +971,30 @@ model Device {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("device")
+}
+
+/// Facture intragroupe : émise par une société du groupe, acceptée ou refusée par la société destinataire.
+model IntercompanyInvoice {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  sellerCompanyId String    @map("seller_company_id") @db.Uuid
+  buyerCompanyId  String    @map("buyer_company_id") @db.Uuid
+  salesDocumentId String    @unique @map("sales_document_id") @db.Uuid
+  number          String
+  date            String
+  lines           Json      // description, quantité, HT, TVA, coût chez le vendeur, compte de produit, article
+  totalNet        BigInt    @map("total_net")
+  totalVat        BigInt    @map("total_vat")
+  totalGross      BigInt    @map("total_gross")
+  status          String    @default("EN_ATTENTE") // EN_ATTENTE, ACCEPTEE, REJETEE
+  decision        Json?     // comptes et articles retenus par l'acheteur
+  reason          String?
+  buyerEntryId    String?   @map("buyer_entry_id") @db.Uuid
+  decidedBy       String?   @map("decided_by") @db.Uuid
+  decidedAt       DateTime? @map("decided_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([buyerCompanyId, status])
+  @@index([sellerCompanyId])
+  @@map("intercompany_invoice")
 }

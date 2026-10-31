@@ -7,6 +7,7 @@ import { AnalyticsService } from './analytics/analytics.service';
 import { CabinetController } from './cabinet/cabinet.controller';
 import { SecurityController } from './security/security.controller';
 import { SpecialOpsController } from './special-ops/special-ops.controller';
+import { IntercompanyController } from './group/intercompany.controller';
 import { SsoController } from './security/sso.controller';
 import { ProjectsController } from './projects/projects.controller';
 import { ClosingService } from './accounting/closing.service';
@@ -44,6 +45,7 @@ import { TaxController } from './tax/tax.controller';
     AccountingController,
     ComplementsController,
     SpecialOpsController,
+    IntercompanyController,
     CabinetController,
     AnalyticsController,
     SecurityController,

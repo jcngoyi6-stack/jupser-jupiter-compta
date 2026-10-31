@@ -80,7 +80,18 @@ Les sociétés d'un même client (locataire) peuvent être reliées :
   commune `IG-…` et un tiers « société du groupe » créé automatiquement dans chaque dossier (4112 / 4012).
 - **Écritures de l'autre partie** d'une opération spécifique (société en participation, succursale, fusion, franchise…)
   passées directement en brouillon dans la société liée (`counterpartCompanyId`).
+- **Factures intragroupe avec circuit d'acceptation** (écran **Intragroupe**) : les sociétés sont reliées une fois
+  (`POST companies/:id/group-links`) ; toute facture émise (menu Factures) à un client « société du groupe » arrive dans
+  la boîte de réception de la société destinataire, avec le coût de revient des articles vendus. La destinataire
+  **accepte** (compte de charge, de stock ou d'immobilisation par ligne, entrée en stock éventuelle, écriture d'achat en
+  brouillon au journal ACH référencée `IG-…`) ou **refuse** avec un motif ; l'émetteur annule alors par avoir, ce qui
+  retire la facture de la boîte.
 - **Consolidation** : les comptes groupe 4112, 4012, 2771 et 1811 s'ajoutent aux comptes de liaison éliminés ; les
-  produits et charges des opérations intragroupe entre membres du groupe sont éliminés. Limite : la marge intragroupe
-  restant en stock n'est pas encore retraitée automatiquement.
+  produits et charges réciproques sont éliminés. Pour les factures acceptées (achat validé chez l'acheteur), la
+  **marge interne non réalisée** est retraitée automatiquement : (prix − coût de revient du vendeur) × quantité restant
+  en stock chez l'acheteur à la clôture, ou totalité si le bien a été immobilisé ; elle minore le résultat du vendeur
+  (et donc la part des minoritaires de ce vendeur) et la valeur du stock ou de l'immobilisation. L'impôt différé actif
+  correspondant est calculé au taux d'IS du pack pays de la mère et présenté dans le détail des retraitements.
+  Limites : seules les factures de l'exercice consolidé sont retraitées (les marges en stock d'ouverture relèvent des
+  réserves) ; la quote-part d'amortissement de la marge sur immobilisations n'est pas encore réintégrée.
 - Chaque société garde sa validation propre : les écritures miroirs restent des brouillons à valider dans chaque dossier.

@@ -42,3 +42,42 @@ export function intercompanyOperation(p: {
       return make([D('521100', a), C('411200', a)], [D('401200', a), C('521100', a)]);
   }
 }
+
+export interface IntercompanyInvoiceLine {
+  net: bigint; quantity: number; cost?: bigint | null; sellerAccount: string;
+  buyerAccount?: string; buyerStockAccount?: string | null; remainingQuantity?: number;
+}
+
+/**
+ * Retraitements de consolidation d'une facture intragroupe acceptée.
+ * - Élimination du chiffre d'affaires chez le vendeur (l'achat de l'acheteur, saisi en écriture intragroupe, est
+ *   éliminé avec les produits et charges réciproques).
+ * - Marge interne non réalisée : (prix − coût) × quantité restant en stock chez l'acheteur, ou totalité si le bien a
+ *   été immobilisé ; elle minore le résultat du vendeur (part des minoritaires du vendeur comprise) et la valeur du stock
+ *   ou de l'immobilisation ; l'impôt différé actif correspondant est calculé au taux fourni.
+ * Les lignes produites sont équilibrées et rattachées au vendeur.
+ */
+export function intercompanyEliminations(p: { lines: IntercompanyInvoiceLine[]; taxRate?: number }): OpResult {
+  const lines: ReturnType<typeof D>[] = [];
+  let revenue = 0n;
+  let margin = 0n;
+  for (const l of p.lines) {
+    revenue += l.net;
+    lines.push(D(l.sellerAccount, l.net), C('411200', l.net));
+    if (l.cost === undefined || l.cost === null) continue;
+    const unitMargin = l.net - l.cost;
+    if (unitMargin <= 0n) continue; // une perte interne traduit en général une dépréciation : non éliminée
+    const asset = l.buyerAccount?.startsWith('2');
+    const ratio = asset ? 1 : Math.min(1, Math.max(0, (l.remainingQuantity ?? 0) / l.quantity));
+    const m = BigInt(Math.round(Number(unitMargin) * ratio));
+    if (m === 0n) continue;
+    margin += m;
+    lines.push(asset ? D(l.sellerAccount, m) : D('603100', m), C(asset ? l.buyerAccount! : l.buyerStockAccount ?? '311100', m));
+  }
+  const deferredTax = pct(margin, p.taxRate ?? 0);
+  return {
+    entries: lines.length ? [entry('Retraitements intragroupe', lines)] : [],
+    values: { revenueEliminated: revenue, unrealisedMargin: margin, deferredTaxAsset: deferredTax, netEffectOnResult: -(margin - deferredTax) },
+    notes: margin ? ['Impôt différé actif sur la marge interne éliminée : à présenter au bilan consolidé (impôts différés).'] : [],
+  };
+}

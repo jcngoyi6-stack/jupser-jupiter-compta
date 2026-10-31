@@ -18,7 +18,8 @@ import { readData } from '../common/data';
 import { domainError, parse, zAccount, zAmount, zDate } from '../common/http';
 import { PrismaService, type Tx } from '../common/prisma.service';
 import { buildWorkbook, readRows } from '../common/spreadsheet';
-import { adHocControl, combinedAccounts, groupPercentages, INTERCOMPANY_ACCOUNT_PREFIXES, toJson, type CombinedEntity } from '@jupiter/special-ops';
+import { adHocControl, combinedAccounts, groupPercentages, INTERCOMPANY_ACCOUNT_PREFIXES, intercompanyEliminations, toJson, type CombinedEntity, type IntercompanyInvoiceLine } from '@jupiter/special-ops';
+import { RuleSet, RuleTrace, type TaxRule } from '@jupiter/tax-engine';
 import { ReportsService } from '../reports/reports.service';
 import { ClosingService } from './closing.service';
 import { EntriesService } from './entries.service';
@@ -726,11 +727,55 @@ export class ConsolidationController {
           equityAtAcquisition: m.equityAtAcquisition ? BigInt(m.equityAtAcquisition) : undefined,
         });
       }
+      const intercompany = await this.intercompanyAdjustments(tx, members, entities);
       const r = consolidate(entities, ['181', '185', '186', '187', '188', '463', ...INTERCOMPANY_ACCOUNT_PREFIXES]);
       const bs = buildBalanceSheet(r.balances);
       const is = buildIncomeStatement(r.balances);
-      return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: r.summary.groupResult };
+      return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: r.summary.groupResult, intercompany };
     });
+  }
+
+  /**
+   * Factures intragroupe acceptées entre membres (écriture d'achat validée chez l'acheteur, exercice du vendeur) :
+   * élimination du chiffre d'affaires du vendeur et de la marge interne restant en stock chez l'acheteur (ou
+   * immobilisée), rattachées au vendeur ; impôt différé actif calculé au taux d'IS du pays de la mère.
+   */
+  private async intercompanyAdjustments(tx: Tx, members: { companyId: string; parent: boolean }[], entities: Entity[]) {
+    const ids = members.map((m) => m.companyId);
+    const parent = await tx.company.findUniqueOrThrow({ where: { id: (members.find((m) => m.parent) ?? members[0]!).companyId } });
+    const rules = new RuleSet((await tx.taxRule.findMany()).map((x) => ({ ...x, value: x.value }) as TaxRule));
+    const details = [];
+    for (const e of entities) {
+      const fy = await this.reports.fiscalYear(tx, e.id);
+      if (!fy) continue;
+      const invoices = await tx.intercompanyInvoice.findMany({ where: { sellerCompanyId: e.id, buyerCompanyId: { in: ids }, status: 'ACCEPTEE', date: { gte: fy.startDate, lte: fy.endDate } } });
+      const lines: IntercompanyInvoiceLine[] = [];
+      for (const inv of invoices) {
+        const entry = inv.buyerEntryId ? await tx.entry.findUnique({ where: { id: inv.buyerEntryId } }) : null;
+        if (!entry || entry.status !== 'VALIDE') continue; // achat non encore validé chez l'acheteur : rien à éliminer
+        const decision = (inv.decision ?? {}) as { lines?: { account: string; itemId?: string; warehouseId?: string }[] };
+        const buyerFy = await this.reports.fiscalYear(tx, inv.buyerCompanyId);
+        for (const [i, l] of (inv.lines as unknown as { quantity: number; net: string; account: string; cost: string | null }[]).entries()) {
+          const d = decision.lines?.[i];
+          let remaining: number | undefined;
+          let stockAccount: string | null = null;
+          if (d?.itemId) {
+            const item = await tx.stockItem.findUnique({ where: { id: d.itemId } });
+            stockAccount = item?.stockAccount ?? null;
+            const moves = await tx.stockMove.findMany({ where: { companyId: inv.buyerCompanyId, itemId: d.itemId, date: { lte: buyerFy?.endDate ?? fy.endDate } } });
+            remaining = Number(moves.reduce((s, m) => s + m.qtyMilli, 0n)) / 1000;
+          }
+          lines.push({ net: BigInt(l.net), quantity: l.quantity, cost: l.cost === null ? null : BigInt(l.cost), sellerAccount: l.account, buyerAccount: d?.account, buyerStockAccount: stockAccount, remainingQuantity: remaining });
+        }
+      }
+      if (!lines.length) continue;
+      let taxRate = 0;
+      try { taxRate = Number(new RuleTrace().use(rules.find<string>(parent.country, 'IS', 'taux', fy.endDate)) ?? 0); } catch { taxRate = 0; }
+      const adj = intercompanyEliminations({ lines, taxRate });
+      for (const l of adj.entries[0]?.lines ?? []) e.balances.push({ account: l.account, net: l.debit - l.credit });
+      details.push({ seller: e.name, ...(toJson(adj.values) as object), notes: adj.notes });
+    }
+    return details;
   }
 
   private members(g: { members: unknown }) {

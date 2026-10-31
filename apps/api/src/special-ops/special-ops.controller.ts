@@ -5,6 +5,7 @@ import { CATALOGUE, findOperation, INTERCOMPANY_KINDS, intercompanyOperation, ru
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { EntriesService } from '../accounting/entries.service';
+import { IntercompanyController } from '../group/intercompany.controller';
 import { ACCOUNTING_WRITE, CurrentUser, RequiresModule, Roles, type SessionUser } from '../auth/decorators';
 import { AuditService } from '../common/audit.service';
 import { domainError, parse, zDate } from '../common/http';
@@ -126,14 +127,8 @@ export class SpecialOpsController {
       }
       const ref = randomBytes(3).toString('hex').toUpperCase();
       // Tiers « société du groupe » créé une fois dans chaque dossier (client 4112, fournisseur 4012)
-      const sisterParty = async (cid: string, other: string, account: string) => {
-        const client = account.startsWith('41');
-        const code = `GRP-${client ? 'C' : 'F'}-${other.slice(0, 8)}`;
-        const found = await tx.thirdParty.findUnique({ where: { companyId_code: { companyId: cid, code } } });
-        if (found) return found.id;
-        const name = (await tx.company.findUniqueOrThrow({ where: { id: other } })).name;
-        return (await tx.thirdParty.create({ data: { tenantId: u.tenantId, companyId: cid, type: client ? 'CLIENT' : 'FOURNISSEUR', code, name: `${name} (groupe)`, account } })).id;
-      };
+      const sisterParty = async (cid: string, other: string, account: string) =>
+        (await IntercompanyController.groupParty(tx, u.tenantId, cid, await tx.company.findUniqueOrThrow({ where: { id: other } }), account.startsWith('41') ? 'CLIENT' : 'FOURNISSEUR')).id;
       const post = async (cid: string, other: string, e: OpEntry) => this.entries.createDraft(tx, u, cid, {
         journalCode: b.journalCode, date: b.date, pieceRef: `IG-${other.slice(0, 8)}-${ref}`, label: e.label.slice(0, 200),
         lines: await Promise.all(e.lines.map(async (l) => ({

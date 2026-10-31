@@ -162,10 +162,23 @@ export class SalesController {
       });
       if (b.sourceDocumentId) await tx.salesDocument.updateMany({ where: { id: b.sourceDocumentId, companyId }, data: { status: 'TRANSFORME' } });
       // ERP : la vente d'articles stockés sort le stock au coût (inventaire permanent)
-      for (const l of computed.filter((x) => x.itemId)) {
+      const costs = new Map<number, bigint>();
+      for (const [i, l] of computed.entries()) {
+        if (!l.itemId) continue;
         if (!b.warehouseId) throw domainError('DEPOT_REQUIS', 'Dépôt requis pour les articles stockés.');
         const qtyMilli = BigInt(Math.round(l.quantity * 1000));
-        await this.stock.move(tx, u, companyId, { itemId: l.itemId!, warehouseId: b.warehouseId, date: b.date, type: 'SORTIE', qtyMilli: -qtyMilli, reference: number });
+        const mv = await this.stock.move(tx, u, companyId, { itemId: l.itemId!, warehouseId: b.warehouseId, date: b.date, type: 'SORTIE', qtyMilli: -qtyMilli, reference: number });
+        costs.set(i, -mv.totalCost);
+      }
+      // Client « société du groupe » : la facture est transmise à la société destinataire pour acceptation
+      if (client.groupCompanyId) {
+        await tx.intercompanyInvoice.create({
+          data: {
+            tenantId: u.tenantId, sellerCompanyId: companyId, buyerCompanyId: client.groupCompanyId, salesDocumentId: doc.id, number, date: b.date,
+            lines: computed.map((l, i) => ({ description: l.description, quantity: l.quantity, net: l.net.toString(), vat: l.vat.toString(), account: l.account, itemId: l.itemId ?? null, cost: costs.has(i) ? costs.get(i)!.toString() : null })),
+            totalNet, totalVat, totalGross: totalNet + totalVat,
+          },
+        });
       }
       await this.audit.log(tx, u.tenantId, u.userId, 'FACTURE_EMISE', `sales_document:${doc.id}`, { number, hash });
       return { ...doc, entryNumber: posted.entry.number, banner: trace.banner, ...(await this.qr(hash)) };
@@ -182,6 +195,8 @@ export class SalesController {
       const inv = await tx.salesDocument.findFirst({ where: { id, companyId, type: 'FACTURE' } });
       if (!inv) throw domainError('FACTURE_INCONNUE', 'Facture introuvable.');
       if (inv.status === 'ANNULEE') throw domainError('DEJA_ANNULEE', 'Facture déjà annulée.');
+      // Facture intragroupe en attente d'acceptation : retirée de la boîte de la société destinataire
+      await tx.intercompanyInvoice.updateMany({ where: { salesDocumentId: inv.id, status: { in: ['EN_ATTENTE', 'REJETEE'] } }, data: { status: 'ANNULEE', reason: b.reason } });
       const entry = await this.entries.get(tx, companyId, inv.entryId!);
       const number = await this.nextNumber(tx, companyId, 'AVOIR', b.date.slice(0, 4));
       const draft = await this.entries.createDraft(

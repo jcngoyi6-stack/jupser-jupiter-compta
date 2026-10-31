@@ -111,6 +111,10 @@ export default function Consolidation() {
               <tr><td>Capitaux propres part du groupe</td><td className="text-right"><Money v={r.summary?.groupEquity} /></td></tr>
               <tr><td>Écart de conversion</td><td className="text-right"><Money v={r.translationDifference} /></td></tr>
               <tr><td>Comptes réciproques éliminés</td><td className="text-right">{r.eliminated.length}</td></tr>
+              {(r.intercompany ?? []).map((x: any) => (
+                <tr key={x.seller}><td>Factures intragroupe de {x.seller} : chiffre d’affaires éliminé / marge interne en stock / impôt différé actif</td>
+                  <td className="text-right"><Money v={x.revenueEliminated} /> / <Money v={x.unrealisedMargin} /> / <Money v={x.deferredTaxAsset} /></td></tr>
+              ))}
             </tbody></table>
           </div>
         </div>
