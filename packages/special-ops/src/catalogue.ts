@@ -166,6 +166,17 @@ export const CATALOGUE: CatalogueItem[] = [
       equity: [{ account: '101300', amount: 20n * M }, { account: '118100', amount: 14n * M }] } },
   { id: 'transition-retraite', label: 'Première application : engagements de retraite', chapter: 'Première application', applications: [125], run: fn(ops.pensionTransition),
     example: { priorObligation: 75n * M, spreadYears: 5, transitionDate: '2018-01-01' } },
+  { id: 'perimetre-groupe', label: 'Pourcentages de contrôle et d’intérêt, méthodes', chapter: 'Consolidation', applications: [128, 129, 130], run: fn((p: Parameters<typeof ops.groupPercentages>[0]) => ({ entries: [], values: Object.fromEntries(Object.entries(ops.groupPercentages(p)).map(([k, v]) => [k, `contrôle ${(v.control * 100).toFixed(2)} % · intérêt ${(v.interest * 100).toFixed(2)} % · ${v.method}`])) })),
+    example: { parent: 'H', jointControl: ['D'], holdings: [{ owner: 'H', owned: 'A', capital: 0.9 }, { owner: 'H', owned: 'D', capital: 0.25 }, { owner: 'A', owned: 'E', capital: 0.6 }, { owner: 'D', owned: 'I', capital: 0.7 }] } },
+  { id: 'entite-ad-hoc', label: 'Contrôle d’une entité ad hoc', chapter: 'Consolidation', applications: [131], run: fn((p: Parameters<typeof ops.adHocControl>[0]) => { const r = ops.adHocControl(p); return { entries: [], values: { controle: r.controlled ? 'OUI' : 'NON', methode: r.method }, notes: [r.reason] }; }),
+    example: { decisionPowers: true, majorityBenefits: false, majorityRisks: true } },
+  { id: 'variation-interet', label: 'Variation du pourcentage d’intérêt', chapter: 'Consolidation', applications: [141], run: fn(ops.ownershipChange),
+    example: { initial: { interest: 0.7, cost: 50n * M, equity: 45n * M, upliftGross: 20n * M, taxRate: 0.25 }, step: { newInterest: 0.8, price: 9_700_000n, equity: 75n * M, upliftAmortised: 1_600_000n }, closingEquity: 90n * M, depreciableUplift: { amount: 8n * M, years: 10 } } },
+  { id: 'comptes-combines', label: 'Comptes combinés', chapter: 'Consolidation', applications: [142], run: fn(ops.combinedAccounts),
+    example: { entities: [
+      { code: 'B', interest: 0.9, fixedAssets: 200n, otherAssets: 450n, capitalAndReserves: 500n, result: 40n, liabilities: 110n, revenue: 1000n, otherIncome: 50n, charges: 980n, incomeTax: 30n, deferredTax: 30n },
+      { code: 'C', interest: 0.6, fixedAssets: 300n, otherAssets: 500n, capitalAndReserves: 650n, result: 20n, liabilities: 130n, revenue: 1500n, otherIncome: 100n, charges: 1560n, incomeTax: 20n },
+      { code: 'D', interest: 0.7, fixedAssets: 150n, otherAssets: 350n, capitalAndReserves: 350n, result: 30n, liabilities: 120n, revenue: 750n, otherIncome: 30n, charges: 720n, incomeTax: 30n }] } },
   { id: 'ecarts-acquisition', label: 'Écarts d’évaluation et d’acquisition (consolidation)', chapter: 'Consolidation', applications: [135, 136, 137], run: fn(ops.acquisitionDifferences),
     example: { cost: 50n * M, interest: 0.8, equity: 25n * M, taxRate: 0.25, adjustments: [{ label: 'Terrain', amount: 15n * M }, { label: 'Marque', amount: 10n * M }, { label: 'Brevet', amount: 6n * M }, { label: 'Retraite', amount: -7_500_000n }] } },
 ];

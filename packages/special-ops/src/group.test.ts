@@ -1,6 +1,6 @@
 /** Guide d'application — applications 128 à 130 et 135 à 138. */
 import { describe, expect, it } from 'vitest';
-import { acquisitionDifferences, groupPercentages, translateStatements, votingRights } from './index';
+import { acquisitionDifferences, adHocControl, combinedAccounts, groupPercentages, ownershipChange, translateStatements, votingRights } from './index';
 
 const M = 1_000_000n;
 const close = (a: number, b: number, d = 4) => expect(a).toBeCloseTo(b, d);
@@ -77,5 +77,42 @@ describe('application 138 : conversion des états en devises', () => {
     expect(r.values).toMatchObject({ IMMO: 4_000_000n, STOCK: 4_500_000n, BANQUE: 2_300_000n, RESULTAT: -1_100_000n, DETTES: -3_450_000n });
     expect(r.values!.translationDifference).toBe(-(4_000_000n + 4_500_000n + 2_300_000n - 4_000_000n - 2_000_000n - 1_100_000n - 3_450_000n));
     expect(translateStatements({ closingRate: 1, averageRate: 1, items: [{ code: 'X', amount: 5n, basis: 'HISTORIQUE' }] }).values!.X).toBe(5n);
+  });
+});
+
+describe('application 131 : entité ad hoc', () => {
+  it('pouvoirs de décision et risques (garantie) : contrôle exclusif, intégration globale', () => {
+    expect(adHocControl({ decisionPowers: true, majorityBenefits: false, majorityRisks: true }).method).toBe('INTEGRATION_GLOBALE');
+    expect(adHocControl({ decisionPowers: false, majorityBenefits: true, majorityRisks: true }).controlled).toBe(true);
+    expect(adHocControl({ decisionPowers: true, majorityBenefits: false, majorityRisks: false })).toMatchObject({ controlled: false, method: 'NON_CONSOLIDEE' });
+    expect(adHocControl({ decisionPowers: true, majorityBenefits: false, majorityRisks: false, receivablesVehicle: true }).controlled).toBe(true);
+    expect(adHocControl({ decisionPowers: false, majorityBenefits: false, majorityRisks: false, receivablesVehicle: true }).reason).toContain('aucun critère');
+  });
+});
+
+describe('application 141 : variation du pourcentage d’intérêt', () => {
+  const base = { initial: { interest: 0.7, cost: 50n * M, equity: 45n * M, upliftGross: 20n * M, taxRate: 0.25 }, closingEquity: 90n * M, depreciableUplift: { amount: 8n * M, years: 10 } };
+  it('goodwill figé 8 M ; partage : titres 39,7 M, minoritaires 18 M, réserves groupe 32,3 M ; amortissement 480 000 part du groupe', () => {
+    const r = ownershipChange({ ...base, step: { newInterest: 0.8, price: 9_700_000n, equity: 75n * M, upliftAmortised: 1_600_000n } });
+    expect(r.values).toMatchObject({ goodwill: 8n * M, valuationAtControl: 15n * M, valuationAtStep: 13_800_000n, titlesAfterEliminations: 39_700_000n, minorities: 18n * M, groupReserves: 32_300_000n, annualGroupShareNetOfTax: 480_000n, annualMinorityShareNetOfTax: 120_000n });
+    expect(r.values!.reservesImpact).toBe(8_880_000n - 9_700_000n);
+  });
+  it('cession sans perte de contrôle et perte de contrôle', () => {
+    const c = ownershipChange({ ...base, step: { newInterest: 0.6, price: 9n * M, equity: 75n * M } });
+    expect(c.values!.reservesImpact).toBe(9n * M - 9n * M);
+    expect(ownershipChange({ ...base, step: { newInterest: 0.4, price: 1n, equity: 1n } }).values!.lossOfControl).toBe('OUI');
+    expect(ownershipChange({ initial: base.initial, closingEquity: 1n, step: { newInterest: 0.8, price: 0n, equity: 0n } }).values!.annualUpliftDepreciation).toBe(0n);
+  });
+});
+
+describe('application 142 : comptes combinés', () => {
+  it('capitaux propres des ayants droit 1 181, minoritaires 439, résultat combiné 120 (96 + 24)', () => {
+    const e = (code: string, interest: number, f: number, o: number, cr: number, r: number, l: number, rev: number, oi: number, ch: number, tax: number, dt = 0) =>
+      ({ code, interest, fixedAssets: BigInt(f), otherAssets: BigInt(o), capitalAndReserves: BigInt(cr), result: BigInt(r), liabilities: BigInt(l), revenue: BigInt(rev), otherIncome: BigInt(oi), charges: BigInt(ch), incomeTax: BigInt(tax), deferredTax: BigInt(dt) });
+    const r = combinedAccounts({ entities: [e('B', 0.9, 200, 450, 500, 40, 110, 1000, 50, 980, 30, 30), e('C', 0.6, 300, 500, 650, 20, 130, 1500, 100, 1560, 20), e('D', 0.7, 150, 350, 350, 30, 120, 750, 30, 720, 30)] });
+    expect(r.values).toMatchObject({
+      totalAssets: 1980n, combinedCapitalAndReserves: 1085n, combinedResult: 96n, ownersEquity: 1181n, minorities: 439n, totalEquity: 1620n, liabilities: 360n,
+      revenue: 3250n, resultBeforeTax: 170n, incomeTax: 80n, deferredTaxVariation: 30n, netResult: 120n, minorityResult: 24n,
+    });
   });
 });

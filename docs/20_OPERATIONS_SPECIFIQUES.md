@@ -1,4 +1,4 @@
-# 20 — Opérations spécifiques du guide d'application (version 0.5.0)
+# 20 — Opérations spécifiques du guide d'application (version 0.6.0)
 
 Paquet `packages/special-ops`, API `companies/:companyId/special-ops`, écran **Comptabilité › Opérations spécifiques**.
 
@@ -7,7 +7,7 @@ du plan du logiciel, avec leurs échéanciers et valeurs intermédiaires. Les é
 (journal OD, origine `OPERATION_SPECIFIQUE`) : rien n'est validé sans un comptable. Les écritures « chez l'autre partie »
 (absorbée, associé non gérant, succursale, franchiseur) sont restituées pour information, à saisir dans le dossier concerné.
 
-Les exemples du guide sont repris en tests automatisés (153 tests, couverture 99 %) et pré-remplis dans l'écran.
+Les exemples du guide sont repris en tests automatisés (161 tests, couverture 99 %) et pré-remplis dans l'écran.
 
 ## Couverture
 
@@ -32,10 +32,12 @@ Les exemples du guide sont repris en tests automatisés (153 tests, couverture 9
 | Fusions | 116 à 120 | `mergerShareValues` (participations réciproques), `merger` (prime, boni, actions propres, écritures de l'absorbée), `partialContribution` |
 | Période comparative, liquidation | 121, 122 | règles de l'information comparative (docs/04) ; `liquidation` (1384 direct ou 837 / 847, partage) |
 | Première application | 123 à 126 | `establishmentCostsTransition`, `bondPremiumTransition`, `componentReallocation`, `pensionTransition`, `longTermContractTransition` |
-| Consolidation avancée | 128 à 130, 135 à 138 | `groupPercentages` (contrôle, intérêts, circulaires, méthodes), `votingRights`, `acquisitionDifferences` (écarts d'évaluation et d'acquisition, badwill, MEE), `translateStatements` |
+| Consolidation avancée | 128 à 131, 135 à 138, 141, 142 | `groupPercentages` (contrôle, intérêts, circulaires, méthodes), `votingRights`, `adHocControl` (entités ad hoc), `acquisitionDifferences` (écarts d'évaluation et d'acquisition, badwill, MEE), `translateStatements`, `ownershipChange` (variation du pourcentage d'intérêt, écart d'acquisition figé), `combinedAccounts` |
 
-Restent hors de l'assistant : l'entité ad hoc (131, jugement), les retraitements et éliminations (139, 140) servis par la
-consolidation existante, les variations de pourcentage d'intérêt (141) et les comptes combinés (142).
+Les retraitements et éliminations (139, 140) sont servis par le module de consolidation. Celui-ci calcule aussi, depuis
+l'organigramme des détentions, le **périmètre** (pourcentages, entités ad hoc, méthode proposée et écarts avec le
+paramétrage : `POST /consolidation/groups/:id/perimeter`) et les **comptes combinés** à partir des balances réelles des
+membres (`POST /consolidation/groups/:id/combined`). Toutes les applications du guide (1 à 142) sont désormais couvertes.
 
 ## Conventions
 
@@ -48,7 +50,9 @@ consolidation existante, les variations de pourcentage d'intérêt (141) et les 
   352X) doivent exister dans le plan de reprise.
 - Ajout au plan : comptes d'engagements hors bilan des classes 90 et 91 à 6 chiffres (issus de l'AUDCIF).
 
-## Points à valider par l'expert-comptable
+## Choix comptables — validés
+
+Les choix ci-dessous ont été **validés le 31/10/2026 par l'expert-comptable agréé ONEC de JUPSER**.
 
 - Sociétés en participation : sous-comptes 7521 / 7525 et 6521 / 6525 retenus pour la quote-part du gérant et des associés.
 - Cession à crédit de titres immobilisés : le compte 4856 cité par le guide n'existe pas dans le plan de l'AUDCIF ;
@@ -64,3 +68,4 @@ consolidation existante, les variations de pourcentage d'intérêt (141) et les 
 | 110-111 | Le compte de résultat de la succursale (7,4 M) exclut les comptes de liaison 186/187 que le texte dit d'inclure ; l'écriture de clôture ne solde pas le 184 | Les deux résultats sont fournis ; l'intégration élimine 184, 186 et 187 |
 | 118 | Écriture de l'absorbée : matériel 30 M et titres 15 M au lieu de 40 M et 5 M au bilan | Bilan retenu ; résultat de fusion identique (39 M) |
 | 130 | 21,397 % tronqué en 21,39 % | Arrondi au millième |
+| 141 | Écart d'évaluation à la date du lot supplémentaire : (20 − 1,6) × (1 − 25 %) = 13,8 M, mais le guide retient 4,6 M | 13,8 M retenu ; le partage final du guide (titres 39,7 M, minoritaires 18 M, réserves 32,3 M) est retrouvé |

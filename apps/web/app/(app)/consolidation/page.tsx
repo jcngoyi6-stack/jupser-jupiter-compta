@@ -22,9 +22,22 @@ export default function Consolidation() {
   const m = (id: string) => members[id] ?? { on: false, parent: false, method: 'IG', pct: '100', cost: '', rate: '' };
   const set = (id: string, p: Partial<ReturnType<typeof m>>) => setMembers({ ...members, [id]: { ...m(id), ...p } });
   const r = res.data;
+  const [holdings, setHoldings] = useState('');
+  const [adHoc, setAdHoc] = useState<Record<string, { decisionPowers: boolean; majorityBenefits: boolean; majorityRisks: boolean }>>({});
+  const [perim, setPerim] = useState<any[] | null>(null);
+  const [comb, setComb] = useState<any>(null);
+  const nameOf = (id: string) => companies.find((c) => c.id === id)?.name ?? id;
+  const idOf = (name: string) => companies.find((c) => c.name.toLowerCase() === name.trim().toLowerCase())?.id ?? name.trim();
+  // Une ligne par détention : « Détentrice ; Détenue ; % du capital [; % des droits de vote] »
+  const runPerimeter = () => api<any[]>(`/consolidation/groups/${sel}/perimeter`, { method: 'POST', body: {
+    holdings: holdings.split('\n').map((l) => l.split(';').map((x) => x.trim())).filter((l) => l.length >= 3).map(([o, d, c, v]) => ({ owner: idOf(o!), owned: idOf(d!), capital: Number(c) / 100, ...(v ? { votes: Number(v) / 100 } : {}) })),
+    adHoc: Object.fromEntries(Object.entries(adHoc).filter(([, v]) => v.decisionPowers || v.majorityBenefits || v.majorityRisks)),
+  } }).then((x) => { setPerim(x); setMsg(''); }).catch((e) => setMsg(errorText(e)));
+  const runCombined = () => api<any>(`/consolidation/groups/${sel}/combined`, { method: 'POST', body: {} }).then((x) => { setComb(x); setMsg(''); }).catch((e) => setMsg(errorText(e)));
+  const crit = (id: string) => adHoc[id] ?? { decisionPowers: false, majorityBenefits: false, majorityRisks: false };
   return (
     <div className="space-y-4">
-      <PageTitle title="Consolidation" sub="Intégration globale, mise en équivalence, éliminations intragroupe, conversion des filiales" />
+      <PageTitle title="Consolidation" sub="Périmètre (contrôle, intérêts, entités ad hoc), intégration globale ou proportionnelle, mise en équivalence, éliminations intragroupe, conversion des filiales, comptes combinés" />
       {msg && <Alert>{msg}</Alert>}
       <div className="card space-y-2">
         <h2>Périmètre</h2>
@@ -45,6 +58,39 @@ export default function Consolidation() {
           {groups.data?.map((g) => <button key={g.id} className={sel === g.id ? 'btn-accent' : 'btn-ghost'} onClick={() => setSel(g.id)}>{g.name}</button>)}
         </div>
       </div>
+      {sel && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="card space-y-2">
+            <h2>Pourcentages de contrôle et d’intérêt, entités ad hoc</h2>
+            <p className="text-sm opacity-75">Une ligne par détention : société détentrice ; société détenue ; % du capital ; % des droits de vote (facultatif). Les participations circulaires sont résolues.</p>
+            <textarea className="input h-28 font-mono text-xs" placeholder="Mère SA ; Filiale B ; 90" value={holdings} onChange={(e) => setHoldings(e.target.value)} />
+            <table className="table text-xs"><thead><tr><th>Entité ad hoc ?</th><th>Pouvoirs de décision</th><th>Majorité des avantages</th><th>Majorité des risques</th></tr></thead>
+              <tbody>{(groups.data?.find((g) => g.id === sel)?.members ?? []).filter((x: any) => !x.parent).map((x: any) => (
+                <tr key={x.companyId}><td>{nameOf(x.companyId)}</td>
+                  {(['decisionPowers', 'majorityBenefits', 'majorityRisks'] as const).map((k) => <td key={k}><input type="checkbox" checked={crit(x.companyId)[k]} onChange={(e) => setAdHoc({ ...adHoc, [x.companyId]: { ...crit(x.companyId), [k]: e.target.checked } })} /></td>)}
+                </tr>))}</tbody></table>
+            <button className="btn-primary" onClick={runPerimeter}>Calculer le périmètre</button>
+            {perim && (
+              <table className="table text-sm"><thead><tr><th>Entité</th><th className="text-right">Contrôle</th><th className="text-right">Intérêt</th><th>Méthode proposée</th><th>Paramétrée</th></tr></thead>
+                <tbody>{perim.map((p) => (
+                  <tr key={p.entity} className={p.divergence ? 'bg-amber-50 dark:bg-amber-950' : ''}><td>{p.name}{p.adHoc && <div className="text-xs opacity-70">{p.adHoc}</div>}</td>
+                    <td className="text-right">{(p.control * 100).toFixed(2)} %</td><td className="text-right">{(p.interest * 100).toFixed(2)} %</td>
+                    <td>{p.proposedMethod}</td><td>{p.configuredMethod ? `${p.configuredMethod} · ${p.configuredPct} %` : '—'}</td></tr>))}</tbody></table>
+            )}
+          </div>
+          <div className="card space-y-2">
+            <h2>Comptes combinés</h2>
+            <p className="text-sm opacity-75">Entités de l’espace OHADA contrôlées par une même entité extérieure : le % d’intérêt paramétré est celui de l’entité combinante.</p>
+            <button className="btn-primary" onClick={runCombined}>Établir les comptes combinés</button>
+            {comb && (
+              <table className="table text-sm"><tbody>
+                {[['totalAssets', 'Total actif combiné'], ['combinedCapitalAndReserves', 'Capital et réserves combinés (ayants droit)'], ['combinedResult', 'Résultat net combiné (ayants droit)'], ['minorities', 'Part des minoritaires'], ['totalEquity', 'Capitaux propres combinés'], ['liabilities', 'Dettes'], ['revenue', 'Chiffre d’affaires'], ['netResult', 'Résultat net de l’ensemble combiné'], ['minorityResult', 'dont part des minoritaires']].map(([k, l]) => (
+                  <tr key={k}><td>{l}</td><td className="text-right"><Money v={comb.values[k!]} /></td></tr>))}
+              </tbody></table>
+            )}
+          </div>
+        </div>
+      )}
       {r && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card p-0"><h2 className="px-4 pt-3">Bilan consolidé (synthèse)</h2>

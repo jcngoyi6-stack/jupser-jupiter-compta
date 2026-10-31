@@ -18,6 +18,7 @@ import { readData } from '../common/data';
 import { domainError, parse, zAccount, zAmount, zDate } from '../common/http';
 import { PrismaService, type Tx } from '../common/prisma.service';
 import { buildWorkbook, readRows } from '../common/spreadsheet';
+import { adHocControl, combinedAccounts, groupPercentages, toJson, type CombinedEntity } from '@jupiter/special-ops';
 import { ReportsService } from '../reports/reports.service';
 import { ClosingService } from './closing.service';
 import { EntriesService } from './entries.service';
@@ -726,6 +727,77 @@ export class ConsolidationController {
       const bs = buildBalanceSheet(r.balances);
       const is = buildIncomeStatement(r.balances);
       return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: r.summary.groupResult };
+    });
+  }
+
+  private members(g: { members: unknown }) {
+    return g.members as { companyId: string; parent: boolean; method: 'IG' | 'IP' | 'MEE'; ownershipPct: string }[];
+  }
+
+  /**
+   * Périmètre (applications 128 à 131) : pourcentages de contrôle et d'intérêt calculés depuis l'organigramme des
+   * détentions (chaînes, participations circulaires), qualification des entités ad hoc, méthode proposée comparée à
+   * celle paramétrée pour chaque membre.
+   */
+  @Post('groups/:id/perimeter')
+  perimeter(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
+    const b = parse(z.object({
+      holdings: z.array(z.object({ owner: z.string().min(1), owned: z.string().min(1), capital: z.number().min(0).max(1), votes: z.number().min(0).max(1).optional() })).min(1),
+      jointControl: z.array(z.string()).optional(),
+      adHoc: z.record(z.string(), z.object({ decisionPowers: z.boolean(), majorityBenefits: z.boolean(), majorityRisks: z.boolean(), receivablesVehicle: z.boolean().optional() })).optional(),
+    }), body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const g = await tx.consolidationGroup.findUniqueOrThrow({ where: { id } });
+      const members = this.members(g);
+      const parent = members.find((m) => m.parent);
+      if (!parent) throw domainError('MERE_ABSENTE', 'Désignez l’entité consolidante du groupe.');
+      const pcts = groupPercentages({ parent: parent.companyId, holdings: b.holdings, jointControl: b.jointControl });
+      const CODE = { INTEGRATION_GLOBALE: 'IG', INTEGRATION_PROPORTIONNELLE: 'IP', MISE_EN_EQUIVALENCE: 'MEE', NON_CONSOLIDEE: 'HORS' } as const;
+      const names = new Map((await tx.company.findMany({ where: { id: { in: Object.keys(pcts) } }, select: { id: true, name: true } })).map((c) => [c.id, c.name]));
+      return Object.entries(pcts).map(([entity, v]) => {
+        const adHoc = b.adHoc?.[entity] ? adHocControl(b.adHoc[entity]!) : null;
+        const proposed = adHoc?.controlled ? 'IG' : CODE[v.method];
+        const configured = members.find((m) => m.companyId === entity);
+        return {
+          entity, name: names.get(entity) ?? entity, control: v.control, interest: v.interest, proposedMethod: proposed, adHoc: adHoc?.reason ?? null,
+          configuredMethod: configured?.method ?? null, configuredPct: configured?.ownershipPct ?? null,
+          divergence: configured ? configured.method !== proposed || Math.abs(Number(configured.ownershipPct) / 100 - v.interest) > 0.0001 : proposed !== 'HORS',
+        };
+      });
+    });
+  }
+
+  /**
+   * Comptes combinés (application 142) : agrégation des membres situés dans l'espace OHADA, partage entre ayants droit
+   * (pourcentage détenu par l'entité combinante extérieure) et minoritaires, impôts différés de retraitement.
+   */
+  @Post('groups/:id/combined')
+  combined(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
+    const b = parse(z.object({ year: z.string().optional(), deferredTax: z.record(z.string(), z.string().regex(/^-?\d+$/)).optional() }), body);
+    return this.db.forTenant(u.tenantId, async (tx) => {
+      const g = await tx.consolidationGroup.findUniqueOrThrow({ where: { id } });
+      const entities: CombinedEntity[] = [];
+      for (const m of this.members(g)) {
+        const c = await tx.company.findUniqueOrThrow({ where: { id: m.companyId } });
+        const fy = b.year ? await tx.fiscalYear.findFirst({ where: { companyId: c.id, label: b.year } }) : await this.reports.fiscalYear(tx, c.id);
+        if (!fy) throw domainError('EXERCICE_INCONNU', `Exercice ${b.year} absent pour ${c.name}.`);
+        const net = netByAccount((await this.closing.postedLines(tx, c.id, fy.id)).filter((l) => l.origin !== 'CLOTURE'));
+        const sum = (pred: (a: string) => boolean, sign = 1n) => [...net.entries()].filter(([a]) => pred(a)).reduce((s, [, v]) => s + v * sign, 0n);
+        const pos = (pred: (a: string) => boolean) => [...net.entries()].filter(([a, v]) => pred(a) && v > 0n).reduce((s, [, v]) => s + v, 0n);
+        const neg = (pred: (a: string) => boolean) => [...net.entries()].filter(([a, v]) => pred(a) && v < 0n).reduce((s, [, v]) => s - v, 0n);
+        const has = (...p: string[]) => (a: string) => p.some((x) => a.startsWith(x));
+        const revenue = sum(has('70'), -1n);
+        const otherIncome = sum(has('71', '72', '73', '75', '77', '78', '79', '82', '84', '86', '88'), -1n);
+        const charges = sum(has('6', '81', '83', '85', '87'));
+        const incomeTax = sum(has('89'));
+        entities.push({
+          code: c.name, interest: Number(m.ownershipPct) / 100,
+          fixedAssets: sum(has('2')), otherAssets: pos(has('3', '4', '5')), liabilities: neg(has('16', '17', '18', '19', '4', '5')),
+          capitalAndReserves: sum(has('10', '11', '12', '13', '14', '15'), -1n), result: revenue + otherIncome - charges - incomeTax,
+          revenue, otherIncome, charges, incomeTax, deferredTax: b.deferredTax?.[c.id] ? BigInt(b.deferredTax[c.id]!) : 0n,
+        });
+      }
+      return { group: g, entities: toJson(entities), ...(toJson(combinedAccounts({ entities })) as object) };
     });
   }
 }

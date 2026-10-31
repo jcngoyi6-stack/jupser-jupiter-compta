@@ -34,9 +34,9 @@ immeubles (41 à 43), titres (48 à 51), créances (55 à 57), capital (58 à 64
 obligataires (78 à 80), retraites (81 à 83), change (88 à 91), contrats pluri-exercices et abonnement (92 à 94),
 concessions, GIE, intérim (95 à 98), réévaluation (99, 100), engagements et tiers (102 à 105), opérations en commun et
 établissements (106 à 112), pluri-monétaire et agriculture (113 à 115), fusions (116 à 120), liquidation (122),
-première application (123 à 126), consolidation avancée (128 à 130, 135 à 138). Détail : [docs/20](20_OPERATIONS_SPECIFIQUES.md).
+première application (123 à 126), consolidation avancée (128 à 131, 135 à 138, 141, 142). Détail : [docs/20](20_OPERATIONS_SPECIFIQUES.md).
 
-Restent : entité ad hoc (131), variations de pourcentage d'intérêt (141), comptes combinés (142).
+Toutes les applications du guide sont couvertes (version 0.6.0) ; choix comptables validés le 31/10/2026 par l'expert-comptable agréé ONEC de JUPSER.
 
 ## 3. Points à trancher par l'expert-comptable
 

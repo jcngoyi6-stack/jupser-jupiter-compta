@@ -110,3 +110,96 @@ export function translateStatements(p: { items: TranslationItem[]; closingRate: 
   const translationDifference = -translated.reduce((s, t) => s + t.amount, 0n);
   return { entries: [], values: { ...Object.fromEntries(translated.map((t) => [t.code, t.amount])), translationDifference } };
 }
+
+/**
+ * Entité ad hoc (application 131) : consolidée si deux des trois critères sont réunis — pouvoirs de décision et
+ * avantages, pouvoirs et risques, ou avantages et risques. Pour une entité issue d'une cession de créances, le critère
+ * des pouvoirs de décision prédomine.
+ */
+export function adHocControl(p: { decisionPowers: boolean; majorityBenefits: boolean; majorityRisks: boolean; receivablesVehicle?: boolean }): { controlled: boolean; method: ConsolidationMethod; reason: string } {
+  const { decisionPowers: d, majorityBenefits: b, majorityRisks: r } = p;
+  const controlled = p.receivablesVehicle ? d : (d && b) || (d && r) || (b && r);
+  const met = [d && 'pouvoirs de décision', b && 'majorité des avantages', r && 'majorité des risques'].filter(Boolean).join(', ') || 'aucun critère';
+  return {
+    controlled,
+    method: controlled ? 'INTEGRATION_GLOBALE' : 'NON_CONSOLIDEE',
+    reason: controlled
+      ? `Entité ad hoc contrôlée (${met}) : intégration globale.`
+      : `Critères réunis : ${met} — contrôle non établi${p.receivablesVehicle ? ' (véhicule de cession de créances : les pouvoirs de décision prédominent)' : ''}.`,
+  };
+}
+
+/**
+ * Variation du pourcentage d'intérêt sans perte de contrôle (application 141) : l'écart d'acquisition reste figé à la
+ * date de prise de contrôle ; l'écart entre le prix du lot (acheté ou cédé) et la quote-part de juste valeur acquise ou
+ * cédée est une opération entre actionnaires, imputée sur les réserves du groupe. Partage des capitaux propres à la
+ * clôture au nouveau pourcentage.
+ */
+export function ownershipChange(p: {
+  initial: { interest: number; cost: bigint; equity: bigint; upliftGross: bigint; taxRate: number };
+  step: { newInterest: number; price: bigint; equity: bigint; upliftAmortised?: bigint };
+  closingEquity: bigint;
+  depreciableUplift?: { amount: bigint; years: number };
+}): OpResult {
+  const t = p.initial.taxRate;
+  const net = (gross: bigint) => gross - pct(gross, t);
+  const valuation0 = net(p.initial.upliftGross);
+  const goodwill = p.initial.cost - pct(p.initial.equity + valuation0, p.initial.interest);
+  const delta = p.step.newInterest - p.initial.interest;
+  if (p.step.newInterest <= 0.5) {
+    return { entries: [], values: { goodwill, lossOfControl: 'OUI' }, notes: ['Perte de contrôle : la filiale sort du périmètre de l’intégration globale ; résultat de cession à déterminer sur la quote-part cédée et réévaluation de la participation conservée.'] };
+  }
+  const valuationStep = net(p.initial.upliftGross - (p.step.upliftAmortised ?? 0n));
+  const shareFairValue = pct(p.step.equity + valuationStep, Math.abs(delta));
+  // achat : réserves diminuées de l'excédent du prix ; cession : réserves augmentées du prix au-delà de la quote-part cédée
+  const reservesImpact = delta >= 0 ? shareFairValue - p.step.price : p.step.price - shareFairValue;
+  const i2 = p.step.newInterest;
+  const groupValuation = pct(valuation0, i2);
+  const totalCost = delta >= 0 ? p.initial.cost + p.step.price : p.initial.cost - BigInt(Math.round(Number(p.initial.cost) * Math.abs(delta) / p.initial.interest));
+  const titlesAfterEliminations = totalCost - groupValuation - goodwill;
+  const minorities = pct(p.closingEquity, 1 - i2);
+  const groupReserves = pct(p.closingEquity, i2) - titlesAfterEliminations;
+  const annual = p.depreciableUplift ? p.depreciableUplift.amount / BigInt(p.depreciableUplift.years) : 0n;
+  return {
+    entries: [],
+    values: {
+      goodwill, valuationAtControl: valuation0, valuationAtStep: valuationStep, shareFairValue, reservesImpact,
+      titlesAfterEliminations, minorities, groupReserves,
+      annualUpliftDepreciation: annual, annualGroupShareNetOfTax: pct(net(annual), i2), annualMinorityShareNetOfTax: net(annual) - pct(net(annual), i2),
+    },
+    notes: ['Écart d’acquisition figé à la prise de contrôle : aucun nouvel écart n’est constaté sur le lot supplémentaire.'],
+  };
+}
+
+export interface CombinedEntity {
+  code: string; interest: number;
+  fixedAssets: bigint; otherAssets: bigint; capitalAndReserves: bigint; result: bigint; liabilities: bigint;
+  revenue: bigint; otherIncome: bigint; charges: bigint; incomeTax: bigint; deferredTax?: bigint;
+}
+
+/**
+ * Comptes combinés (application 142) : agrégation des entités de l'espace OHADA liées à une entité extérieure,
+ * impôts différés sur retraitements, partage entre ayants droit (pourcentage de l'entité combinante) et minoritaires.
+ */
+export function combinedAccounts(p: { entities: CombinedEntity[] }): OpResult {
+  const sum = (f: (e: CombinedEntity) => bigint) => p.entities.reduce((s, e) => s + f(e), 0n);
+  const dt = (e: CombinedEntity) => e.deferredTax ?? 0n;
+  const reservesShare = sum((e) => pct(e.capitalAndReserves, e.interest));
+  const resultShare = sum((e) => pct(e.result + dt(e), e.interest));
+  const minorities = sum((e) => e.capitalAndReserves + e.result + dt(e) - pct(e.capitalAndReserves, e.interest) - pct(e.result + dt(e), e.interest));
+  const minorityResult = sum((e) => e.result + dt(e) - pct(e.result + dt(e), e.interest));
+  const beforeTax = sum((e) => e.revenue + e.otherIncome - e.charges);
+  return {
+    entries: [],
+    values: {
+      fixedAssets: sum((e) => e.fixedAssets), otherAssets: sum((e) => e.otherAssets), deferredTaxAssets: sum(dt),
+      totalAssets: sum((e) => e.fixedAssets + e.otherAssets + dt(e)),
+      combinedCapitalAndReserves: reservesShare, combinedResult: resultShare, ownersEquity: reservesShare + resultShare, minorities,
+      totalEquity: reservesShare + resultShare + minorities, liabilities: sum((e) => e.liabilities),
+      revenue: sum((e) => e.revenue), otherIncome: sum((e) => e.otherIncome), charges: sum((e) => e.charges), resultBeforeTax: beforeTax,
+      incomeTax: sum((e) => e.incomeTax), deferredTaxVariation: sum(dt), netResult: beforeTax - sum((e) => e.incomeTax) + sum(dt),
+      minorityResult, ownersResult: resultShare,
+    },
+    notes: ['Les opérations avec l’entité extérieure (honoraires versés à la maison mère hors OHADA) ne s’éliminent pas : seules les opérations réciproques entre entités combinées le sont.'],
+  };
+}
