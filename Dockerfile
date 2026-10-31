@@ -8,7 +8,7 @@ COPY . .
 ARG API_URL=http://api:4000
 ENV API_URL=${API_URL} NEXT_TELEMETRY_DISABLED=1
 RUN pnpm install --frozen-lockfile \
- && for p in ledger statements fx tax-engine payroll licensing ai einvoice operations advisory connectors cost-accounting; do (cd packages/$p && npx tsc -p tsconfig.build.json) || exit 1; done \
+ && for p in ledger statements fx tax-engine payroll licensing ai einvoice operations advisory connectors cost-accounting special-ops; do (cd packages/$p && npx tsc -p tsconfig.build.json) || exit 1; done \
  && cd apps/api && DATABASE_OWNER_URL=postgresql://build:build@localhost:5432/build npx prisma generate --no-hints && npx tsc -p tsconfig.build.json \
  && cd ../web && npx next build
 EXPOSE 3000 4000

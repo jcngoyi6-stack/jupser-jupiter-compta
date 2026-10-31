@@ -101,6 +101,10 @@ Menu **Opérations spécifiques** (sous Comptabilité) :
 
 Exemples : location-acquisition, cession de titres, constitution de société, subvention d'investissement, emprunt obligataire, engagements de retraite, position de change, contrat pluri-exercices, réévaluation, fusion, liquidation.
 
+### B.9 bis Opérations entre sociétés du groupe
+Menu **Opérations spécifiques** → **Opération intragroupe** : choisissez la société du groupe, la nature (refacturation de prestations, vente de marchandises, prêt, remboursement, intérêts, dividende, règlement), le montant, le taux de TVA du pack pays, la date. Les écritures sont créées en brouillon **dans les deux sociétés** avec la même référence `IG-…` ; chaque société les valide de son côté. En consolidation, les comptes groupe et les produits et charges réciproques sont éliminés automatiquement.
+Pour une opération spécifique qui concerne deux sociétés (succursale, société en participation, fusion…), choisissez la société liée dans « Écritures de l'autre partie dans » avant de créer les brouillons.
+
 ### B.10 Clôture de l'exercice
 Menu **Clôture** :
 1. Parcourez la **liste de contrôle** : écritures en brouillon, comptes d'attente, rapprochements, stocks, immobilisations.

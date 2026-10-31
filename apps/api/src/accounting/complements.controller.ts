@@ -18,7 +18,7 @@ import { readData } from '../common/data';
 import { domainError, parse, zAccount, zAmount, zDate } from '../common/http';
 import { PrismaService, type Tx } from '../common/prisma.service';
 import { buildWorkbook, readRows } from '../common/spreadsheet';
-import { adHocControl, combinedAccounts, groupPercentages, toJson, type CombinedEntity } from '@jupiter/special-ops';
+import { adHocControl, combinedAccounts, groupPercentages, INTERCOMPANY_ACCOUNT_PREFIXES, toJson, type CombinedEntity } from '@jupiter/special-ops';
 import { ReportsService } from '../reports/reports.service';
 import { ClosingService } from './closing.service';
 import { EntriesService } from './entries.service';
@@ -710,7 +710,10 @@ export class ConsolidationController {
         const c = await tx.company.findUniqueOrThrow({ where: { id: m.companyId } });
         const fy = year ? await tx.fiscalYear.findFirst({ where: { companyId: c.id, label: year } }) : await this.reports.fiscalYear(tx, c.id);
         if (!fy) throw domainError('EXERCICE_INCONNU', `Exercice ${year} absent pour ${c.name}.`);
-        const lines = (await this.closing.postedLines(tx, c.id, fy.id)).filter((l) => l.origin !== 'CLOTURE');
+        // Produits et charges intragroupe entre membres du groupe : éliminés (les deux côtés se compensent en résultat)
+        const memberPrefixes = members.filter((x) => x.companyId !== c.id).map((x) => `IG-${x.companyId.slice(0, 8)}-`);
+        const lines = (await this.closing.postedLines(tx, c.id, fy.id)).filter((l) => l.origin !== 'CLOTURE'
+          && !(l.origin === 'INTRAGROUPE' && /^[67]/.test(l.account) && memberPrefixes.some((pr) => l.pieceRef?.startsWith(pr))));
         const [i, f = ''] = m.ownershipPct.split('.');
         entities.push({
           id: c.id, name: c.name, parent: m.parent, method: m.method,
@@ -723,7 +726,7 @@ export class ConsolidationController {
           equityAtAcquisition: m.equityAtAcquisition ? BigInt(m.equityAtAcquisition) : undefined,
         });
       }
-      const r = consolidate(entities);
+      const r = consolidate(entities, ['181', '185', '186', '187', '188', '463', ...INTERCOMPANY_ACCOUNT_PREFIXES]);
       const bs = buildBalanceSheet(r.balances);
       const is = buildIncomeStatement(r.balances);
       return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: r.summary.groupResult };

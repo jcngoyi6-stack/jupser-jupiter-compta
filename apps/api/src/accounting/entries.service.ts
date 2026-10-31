@@ -26,7 +26,7 @@ export interface DraftInput {
   lines: EntryLineInput[];
 }
 
-type Origin = 'MANUEL' | 'IA' | 'PAIE' | 'STOCK' | 'VENTE' | 'IMPORT' | 'CONTREPASSATION' | 'CLOTURE' | 'AN' | 'FX' | 'TVA' | 'OPERATION_SPECIFIQUE';
+type Origin = 'MANUEL' | 'IA' | 'PAIE' | 'STOCK' | 'VENTE' | 'IMPORT' | 'CONTREPASSATION' | 'CLOTURE' | 'AN' | 'FX' | 'TVA' | 'OPERATION_SPECIFIQUE' | 'INTRAGROUPE';
 
 @Injectable()
 export class EntriesService {

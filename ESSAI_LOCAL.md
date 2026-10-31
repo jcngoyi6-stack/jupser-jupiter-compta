@@ -7,6 +7,11 @@ Tout tourne sur votre machine (base de données, serveur, interface) ; rien n'es
 Installer **Docker Desktop** (Windows 10/11, macOS) : https://www.docker.com/products/docker-desktop/ — puis le démarrer.
 Sous Linux : Docker Engine avec le module `docker compose`.
 
+## 1 bis. Télécharger
+
+Version à jour : https://github.com/jcngoyi6-stack/jupser-jupiter-compta/archive/refs/heads/jupiter-compta-v0.6.0.zip
+(connecté à GitHub avec un compte ayant accès au dépôt), puis décompressez l'archive.
+
 ## 2. Lancer
 
 - **Windows** : décompressez l'archive, puis double-cliquez sur `ESSAYER-JUPITER-COMPTA.bat`.

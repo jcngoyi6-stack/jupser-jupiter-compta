@@ -17,3 +17,4 @@ export * from './misc-ops';
 export * from './transition';
 export * from './group';
 export * from './catalogue';
+export * from './intercompany';

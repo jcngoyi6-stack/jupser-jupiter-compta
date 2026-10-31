@@ -36,7 +36,7 @@ function Entries({ title, entries, dec }: { title: string; entries: Entry[]; dec
 
 /** Opérations spécifiques du guide d'application : calcul, aperçu, puis écritures proposées en brouillon. */
 export default function OperationsSpecifiques() {
-  const { company } = useSession();
+  const { company, companies } = useSession();
   const dec = DECIMALS[company?.currency ?? 'XOF'] ?? 2;
   const [ops, setOps] = useState<Op[]>([]);
   const [sel, setSel] = useState<Op | null>(null);
@@ -45,6 +45,9 @@ export default function OperationsSpecifiques() {
   const [msg, setMsg] = useState<{ kind: 'error' | 'ok' | 'warn'; text: string } | null>(null);
   const [filter, setFilter] = useState('');
   const [defaultDate, setDefaultDate] = useState('');
+  const [linked, setLinked] = useState('');
+  const sisters = (companies ?? []).filter((c) => c.id !== company?.id);
+  const [ig, setIg] = useState({ targetCompanyId: '', kind: 'PRESTATION', amount: '', vatRate: '', date: '', label: '' });
 
   useEffect(() => {
     if (company) api<Op[]>(`/companies/${company.id}/special-ops`).then(setOps).catch((e) => setMsg({ kind: 'error', text: errorText(e) }));
@@ -72,8 +75,8 @@ export default function OperationsSpecifiques() {
     const p = parsed();
     if (!p || !sel) return;
     try {
-      const r = await api<{ created: number }>(`/companies/${company.id}/special-ops/${sel.id}/drafts`, { method: 'POST', body: { params: p, ...(defaultDate ? { defaultDate } : {}) } });
-      setMsg({ kind: 'ok', text: `${r.created} écriture(s) créée(s) en brouillon dans le journal OD : à contrôler puis valider par un comptable.` });
+      const r = await api(`/companies/${company.id}/special-ops/${sel.id}/drafts`, { method: 'POST', body: { params: p, ...(defaultDate ? { defaultDate } : {}), ...(linked ? { counterpartCompanyId: linked } : {}) } }) as { created: number; counterpartCreated?: unknown[] };
+      setMsg({ kind: 'ok', text: `${r.created} écriture(s) créée(s) en brouillon dans le journal OD${r.counterpartCreated?.length ? `, et ${r.counterpartCreated.length} dans la société liée` : ''} : à contrôler puis valider par un comptable.` });
     } catch (e) { setMsg({ kind: 'error', text: errorText(e) }); }
   };
 
@@ -81,6 +84,25 @@ export default function OperationsSpecifiques() {
     <div className="space-y-4">
       <PageTitle title="Opérations spécifiques" sub={`${company.name} — écritures types du guide d’application du SYSCOHADA révisé (location-acquisition, titres, capital, subventions, emprunts obligataires, retraites, change, contrats, réévaluation, fusions, liquidation, consolidation…)`} />
       {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
+      {sisters.length > 0 && (
+        <details className="card">
+          <summary className="cursor-pointer font-semibold">Opération intragroupe (une saisie, écritures miroirs dans les deux sociétés)</summary>
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
+            <label className="text-sm">Société du groupe<select className="input" value={ig.targetCompanyId} onChange={(e) => setIg({ ...ig, targetCompanyId: e.target.value })}><option value="">—</option>{sisters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            <label className="text-sm">Nature<select className="input" value={ig.kind} onChange={(e) => setIg({ ...ig, kind: e.target.value })}>
+              {[['PRESTATION', 'Refacturation de prestations'], ['VENTE_MARCHANDISES', 'Vente de marchandises'], ['PRET', 'Prêt accordé'], ['REMBOURSEMENT_PRET', 'Remboursement de prêt reçu'], ['INTERETS', 'Intérêts du prêt'], ['DIVIDENDE', 'Dividende versé'], ['REGLEMENT', 'Règlement reçu']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select></label>
+            <label className="text-sm">Montant HT (unités mineures)<input className="input num" value={ig.amount} onChange={(e) => setIg({ ...ig, amount: e.target.value })} /></label>
+            <label className="text-sm">Taux de TVA (ex. 0.16, selon le pack pays)<input className="input num" value={ig.vatRate} onChange={(e) => setIg({ ...ig, vatRate: e.target.value })} /></label>
+            <label className="text-sm">Date<input type="date" className="input" value={ig.date} onChange={(e) => setIg({ ...ig, date: e.target.value })} /></label>
+            <label className="text-sm">Libellé<input className="input" value={ig.label} onChange={(e) => setIg({ ...ig, label: e.target.value })} /></label>
+          </div>
+          <p className="mt-2 text-xs opacity-70">Votre société est l’émettrice (elle facture, prête, distribue ou encaisse). Comptes groupe 4112/4012 et 2771/1811, éliminés en consolidation avec les produits et charges réciproques.</p>
+          <button className="btn-primary mt-2" onClick={() => api<{ reference: string }>(`/companies/${company.id}/special-ops/intercompany`, { method: 'POST', body: { ...ig, label: ig.label || undefined, vatRate: ig.vatRate ? Number(ig.vatRate) : undefined } })
+            .then((r) => setMsg({ kind: 'ok', text: `Écritures miroirs créées en brouillon dans les deux sociétés (référence IG-…-${r.reference}).` }))
+            .catch((e) => setMsg({ kind: 'error', text: errorText(e) }))}>Créer les écritures dans les deux sociétés</button>
+        </details>
+      )}
       <div className="grid gap-4 lg:grid-cols-[18rem_1fr]">
         <div className="card max-h-[75vh] space-y-3 overflow-y-auto">
           <input className="input" placeholder="Rechercher (libellé, chapitre, n° d’application)" value={filter} onChange={(e) => setFilter(e.target.value)} />
@@ -106,6 +128,14 @@ export default function OperationsSpecifiques() {
                 <div className="flex flex-wrap items-end gap-2">
                   <button className="btn-ghost" onClick={preview}>Calculer et prévisualiser</button>
                   <label className="text-sm">Date par défaut<input type="date" className="input" value={defaultDate} onChange={(e) => setDefaultDate(e.target.value)} /></label>
+                  {sisters.length > 0 && (
+                    <label className="text-sm">Écritures de l’autre partie dans
+                      <select className="input" value={linked} onChange={(e) => setLinked(e.target.value)}>
+                        <option value="">(ne pas les passer)</option>
+                        {sisters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </label>
+                  )}
                   <button className="btn-primary" onClick={drafts}>Créer les écritures en brouillon</button>
                   <button className="btn-ghost" onClick={() => choose(sel)}>Réinitialiser l’exemple</button>
                 </div>

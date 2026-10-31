@@ -96,3 +96,36 @@ describe('consolidation : périmètre, entité ad hoc et comptes combinés (appl
     expect((await chef.post(`/api/consolidation/groups/${g.body.id}/perimeter`).set(H).send({ holdings: [] })).status).toBe(400);
   });
 });
+
+describe('opérations intragroupe', () => {
+  it('une saisie, deux dossiers : écritures miroirs en brouillon, éliminées en consolidation', async () => {
+    const f = (await makeCompany(admin, { name: 'Filiale intragroupe' })).company.id;
+    const r = await compta.post(`/api/companies/${cid}/special-ops/intercompany`).set(H)
+      .send({ targetCompanyId: f, kind: 'PRESTATION', amount: '100000000', vatRate: 0.16, date: `${YEAR}-06-30`, label: 'Frais de siège' });
+    expect(r.status).toBe(201);
+    expect(r.body.issuer.status).toBe('BROUILLON');
+    expect(r.body.issuer.pieceRef).toBe(`IG-${f.slice(0, 8)}-${r.body.reference}`);
+    expect(r.body.receiver.lines.find((l: any) => l.account === '401200').credit).toBe('116000000');
+    for (const [c, e] of [[cid, r.body.issuer], [f, r.body.receiver]]) {
+      const v = await chef.post(`/api/companies/${c}/entries/${e.id}/validate`).set(H);
+      expect(v.body.entry?.status, JSON.stringify(v.body)).toBe('VALIDE');
+    }
+    const g = await chef.post('/api/consolidation/groups').set(H).send({ name: 'Groupe IG', currency: 'CDF', members: [{ companyId: cid, parent: true, method: 'IG', ownershipPct: '100' }, { companyId: f, method: 'IG', ownershipPct: '100' }] });
+    const st = await chef.get(`/api/consolidation/groups/${g.body.id}/statements`);
+    expect(st.status).toBe(200);
+    expect(st.body.eliminated.map((x: any) => x.account)).toEqual(expect.arrayContaining(['411200', '401200']));
+    expect(st.body.balances.find((b: any) => b.account === '706100')).toBeUndefined();
+    expect((await compta.post(`/api/companies/${cid}/special-ops/intercompany`).set(H).send({ targetCompanyId: cid, kind: 'PRET', amount: '1', date: `${YEAR}-06-30` })).body.code).toBe('SOCIETE_IDENTIQUE');
+  });
+
+  it('opération spécifique : écritures de l’autre partie passées dans la société liée', async () => {
+    const s2 = (await makeCompany(admin, { name: 'Société participante' })).company.id;
+    const r = await compta.post(`/api/companies/${cid}/special-ops/participation-resultat/drafts`).set(H).send({
+      params: { managerShare: 0.75, date: `${YEAR}-01-31`, charges: [{ account: '601100', amount: '120000' }], products: [{ account: '701100', amount: '180000' }] },
+      counterpartCompanyId: s2,
+    });
+    expect(r.status).toBe(201);
+    expect(r.body.counterpartCreated).toHaveLength(1);
+    expect(r.body.counterpartCreated[0].lines.find((l: any) => l.account === '752500').credit).toBe('15000');
+  });
+});

@@ -69,3 +69,18 @@ Les choix ci-dessous ont été **validés le 31/10/2026 par l'expert-comptable a
 | 118 | Écriture de l'absorbée : matériel 30 M et titres 15 M au lieu de 40 M et 5 M au bilan | Bilan retenu ; résultat de fusion identique (39 M) |
 | 130 | 21,397 % tronqué en 21,39 % | Arrondi au millième |
 | 141 | Écart d'évaluation à la date du lot supplémentaire : (20 − 1,6) × (1 − 25 %) = 13,8 M, mais le guide retient 4,6 M | 13,8 M retenu ; le partage final du guide (titres 39,7 M, minoritaires 18 M, réserves 32,3 M) est retrouvé |
+
+## Interconnexion des sociétés d'un même groupe
+
+Les sociétés d'un même client (locataire) peuvent être reliées :
+
+- **Opération intragroupe** (`POST companies/:id/special-ops/intercompany`, écran Opérations spécifiques) : refacturation
+  de prestations, vente de marchandises, prêt, remboursement, intérêts, dividende, règlement. Une seule saisie crée en
+  brouillon les écritures de la société émettrice et les écritures miroirs de la société réceptrice, avec une référence
+  commune `IG-…` et un tiers « société du groupe » créé automatiquement dans chaque dossier (4112 / 4012).
+- **Écritures de l'autre partie** d'une opération spécifique (société en participation, succursale, fusion, franchise…)
+  passées directement en brouillon dans la société liée (`counterpartCompanyId`).
+- **Consolidation** : les comptes groupe 4112, 4012, 2771 et 1811 s'ajoutent aux comptes de liaison éliminés ; les
+  produits et charges des opérations intragroupe entre membres du groupe sont éliminés. Limite : la marge intragroupe
+  restant en stock n'est pas encore retraitée automatiquement.
+- Chaque société garde sa validation propre : les écritures miroirs restent des brouillons à valider dans chaque dossier.
