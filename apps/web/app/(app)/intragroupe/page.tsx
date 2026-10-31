@@ -7,7 +7,7 @@ import { DECIMALS, date } from '@/lib/format';
 
 interface IcLine { description: string; quantity: number; net: string; account: string; itemId: string | null }
 interface Ic { id: string; number: string; date: string; status: string; sellerName: string; buyerName: string; totalNet: string; totalVat: string; totalGross: string; reason: string | null; lines: IcLine[] }
-interface Choice { account: string; itemId: string; warehouseId: string }
+interface Choice { account: string; itemId: string; warehouseId: string; life: string }
 
 /** Factures intragroupe : liaison des sociétés du groupe, boîte de réception, acceptation ou refus motivé. */
 export default function Intragroupe() {
@@ -34,7 +34,7 @@ export default function Intragroupe() {
   }, [company]);
   if (!company) return null;
 
-  const start = (ic: Ic) => { setOpen(ic.id); setReason(''); setChoices(ic.lines.map((l) => ({ account: l.account.startsWith('701') ? '601100' : '632800', itemId: '', warehouseId: '' }))); };
+  const start = (ic: Ic) => { setOpen(ic.id); setReason(''); setChoices(ic.lines.map((l) => ({ account: l.account.startsWith('701') ? '601100' : '632800', itemId: '', warehouseId: '', life: '' }))); };
   const act = (path: string, body: unknown, ok: string) => api(`/companies/${company.id}/intercompany-invoices/${path}`, { method: 'POST', body })
     .then(() => { setMsg({ kind: 'ok', text: ok }); setOpen(null); load(); }).catch((e) => setMsg({ kind: 'error', text: errorText(e) }));
 
@@ -68,15 +68,16 @@ export default function Intragroupe() {
                   <tr><td colSpan={6}>
                     <div className="space-y-2 rounded border p-3">
                       {ic.lines.map((l, i) => (
-                        <div key={i} className="grid gap-2 md:grid-cols-[1fr_8rem_12rem_10rem]">
+                        <div key={i} className="grid gap-2 md:grid-cols-[1fr_8rem_10rem_12rem_10rem]">
                           <div className="text-sm">{l.description} — {l.quantity} × · <Money v={l.net} dec={dec} /> HT</div>
                           <input className="input font-mono" title="Compte de charge, de stock ou d’immobilisation" value={choices[i]?.account ?? ''} onChange={(e) => setChoices(choices.map((c, j) => (j === i ? { ...c, account: e.target.value } : c)))} />
                           <select className="input" value={choices[i]?.itemId ?? ''} onChange={(e) => setChoices(choices.map((c, j) => (j === i ? { ...c, itemId: e.target.value } : c)))}><option value="">(pas d’entrée en stock)</option>{items.map((it) => <option key={it.id} value={it.id}>{it.code} — {it.label}</option>)}</select>
+                          {choices[i]?.account.startsWith('2') && <input className="input num" placeholder="Durée d’utilité (ans)" value={choices[i]?.life ?? ''} onChange={(e) => setChoices(choices.map((c, j) => (j === i ? { ...c, life: e.target.value } : c)))} />}
                           <select className="input" value={choices[i]?.warehouseId ?? ''} onChange={(e) => setChoices(choices.map((c, j) => (j === i ? { ...c, warehouseId: e.target.value } : c)))}><option value="">dépôt</option>{warehouses.map((w) => <option key={w.id} value={w.id}>{w.label ?? w.name ?? w.id}</option>)}</select>
                         </div>
                       ))}
                       <div className="flex flex-wrap items-end gap-2">
-                        <button className="btn-primary" onClick={() => act(`${ic.id}/accept`, { lines: choices.map((c) => ({ account: c.account, ...(c.itemId ? { itemId: c.itemId, warehouseId: c.warehouseId || undefined } : {}) })) }, 'Facture acceptée : écriture d’achat créée en brouillon dans le journal ACH, à valider.')}>Accepter</button>
+                        <button className="btn-primary" onClick={() => act(`${ic.id}/accept`, { lines: choices.map((c) => ({ account: c.account, ...(c.life ? { usefulLifeYears: Number(c.life) } : {}), ...(c.itemId ? { itemId: c.itemId, warehouseId: c.warehouseId || undefined } : {}) })) }, 'Facture acceptée : écriture d’achat créée en brouillon dans le journal ACH, à valider.')}>Accepter</button>
                         <input className="input w-80" placeholder="Motif du refus" value={reason} onChange={(e) => setReason(e.target.value)} />
                         <button className="btn-ghost" disabled={reason.length < 5} onClick={() => act(`${ic.id}/reject`, { reason }, 'Facture refusée : l’émetteur en est informé.')}>Refuser</button>
                       </div>

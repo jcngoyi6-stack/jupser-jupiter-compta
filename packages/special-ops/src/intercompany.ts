@@ -45,39 +45,99 @@ export function intercompanyOperation(p: {
 
 export interface IntercompanyInvoiceLine {
   net: bigint; quantity: number; cost?: bigint | null; sellerAccount: string;
-  buyerAccount?: string; buyerStockAccount?: string | null; remainingQuantity?: number;
+  buyerAccount?: string; buyerStockAccount?: string | null;
+  /** Quantité restant en stock chez l'acheteur à la clôture (et à l'ouverture, pour une facture d'un exercice antérieur). */
+  remainingQuantity?: number; openingRemainingQuantity?: number;
+  /** Date de la facture (mise en service pour une immobilisation) ; absente : facture de l'exercice. */
+  invoiceDate?: string;
+  /** Immobilisation chez l'acheteur : durée d'utilité retenue pour l'amortissement de la marge. */
+  usefulLifeYears?: number; depreciationAccount?: string;
 }
 
+/** Jours au prorata (convention 30/360) entre deux dates incluses. */
+export function days360(from: string, to: string): number {
+  const [y1, m1, d1] = from.split('-').map(Number) as [number, number, number];
+  const [y2, m2, d2] = to.split('-').map(Number) as [number, number, number];
+  return Math.max(0, (y2 - y1) * 360 + (m2 - m1) * 30 + (Math.min(d2, 30) - Math.min(d1, 30)) + 1);
+}
+
+const dayBefore = (iso: string) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+};
+
 /**
- * Retraitements de consolidation d'une facture intragroupe acceptée.
- * - Élimination du chiffre d'affaires chez le vendeur (l'achat de l'acheteur, saisi en écriture intragroupe, est
- *   éliminé avec les produits et charges réciproques).
- * - Marge interne non réalisée : (prix − coût) × quantité restant en stock chez l'acheteur, ou totalité si le bien a
- *   été immobilisé ; elle minore le résultat du vendeur (part des minoritaires du vendeur comprise) et la valeur du stock
- *   ou de l'immobilisation ; l'impôt différé actif correspondant est calculé au taux fourni.
- * Les lignes produites sont équilibrées et rattachées au vendeur.
+ * Retraitements de consolidation des factures intragroupe acceptées, rattachés au vendeur.
+ * - Factures de l'exercice : élimination du chiffre d'affaires du vendeur (l'achat de l'acheteur est éliminé avec les
+ *   produits et charges réciproques).
+ * - Stocks : marge interne (prix − coût) au prorata des quantités restant chez l'acheteur. Marge du stock d'ouverture
+ *   (factures antérieures) imputée sur les réserves et reprise en résultat (603) ; marge du stock de clôture déduite du
+ *   résultat et du stock.
+ * - Immobilisations : marge éliminée de la valeur brute ; amortissements correspondants (durée d'utilité, prorata
+ *   30/360 depuis la date de la facture) : cumul antérieur en réserves, dotation de l'exercice extournée (681).
+ * - Impôt différé actif sur la marge restant au bilan à la clôture, au taux fourni.
  */
-export function intercompanyEliminations(p: { lines: IntercompanyInvoiceLine[]; taxRate?: number }): OpResult {
+export function intercompanyEliminations(p: { lines: IntercompanyInvoiceLine[]; taxRate?: number; period?: { start: string; end: string } }): OpResult {
   const lines: ReturnType<typeof D>[] = [];
   let revenue = 0n;
-  let margin = 0n;
+  let closingStockMargin = 0n;
+  let openingStockMargin = 0n;
+  let assetMargin = 0n;
+  let depreciationReversed = 0n;
+  let reservesImpact = 0n;
+  const RESERVES = '118800';
   for (const l of p.lines) {
-    revenue += l.net;
-    lines.push(D(l.sellerAccount, l.net), C('411200', l.net));
+    const current = !p.period || !l.invoiceDate || l.invoiceDate >= p.period.start;
+    if (p.period && l.invoiceDate && l.invoiceDate > p.period.end) continue;
+    if (current) { revenue += l.net; lines.push(D(l.sellerAccount, l.net), C('411200', l.net)); }
     if (l.cost === undefined || l.cost === null) continue;
     const unitMargin = l.net - l.cost;
     if (unitMargin <= 0n) continue; // une perte interne traduit en général une dépréciation : non éliminée
-    const asset = l.buyerAccount?.startsWith('2');
-    const ratio = asset ? 1 : Math.min(1, Math.max(0, (l.remainingQuantity ?? 0) / l.quantity));
-    const m = BigInt(Math.round(Number(unitMargin) * ratio));
-    if (m === 0n) continue;
-    margin += m;
-    lines.push(asset ? D(l.sellerAccount, m) : D('603100', m), C(asset ? l.buyerAccount! : l.buyerStockAccount ?? '311100', m));
+    if (l.buyerAccount?.startsWith('2')) {
+      const asset = l.buyerAccount;
+      const amort = l.depreciationAccount ?? `28${asset.slice(1, 3)}00`;
+      const life = l.usefulLifeYears ?? 0;
+      const depTo = (date: string) => (life > 0 && l.invoiceDate && p.period
+        ? BigInt(Math.round(Number(unitMargin) * Math.min(1, days360(l.invoiceDate, date) / (life * 360)))) : 0n);
+      const prior = current || !p.period ? 0n : depTo(dayBefore(p.period.start));
+      const cumulative = p.period ? depTo(p.period.end) : 0n;
+      assetMargin += unitMargin - cumulative;
+      if (current) lines.push(D(l.sellerAccount, unitMargin), C(asset, unitMargin));
+      else {
+        reservesImpact += unitMargin - prior;
+        lines.push(D(RESERVES, unitMargin - prior), D(amort, prior), C(asset, unitMargin));
+      }
+      const annual = cumulative - prior;
+      if (annual > 0n) { depreciationReversed += annual; lines.push(D(amort, annual), C('681300', annual)); }
+      continue;
+    }
+    const share = (q?: number) => BigInt(Math.round(Number(unitMargin) * Math.min(1, Math.max(0, (q ?? 0) / l.quantity))));
+    const stockAccount = l.buyerStockAccount ?? '311100';
+    if (!current) {
+      const opening = share(l.openingRemainingQuantity);
+      if (opening > 0n) { openingStockMargin += opening; reservesImpact += opening; lines.push(D(RESERVES, opening), C('603100', opening)); }
+    }
+    const closing = share(l.remainingQuantity);
+    if (closing > 0n) { closingStockMargin += closing; lines.push(D('603100', closing), C(stockAccount, closing)); }
   }
-  const deferredTax = pct(margin, p.taxRate ?? 0);
+  const remainingMargin = closingStockMargin + assetMargin;
+  const deferredTax = pct(remainingMargin, p.taxRate ?? 0);
+  const resultEffect = openingStockMargin - closingStockMargin + depreciationReversed
+    - assetMarginCurrent(p);
   return {
     entries: lines.length ? [entry('Retraitements intragroupe', lines)] : [],
-    values: { revenueEliminated: revenue, unrealisedMargin: margin, deferredTaxAsset: deferredTax, netEffectOnResult: -(margin - deferredTax) },
-    notes: margin ? ['Impôt différé actif sur la marge interne éliminée : à présenter au bilan consolidé (impôts différés).'] : [],
+    values: {
+      revenueEliminated: revenue, unrealisedMargin: remainingMargin, closingStockMargin, openingStockMargin, assetMargin,
+      depreciationReversed, reservesImpact: -reservesImpact, resultEffectBeforeTax: resultEffect, deferredTaxAsset: deferredTax,
+    },
+    notes: remainingMargin ? ['Impôt différé actif sur la marge interne restant au bilan : à présenter au bilan consolidé (impôts différés).'] : [],
   };
+}
+
+/** Marge sur immobilisations cédées dans l'exercice (déduite du résultat de l'exercice). */
+function assetMarginCurrent(p: { lines: IntercompanyInvoiceLine[]; period?: { start: string; end: string } }): bigint {
+  return p.lines.filter((l) => l.buyerAccount?.startsWith('2') && l.cost != null && l.net > l.cost
+    && (!p.period || !l.invoiceDate || (l.invoiceDate >= p.period.start && l.invoiceDate <= p.period.end)))
+    .reduce((s, l) => s + (l.net - l.cost!), 0n);
 }

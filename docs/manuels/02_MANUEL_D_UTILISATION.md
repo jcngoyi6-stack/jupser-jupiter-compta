@@ -108,7 +108,8 @@ Menu **Opérations spécifiques** → **Opération intragroupe** : choisissez la
 2. La société qui vend émet sa facture normalement (menu **Factures**) au client « … (groupe) ».
 3. La société destinataire la trouve dans **Factures reçues des sociétés du groupe** → **Traiter** : pour chaque ligne, compte de charge, de stock ou d'immobilisation, article et dépôt pour une entrée en stock → **Accepter** (écriture d'achat en brouillon au journal ACH, à valider) ou **Refuser** avec un motif.
 4. En cas de refus, l'émetteur voit le motif dans **Factures émises** et annule par un avoir.
-5. En consolidation, le chiffre d'affaires intragroupe et la marge restant en stock chez l'acheteur sont éliminés automatiquement.
+5. Une ligne acceptée en immobilisation (compte 2…) exige la durée d'utilité. Pour céder une immobilisation d'occasion, l'émetteur saisit sur la facture le « coût de revient (groupe) » (valeur nette comptable), qui n'est pas imprimé.
+6. En consolidation, sont éliminés automatiquement : le chiffre d'affaires intragroupe, la marge restant en stock (ouverture contre les réserves, clôture contre le résultat), la marge sur immobilisations et l'excédent d'amortissement correspondant.
 
 Pour une opération spécifique qui concerne deux sociétés (succursale, société en participation, fusion…), choisissez la société liée dans « Écritures de l'autre partie dans » avant de créer les brouillons.
 

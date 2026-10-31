@@ -8,7 +8,7 @@ import { Alert, Money, PageTitle, Status } from '@/components/ui';
 import { api, errorText } from '@/lib/api';
 import { date, today } from '@/lib/format';
 
-interface L { description: string; quantity: string; unitPrice: string; vat: 'NORMAL' | 'REDUIT' | 'EXONERE' | 'EXPORT' }
+interface L { description: string; quantity: string; unitPrice: string; vat: 'NORMAL' | 'REDUIT' | 'EXONERE' | 'EXPORT'; costOfSale?: string }
 
 export default function Factures() {
   const { company, dec } = useSession();
@@ -20,8 +20,10 @@ export default function Factures() {
   const [pay, setPay] = useState('CREDIT');
   const [lines, setLines] = useState<L[]>([{ description: '', quantity: '1', unitPrice: '', vat: 'NORMAL' }]);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  // Client « société du groupe » : facture transmise pour acceptation ; coût de revient (hors stock) pour la consolidation
+  const groupClient = !!(tps.data?.find((t) => t.id === client) as { groupCompanyId?: string | null } | undefined)?.groupCompanyId;
   const create = useMutation({
-    mutationFn: () => api<any>(`/companies/${company!.id}/invoices`, { method: 'POST', body: { date: dt, thirdPartyId: client, paymentMethod: pay, exportSale: lines.some((l) => l.vat === 'EXPORT'), lines: lines.map((l) => ({ ...l, quantity: Number(l.quantity.replace(',', '.')) })) } }),
+    mutationFn: () => api<any>(`/companies/${company!.id}/invoices`, { method: 'POST', body: { date: dt, thirdPartyId: client, paymentMethod: pay, exportSale: lines.some((l) => l.vat === 'EXPORT'), lines: lines.map(({ costOfSale, ...l }) => ({ ...l, quantity: Number(l.quantity.replace(',', '.')), ...(groupClient && costOfSale ? { costOfSale } : {}) })) } }),
     onSuccess: (d) => { setMsg({ kind: 'ok', text: `Facture ${d.number} émise — écriture ${d.entryNumber} générée automatiquement.` }); setLines([{ description: '', quantity: '1', unitPrice: '', vat: 'NORMAL' }]); qc.invalidateQueries(); },
     onError: (e) => setMsg({ kind: 'error', text: errorText(e) }),
   });
@@ -44,7 +46,7 @@ export default function Factures() {
           <div><label className="label">Règlement</label><select className="input" value={pay} onChange={(e) => setPay(e.target.value)}><option value="CREDIT">À crédit</option><option value="ESPECES">Espèces</option><option value="VIREMENT">Virement</option><option value="MOBILE_MONEY">Mobile money</option><option value="CARTE">Carte</option><option value="CHEQUE">Chèque</option></select></div>
         </div>
         <table className="table">
-          <thead><tr><th>Désignation</th><th className="w-24">Qté</th><th className="w-44">Prix unitaire HT</th><th className="w-40">TVA</th><th></th></tr></thead>
+          <thead><tr><th>Désignation</th><th className="w-24">Qté</th><th className="w-44">Prix unitaire HT</th><th className="w-40">TVA</th>{groupClient && <th className="w-44" title="Interne, non imprimé : sert à éliminer la marge en consolidation (cession d’immobilisation, bien hors stock)">Coût de revient (groupe)</th>}<th></th></tr></thead>
           <tbody>
             {lines.map((l, i) => (
               <tr key={i}>
@@ -56,6 +58,7 @@ export default function Factures() {
                     <option value="NORMAL">Taux normal</option><option value="REDUIT">Taux réduit</option><option value="EXONERE">Exonéré</option><option value="EXPORT">Exportation</option>
                   </select>
                 </td>
+                {groupClient && <td><input className="input num text-right" value={l.costOfSale ?? ''} onChange={(e) => set(i, { costOfSale: e.target.value })} /></td>}
                 <td><button className="text-xs text-red-600" disabled={lines.length === 1} onClick={() => setLines(lines.filter((_, j) => j !== i))}>Suppr.</button></td>
               </tr>
             ))}

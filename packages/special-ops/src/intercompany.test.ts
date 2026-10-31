@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INTERCOMPANY_KINDS, intercompanyEliminations, intercompanyOperation } from './index';
+import { days360, INTERCOMPANY_KINDS, intercompanyEliminations, intercompanyOperation } from './index';
 import { unknownAccounts } from './testkit';
 
 const lines = (e: { lines: { account: string; debit: bigint; credit: bigint }[] }) => e.lines.map((l) => [l.account, l.debit || -l.credit]);
@@ -30,11 +30,46 @@ describe('retraitement de la marge intragroupe', () => {
       { net: 100n, quantity: 1, cost: 150n, sellerAccount: '701100', buyerAccount: '601100' },
       { net: 100n, quantity: 10, cost: 50n, sellerAccount: '701100', buyerAccount: '601100' },
     ] });
-    expect(r.values).toMatchObject({ revenueEliminated: 6_200_200n, unrealisedMargin: 1_100_000n, deferredTaxAsset: 330_000n, netEffectOnResult: -770_000n });
+    expect(r.values).toMatchObject({ revenueEliminated: 6_200_200n, unrealisedMargin: 1_100_000n, deferredTaxAsset: 330_000n, resultEffectBeforeTax: -1_100_000n });
     const l = r.entries[0]!.lines.map((x) => [x.account, x.debit || -x.credit]);
     expect(l).toContainEqual(['603100', 100_000n]);
     expect(l).toContainEqual(['311100', -100_000n]);
     expect(l).toContainEqual(['241100', -1_000_000n]);
     expect(intercompanyEliminations({ lines: [] }).entries).toEqual([]);
+  });
+});
+
+describe('stock d’ouverture et immobilisations cédées entre sociétés du groupe', () => {
+  const period = { start: '2027-01-01', end: '2027-12-31' };
+  const r = intercompanyEliminations({ taxRate: 0.3, period, lines: [
+    // facture N-1 : 100 unités, 50 en stock à l'ouverture, 10 à la clôture
+    { invoiceDate: '2026-10-01', net: 1_000_000n, quantity: 100, cost: 600_000n, sellerAccount: '701100', buyerAccount: '601100', openingRemainingQuantity: 50, remainingQuantity: 10 },
+    // matériel cédé le 01/07 N-1, marge 1 200 000, 5 ans
+    { invoiceDate: '2026-07-01', net: 5_200_000n, quantity: 1, cost: 4_000_000n, sellerAccount: '701100', buyerAccount: '241100', usefulLifeYears: 5 },
+    // matériel cédé le 01/04 N, marge 600 000, 10 ans
+    { invoiceDate: '2027-04-01', net: 2_600_000n, quantity: 1, cost: 2_000_000n, sellerAccount: '701100', buyerAccount: '241100', usefulLifeYears: 10 },
+    // facture postérieure à la clôture : ignorée
+    { invoiceDate: '2028-01-05', net: 9n, quantity: 1, cost: 1n, sellerAccount: '701100', buyerAccount: '601100', remainingQuantity: 1 },
+  ] });
+  const l = r.entries[0]!.lines.map((x) => [x.account, x.debit || -x.credit]);
+  it('marge du stock d’ouverture en réserves, reprise en résultat ; marge de clôture déduite', () => {
+    expect(l).toContainEqual(['118800', 200_000n]);
+    expect(l).toContainEqual(['603100', -200_000n]);
+    expect(l).toContainEqual(['603100', 40_000n]);
+  });
+  it('immobilisations : marge en réserves nette des amortissements antérieurs, dotation de l’exercice extournée', () => {
+    expect(l).toContainEqual(['118800', 1_080_000n]);
+    expect(l).toContainEqual(['284100', 120_000n]);
+    expect(l).toContainEqual(['681300', -240_000n]);
+    expect(l).toContainEqual(['681300', -45_000n]);
+    expect(r.values).toMatchObject({
+      revenueEliminated: 2_600_000n, openingStockMargin: 200_000n, closingStockMargin: 40_000n, assetMargin: 1_395_000n, depreciationReversed: 285_000n,
+      reservesImpact: -1_280_000n, resultEffectBeforeTax: -155_000n, unrealisedMargin: 1_435_000n, deferredTaxAsset: 430_500n,
+    });
+  });
+  it('capitaux propres consolidés diminués de la marge restant au bilan', () => {
+    expect(BigInt(r.values!.reservesImpact as bigint) + BigInt(r.values!.resultEffectBeforeTax as bigint)).toBe(-(r.values!.unrealisedMargin as bigint));
+    expect(days360('2026-07-01', '2026-12-31')).toBe(180);
+    expect(intercompanyEliminations({ period, lines: [{ invoiceDate: '2027-02-01', net: 10n, quantity: 1, cost: 5n, sellerAccount: '701100', buyerAccount: '241100' }] }).values!.depreciationReversed).toBe(0n);
   });
 });

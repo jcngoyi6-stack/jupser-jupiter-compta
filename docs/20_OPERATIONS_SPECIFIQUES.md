@@ -92,6 +92,13 @@ Les sociétés d'un même client (locataire) peuvent être reliées :
   en stock chez l'acheteur à la clôture, ou totalité si le bien a été immobilisé ; elle minore le résultat du vendeur
   (et donc la part des minoritaires de ce vendeur) et la valeur du stock ou de l'immobilisation. L'impôt différé actif
   correspondant est calculé au taux d'IS du pack pays de la mère et présenté dans le détail des retraitements.
-  Limites : seules les factures de l'exercice consolidé sont retraitées (les marges en stock d'ouverture relèvent des
-  réserves) ; la quote-part d'amortissement de la marge sur immobilisations n'est pas encore réintégrée.
+  **Stock d'ouverture** : pour les factures des exercices antérieurs, la marge contenue dans le stock d'ouverture est
+  imputée sur les réserves (1188) et reprise en résultat (603) à mesure de sa réalisation ; le stock de chaque article
+  est réparti sur les factures les plus récentes (sorties premier entré, premier sorti).
+  **Immobilisations** : à l'acceptation d'une ligne immobilisée, la durée d'utilité est obligatoire. La marge est
+  éliminée de la valeur brute ; les amortissements correspondants (prorata 30/360 depuis la date de la facture) sont
+  repris : cumul des exercices antérieurs en réserves, dotation de l'exercice extournée (681). Pour une cession hors stock
+  (immobilisation d'occasion), le vendeur indique sur la facture un coût de revient (sa valeur nette comptable),
+  interne et jamais imprimé.
+  Contrôle : la baisse des capitaux propres consolidés (réserves + résultat) est égale à la marge restant au bilan.
 - Chaque société garde sa validation propre : les écritures miroirs restent des brouillons à valider dans chaque dossier.

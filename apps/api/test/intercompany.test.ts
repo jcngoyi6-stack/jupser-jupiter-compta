@@ -63,6 +63,27 @@ describe('factures intragroupe', () => {
     expect(st.body.intercompany[0]).toMatchObject({ revenueEliminated: String(60_000_000), unrealisedMargin: String(5_000_000) });
   });
 
+  it('immobilisation cédée dans le groupe : durée d’utilité exigée, marge éliminée et dotation extournée', async () => {
+    const client = (await compta.post(`/api/companies/${seller}/group-links`).set(H).send({ sisterCompanyId: buyer })).body.parties.find((p: any) => p.companyId === seller && p.type === 'CLIENT');
+    const inv = await compta.post(`/api/companies/${seller}/invoices`).set(H).send({
+      date: `${YEAR}-07-01`, thirdPartyId: client.id, lines: [{ description: 'Camion', quantity: 1, unitPrice: '30000000', vat: 'NORMAL', account: '701100', costOfSale: '24000000' }],
+    });
+    expect(inv.status).toBe(201);
+    expect(JSON.stringify(inv.body.lines)).not.toContain('costOfSale');
+    const ic = (await compta.get(`/api/companies/${buyer}/intercompany-invoices`)).body.incoming.find((x: any) => x.number === inv.body.number);
+    expect(ic.lines[0].cost).toBe(String(24_000_000 * 100));
+    expect((await compta.post(`/api/companies/${buyer}/intercompany-invoices/${ic.id}/accept`).set(H).send({ lines: [{ account: '245100' }] })).body.code).toBe('DUREE_UTILITE_REQUISE');
+    const acc = await compta.post(`/api/companies/${buyer}/intercompany-invoices/${ic.id}/accept`).set(H).send({ lines: [{ account: '245100', usefulLifeYears: 5 }] });
+    expect(acc.status).toBe(201);
+    await chef.post(`/api/companies/${buyer}/entries/${acc.body.entry.id}/validate`).set(H);
+    const g = await chef.post('/api/consolidation/groups').set(H).send({ name: 'Groupe Camion', currency: 'CDF', members: [{ companyId: seller, parent: true, method: 'IG', ownershipPct: '100' }, { companyId: buyer, method: 'IG', ownershipPct: '100' }] });
+    const st = (await chef.get(`/api/consolidation/groups/${g.body.id}/statements`)).body;
+    const x = st.intercompany[0];
+    // marge 6 000 000 F ; dotation extournée : 6 000 000 × 180 / 1 800 = 600 000 F (en centimes)
+    expect(x.depreciationReversed).toBe(String(600_000 * 100));
+    expect(x.assetMargin).toBe(String(5_400_000 * 100));
+  });
+
   it('refus motivé puis annulation par avoir chez l’émetteur', async () => {
     const client = (await compta.post(`/api/companies/${seller}/group-links`).set(H).send({ sisterCompanyId: buyer })).body.parties.find((p: any) => p.companyId === seller && p.type === 'CLIENT');
     const inv = await compta.post(`/api/companies/${seller}/invoices`).set(H).send({ date: `${YEAR}-04-02`, thirdPartyId: client.id, lines: [{ description: 'Frais de siège', quantity: 1, unitPrice: '100000', vat: 'NORMAL', account: '706100' }] });

@@ -78,7 +78,7 @@ export class SalesController {
           sourceDocumentId: z.string().uuid().optional(), // devis / commande transformé(e) en facture
           warehouseId: z.string().uuid().optional(), // sortie de stock des articles livrés
           lines: z
-            .array(z.object({ itemId: z.string().uuid().optional(), description: z.string().min(1), quantity: z.number().positive().max(1e9), unitPrice: zAmount(dec), vat: z.enum(['NORMAL', 'REDUIT', 'EXONERE', 'EXPORT']), account: zAccount.default('706100') }))
+            .array(z.object({ itemId: z.string().uuid().optional(), description: z.string().min(1), quantity: z.number().positive().max(1e9), unitPrice: zAmount(dec), vat: z.enum(['NORMAL', 'REDUIT', 'EXONERE', 'EXPORT']), account: zAccount.default('706100'), costOfSale: zAmount(dec).optional() }))
             .min(1),
         }),
         body,
@@ -93,7 +93,9 @@ export class SalesController {
         if (r === null) throw domainError('PACK_PAYS_INCOMPLET', `Taux de TVA ${k === 'NORMAL' ? 'normal' : 'réduit'} non renseigné pour ${company.country} (à saisir par le fiscaliste).`);
         return r;
       };
-      const computed = b.lines.map((l) => {
+      // Coût de revient déclaré (cession intragroupe hors stock) : interne, jamais imprimé sur la facture
+      const declaredCosts = b.lines.map((l) => l.costOfSale);
+      const computed = b.lines.map(({ costOfSale: _cost, ...l }) => {
         if (!Number.isInteger(l.quantity * 1000)) throw domainError('QUANTITE', 'Quantité : 3 décimales maximum.');
         const net = (l.unitPrice * BigInt(Math.round(l.quantity * 1000)) + 500n) / 1000n;
         const v = vatFromNet(net, rateOf(l.vat));
@@ -175,7 +177,7 @@ export class SalesController {
         await tx.intercompanyInvoice.create({
           data: {
             tenantId: u.tenantId, sellerCompanyId: companyId, buyerCompanyId: client.groupCompanyId, salesDocumentId: doc.id, number, date: b.date,
-            lines: computed.map((l, i) => ({ description: l.description, quantity: l.quantity, net: l.net.toString(), vat: l.vat.toString(), account: l.account, itemId: l.itemId ?? null, cost: costs.has(i) ? costs.get(i)!.toString() : null })),
+            lines: computed.map((l, i) => ({ description: l.description, quantity: l.quantity, net: l.net.toString(), vat: l.vat.toString(), account: l.account, itemId: l.itemId ?? null, cost: costs.has(i) ? costs.get(i)!.toString() : declaredCosts[i] !== undefined ? declaredCosts[i]!.toString() : null })),
             totalNet, totalVat, totalGross: totalNet + totalVat,
           },
         });

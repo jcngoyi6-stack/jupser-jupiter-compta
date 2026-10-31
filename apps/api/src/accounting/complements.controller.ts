@@ -744,34 +744,44 @@ export class ConsolidationController {
     const ids = members.map((m) => m.companyId);
     const parent = await tx.company.findUniqueOrThrow({ where: { id: (members.find((m) => m.parent) ?? members[0]!).companyId } });
     const rules = new RuleSet((await tx.taxRule.findMany()).map((x) => ({ ...x, value: x.value }) as TaxRule));
+    const dayBefore = (iso: string) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
     const details = [];
     for (const e of entities) {
       const fy = await this.reports.fiscalYear(tx, e.id);
       if (!fy) continue;
-      const invoices = await tx.intercompanyInvoice.findMany({ where: { sellerCompanyId: e.id, buyerCompanyId: { in: ids }, status: 'ACCEPTEE', date: { gte: fy.startDate, lte: fy.endDate } } });
-      const lines: IntercompanyInvoiceLine[] = [];
+      // Factures acceptées de l'exercice et des exercices antérieurs (stock d'ouverture, immobilisations)
+      const invoices = await tx.intercompanyInvoice.findMany({ where: { sellerCompanyId: e.id, buyerCompanyId: { in: ids }, status: 'ACCEPTEE', date: { lte: fy.endDate } }, orderBy: { date: 'desc' } });
+      type Row = IntercompanyInvoiceLine & { buyer: string; itemId?: string };
+      const rows: Row[] = [];
       for (const inv of invoices) {
         const entry = inv.buyerEntryId ? await tx.entry.findUnique({ where: { id: inv.buyerEntryId } }) : null;
         if (!entry || entry.status !== 'VALIDE') continue; // achat non encore validé chez l'acheteur : rien à éliminer
-        const decision = (inv.decision ?? {}) as { lines?: { account: string; itemId?: string; warehouseId?: string }[] };
-        const buyerFy = await this.reports.fiscalYear(tx, inv.buyerCompanyId);
+        const decision = (inv.decision ?? {}) as { lines?: { account: string; itemId?: string; usefulLifeYears?: number }[] };
         for (const [i, l] of (inv.lines as unknown as { quantity: number; net: string; account: string; cost: string | null }[]).entries()) {
           const d = decision.lines?.[i];
-          let remaining: number | undefined;
-          let stockAccount: string | null = null;
-          if (d?.itemId) {
-            const item = await tx.stockItem.findUnique({ where: { id: d.itemId } });
-            stockAccount = item?.stockAccount ?? null;
-            const moves = await tx.stockMove.findMany({ where: { companyId: inv.buyerCompanyId, itemId: d.itemId, date: { lte: buyerFy?.endDate ?? fy.endDate } } });
-            remaining = Number(moves.reduce((s, m) => s + m.qtyMilli, 0n)) / 1000;
-          }
-          lines.push({ net: BigInt(l.net), quantity: l.quantity, cost: l.cost === null ? null : BigInt(l.cost), sellerAccount: l.account, buyerAccount: d?.account, buyerStockAccount: stockAccount, remainingQuantity: remaining });
+          const item = d?.itemId ? await tx.stockItem.findUnique({ where: { id: d.itemId } }) : null;
+          rows.push({
+            buyer: inv.buyerCompanyId, itemId: d?.itemId, invoiceDate: inv.date, net: BigInt(l.net), quantity: l.quantity, cost: l.cost === null ? null : BigInt(l.cost),
+            sellerAccount: l.account, buyerAccount: d?.account, buyerStockAccount: item?.stockAccount ?? null, usefulLifeYears: d?.usefulLifeYears,
+          });
         }
       }
-      if (!lines.length) continue;
+      // Stock de l'acheteur à l'ouverture et à la clôture, réparti sur les factures les plus récentes (sorties PEPS)
+      const stockAt = async (buyer: string, itemId: string, date: string) =>
+        Number((await tx.stockMove.findMany({ where: { companyId: buyer, itemId, date: { lte: date } } })).reduce((s, m) => s + m.qtyMilli, 0n)) / 1000;
+      for (const [key, date] of [['remainingQuantity', fy.endDate], ['openingRemainingQuantity', dayBefore(fy.startDate)]] as const) {
+        const groups = new Map<string, Row[]>();
+        for (const r of rows.filter((x) => x.itemId && x.invoiceDate! <= date)) groups.set(`${r.buyer}:${r.itemId}`, [...(groups.get(`${r.buyer}:${r.itemId}`) ?? []), r]);
+        for (const [k, list] of groups) {
+          const [buyer, itemId] = k.split(':') as [string, string];
+          let left = await stockAt(buyer, itemId, date);
+          for (const r of list) { const q = Math.max(0, Math.min(r.quantity, left)); r[key] = q; left -= q; }
+        }
+      }
+      if (!rows.length) continue;
       let taxRate = 0;
       try { taxRate = Number(new RuleTrace().use(rules.find<string>(parent.country, 'IS', 'taux', fy.endDate)) ?? 0); } catch { taxRate = 0; }
-      const adj = intercompanyEliminations({ lines, taxRate });
+      const adj = intercompanyEliminations({ lines: rows, taxRate, period: { start: fy.startDate, end: fy.endDate } });
       for (const l of adj.entries[0]?.lines ?? []) e.balances.push({ account: l.account, net: l.debit - l.credit });
       details.push({ seller: e.name, ...(toJson(adj.values) as object), notes: adj.notes });
     }

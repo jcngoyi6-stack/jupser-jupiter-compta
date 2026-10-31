@@ -86,7 +86,7 @@ export class IntercompanyController {
     const b = parse(z.object({
       date: zDate.optional(),
       vatAccount: zAccount.default('445200'),
-      lines: z.array(z.object({ account: zAccount, itemId: z.string().uuid().optional(), warehouseId: z.string().uuid().optional() })).optional(),
+      lines: z.array(z.object({ account: zAccount, itemId: z.string().uuid().optional(), warehouseId: z.string().uuid().optional(), usefulLifeYears: z.number().int().min(1).max(100).optional() })).optional(),
     }), body);
     return this.db.forTenant(u.tenantId, async (tx) => {
       const inv = await this.pending(tx, companyId, id);
@@ -94,6 +94,9 @@ export class IntercompanyController {
       const lines = inv.lines as unknown as IcLine[];
       if (b.lines && b.lines.length !== lines.length) throw domainError('LIGNES', 'Indiquez un compte pour chaque ligne de la facture.');
       const choice = lines.map((l, i) => b.lines?.[i] ?? { account: l.account.startsWith('701') ? '601100' : '632800' });
+      // Immobilisation : la durée d'utilité sert à amortir la marge interne en consolidation
+      const missing = choice.findIndex((c) => c.account.startsWith('2') && !('usefulLifeYears' in c && c.usefulLifeYears));
+      if (missing >= 0) throw domainError('DUREE_UTILITE_REQUISE', `Ligne ${missing + 1} immobilisée : indiquez la durée d’utilité (années).`);
       const supplier = await IntercompanyController.groupParty(tx, u.tenantId, companyId, seller, 'FOURNISSEUR');
       const date = b.date ?? inv.date;
       const byAccount = new Map<string, bigint>();

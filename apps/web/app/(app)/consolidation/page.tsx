@@ -112,8 +112,8 @@ export default function Consolidation() {
               <tr><td>Écart de conversion</td><td className="text-right"><Money v={r.translationDifference} /></td></tr>
               <tr><td>Comptes réciproques éliminés</td><td className="text-right">{r.eliminated.length}</td></tr>
               {(r.intercompany ?? []).map((x: any) => (
-                <tr key={x.seller}><td>Factures intragroupe de {x.seller} : chiffre d’affaires éliminé / marge interne en stock / impôt différé actif</td>
-                  <td className="text-right"><Money v={x.revenueEliminated} /> / <Money v={x.unrealisedMargin} /> / <Money v={x.deferredTaxAsset} /></td></tr>
+                <tr key={x.seller}><td>Intragroupe — {x.seller} : CA éliminé · marge stock ouverture / clôture · marge sur immobilisations · dotations extournées · effet réserves / résultat · impôt différé actif</td>
+                  <td className="text-right text-xs"><Money v={x.revenueEliminated} /> · <Money v={x.openingStockMargin} /> / <Money v={x.closingStockMargin} /> · <Money v={x.assetMargin} /> · <Money v={x.depreciationReversed} /> · <Money v={x.reservesImpact} /> / <Money v={x.resultEffectBeforeTax} /> · <Money v={x.deferredTaxAsset} /></td></tr>
               ))}
             </tbody></table>
           </div>
