@@ -48,6 +48,28 @@ describe('fin d’essai et passage au payant', () => {
     end.setUTCFullYear(end.getUTCFullYear() + 1);
     expect(s.tenant.paidUntil.slice(0, 10)).toBe(end.toISOString().slice(0, 10));
     expect(s.tenant.modules).toContain('CONSOLIDATION');
+
+    // Facture d'abonnement émise par JUPSER dans son dossier interne
+    const pay = (await admin.get('/api/billing/payments')).body.find((p: any) => p.externalRef === body.externalRef);
+    if (pay.invoice?.status !== 'EMISE') {
+      expect(pay.invoice.status).toBe('EN_ATTENTE');
+      const internal = await ctx.db.client.tenant.findFirst({ where: { name: 'JUPSER (interne)' } });
+      let company = await ctx.db.forTenant(internal.id, (tx: any) => tx.company.findFirst({ orderBy: { createdAt: 'asc' } }));
+      if (!company) {
+        const c = await staff.post('/api/companies').set(H).send({ name: 'JUPITER SERVICES SARLU (fictif)', legalForm: 'SARLU', country: 'CD', taxId: 'A0000000J', activity: 'SERVICES', expectedTurnover: '500000000' });
+        expect(c.status).toBe(201);
+        company = c.body.company ?? c.body;
+      }
+      await ctx.db.client.company.update({ where: { id: company.id }, data: { einvoiceSettings: { mode: 'SIMULATION' } } }).catch(() => undefined);
+      await ctx.db.forTenant(internal.id, (tx: any) => tx.fxRate.create({ data: { tenantId: internal.id, currency: 'USD', quote: 'CDF', rate: '2850', date: day(-1), source: 'BCC', type: 'OFFICIEL' } }));
+      const retry = await staff.post(`/api/console/billing/payments/${body.externalRef}/invoice`).set(H);
+      expect(retry.body.status, JSON.stringify(retry.body)).toBe('EMISE');
+    }
+    const inv = (await admin.get('/api/billing/payments')).body.find((p: any) => p.externalRef === body.externalRef).invoice;
+    expect(inv).toMatchObject({ status: 'EMISE', currency: 'CDF' });
+    expect(inv.number).toBeTruthy();
+    const v = await request(ctx.server).get(`/api/verify/${inv.hash}`);
+    expect(v.body.authentic).toBe(true);
   });
 
   it('édition inadaptée au nombre d’utilisateurs refusée', async () => {

@@ -13,6 +13,7 @@ import { domainError, parse } from '../common/http';
 import { PrismaService } from '../common/prisma.service';
 import { PaymentsService } from './payments.service';
 import { SubscriptionRemindersService } from './reminders.service';
+import { SubscriptionInvoicingService } from './subscription-invoicing.service';
 
 const grid = (): PriceGrid => (JSON.parse(readData('tarifs_modules.json')) as { entreprises: PriceGrid }).entreprises;
 
@@ -29,6 +30,7 @@ export class BillingController {
     private readonly auth: AuthService,
     private readonly payments: PaymentsService,
     private readonly reminders: SubscriptionRemindersService,
+    private readonly invoicing: SubscriptionInvoicingService,
   ) {}
 
   @AllowWithoutMfa()
@@ -108,7 +110,7 @@ export class BillingController {
     const tenantId = await this.findPaymentTenant(ref);
     if (!tenantId) throw domainError('PAIEMENT_INCONNU', 'Paiement inconnu.');
     const verified = await provider.verify(ref);
-    return this.db.forTenant(tenantId, async (tx) => {
+    const outcome = await this.db.forTenant(tenantId, async (tx) => {
       const p = await tx.payment.findUniqueOrThrow({ where: { externalRef: ref } });
       if (p.provider !== provider.code) throw domainError('PRESTATAIRE_INCOHERENT', 'Notification d’un autre prestataire.');
       if (p.status !== 'EN_ATTENTE') return { idempotent: true, status: p.status };
@@ -130,8 +132,32 @@ export class BillingController {
         await this.audit.log(tx, tenantId, 'PRESTATAIRE', 'ABONNEMENT_ACTIVE', `tenant:${tenantId}`, { edition, until: until.toISOString().slice(0, 10) });
       }
       await this.audit.log(tx, tenantId, 'PRESTATAIRE', 'PAIEMENT_' + verified.status, `payment:${p.id}`);
-      return { status: verified.status };
+      return { status: verified.status, paymentId: p.id };
     });
+    // Facture d'abonnement émise par JUPSER, après confirmation (un échec n'annule jamais le paiement)
+    if ('paymentId' in outcome && outcome.paymentId && outcome.status === 'PAYE') {
+      const invoice = await this.invoicing.issue(tenantId, outcome.paymentId).catch((e: Error) => ({ status: 'EN_ATTENTE', reason: e.message }));
+      return { status: outcome.status, invoice };
+    }
+    return outcome;
+  }
+
+  /** Paiements et factures d'abonnement du locataire. */
+  @AllowWithoutMfa()
+  @Get('billing/payments')
+  payments_(@CurrentUser() u: SessionUser) {
+    return this.db.forTenant(u.tenantId, (tx) => tx.payment.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }));
+  }
+
+  /** Émission (ou nouvelle tentative) de la facture d'un paiement confirmé, depuis la console. */
+  @JupserStaff()
+  @Post('console/billing/payments/:ref/invoice')
+  @HttpCode(200)
+  async invoicePayment(@Param('ref') ref: string) {
+    const tenantId = await this.findPaymentTenant(ref);
+    if (!tenantId) throw domainError('PAIEMENT_INCONNU', 'Paiement inconnu.');
+    const p = await this.db.forTenant(tenantId, (tx) => tx.payment.findUniqueOrThrow({ where: { externalRef: ref } }));
+    return this.invoicing.issue(tenantId, p.id);
   }
 
   private async findPaymentTenant(ref: string): Promise<string | null> {

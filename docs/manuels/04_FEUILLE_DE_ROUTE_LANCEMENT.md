@@ -76,6 +76,7 @@
 ## 7. Ce qui est déjà prêt
 
 - **Mise en ligne** : kit de production (`deploy/production`, guide `docs/DEPLOIEMENT_PRODUCTION.md`) — HTTPS automatique, réseau interne, sauvegardes chiffrées quotidiennes, secrets générés, amorçage sans données de démonstration, publication de l'image par GitHub Actions.
+- **Abonnements** : passage automatique de l'essai au payant, rappels, factures d'abonnement émises par JUPSER dans son propre dossier (facture normalisée), réinitialisation du mot de passe par courriel.
 - **Inscription en libre-service** à l'essai gratuit de 30 jours (`/inscription`), protégée contre les robots et les abus.
 - **Interconnexion des sociétés d'un groupe** : factures intragroupe avec acceptation, retraitements de consolidation (marges en stock et sur immobilisations).
 

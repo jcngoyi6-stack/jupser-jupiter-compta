@@ -9,6 +9,7 @@ const STATUS: Record<string, string> = { ESSAI: 'Essai gratuit', ACTIF: 'Actif',
 
 export default function Abonnement() {
   const q = useQuery({ queryKey: ['subscription'], queryFn: () => api<any>('/billing/subscription') });
+  const payments = useQuery({ queryKey: ['payments'], queryFn: () => api<any[]>('/billing/payments') });
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
   const [edition, setEdition] = useState('');
   const pay = useMutation({
@@ -45,6 +46,23 @@ export default function Abonnement() {
         </div>
         {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
         <p className="text-xs text-slate-500">Prestataire de paiement en mode simulation : le choix final (agrégateur mobile money, carte) se fait après appel d’offres. Aucune donnée de carte n’est stockée par Jupiter Compta. En cas d’impayé, l’accès passe en lecture seule à J+15 (consultation et exports toujours permis).</p>
+      </div>
+      <div className="card space-y-2">
+        <h2>Paiements et factures JUPSER</h2>
+        {!payments.data?.length ? <p className="text-sm text-slate-500">Aucun paiement.</p> : (
+          <table className="table text-sm">
+            <thead><tr><th>Date</th><th>Édition</th><th>Durée</th><th className="text-right">Montant (USD)</th><th>Statut</th><th>Facture</th></tr></thead>
+            <tbody>{payments.data.map((p) => (
+              <tr key={p.id}>
+                <td>{date((p.paidAt ?? p.createdAt).slice(0, 10))}</td><td>{p.edition ?? '—'}</td><td>{p.months} mois</td>
+                <td className="text-right">{money(p.amountCents)}</td><td>{p.status === 'PAYE' ? 'Payé' : p.status === 'EN_ATTENTE' ? 'En attente' : p.status}</td>
+                <td>{p.invoice?.status === 'EMISE'
+                  ? <a className="text-turquoise-700 underline" href={p.invoice.verifyUrl} target="_blank" rel="noreferrer">{p.invoice.number} — {money(p.invoice.totalGross)} {p.invoice.currency}</a>
+                  : p.status === 'PAYE' ? <span className="text-xs text-slate-500">En cours d’émission</span> : '—'}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
       </div>
     </div>
   );

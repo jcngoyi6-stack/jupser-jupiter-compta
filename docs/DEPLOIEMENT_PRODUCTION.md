@@ -43,6 +43,13 @@ Le mot de passe initial du compte console n'est affiché qu'une fois : connectez
 activez la double authentification, changez le mot de passe. Les clients se créent ensuite depuis la **Console JUPSER**
 (ou par l'inscription à l'essai gratuit).
 
+**Dossier comptable de JUPSER** : le compte console est administrateur de l'espace interne « JUPSER (interne) ».
+Créez-y la société JUPITER SERVICES SARLU (menu Sociétés : NIF, RCCM, paramètres de la facture normalisée) et saisissez
+chaque jour le cours USD/CDF de la BCC (menu Trésorerie & devises). Chaque paiement d'abonnement confirmé y génère
+alors automatiquement la facture du client (TVA du pack, facture normalisée), consultable par le client dans
+**Abonnement**. Si une facture ne peut pas être émise (dossier non créé, cours manquant, refus du dispositif fiscal),
+le motif est conservé et la facture se relance depuis la console (`POST /api/console/billing/payments/<référence>/invoice`).
+
 Ce qui se passe au démarrage : migrations de la base, chargement des référentiels fiscaux et sociaux des 17 pays
 (statut « à valider »), création du compte console ; aucune donnée de démonstration. Le simulateur de paiement est
 désactivé en production (sauf `ALLOW_PAYMENT_SIMULATOR=true`, à réserver à la préproduction) ; la documentation de
