@@ -121,6 +121,32 @@ export function reminderDue(paidUntil: string, today: string): 'J-7' | 'J0' | 'J
   return ({ [-7]: 'J-7', 0: 'J0', 3: 'J+3', 7: 'J+7' } as Record<number, 'J-7' | 'J0' | 'J+3' | 'J+7'>)[d] ?? null;
 }
 
+/** Rappels de fin d'essai gratuit : 7 jours avant, la veille, le jour même. */
+export function trialReminderDue(trialEndsAt: string, today: string): 'ESSAI_J-7' | 'ESSAI_J-1' | 'ESSAI_J0' | null {
+  const d = daysBetween(trialEndsAt, today);
+  return ({ [-7]: 'ESSAI_J-7', [-1]: 'ESSAI_J-1', 0: 'ESSAI_J0' } as Record<number, 'ESSAI_J-7' | 'ESSAI_J-1' | 'ESSAI_J0'>)[d] ?? null;
+}
+
+/**
+ * Point de départ d'une période payée : fin de l'abonnement en cours, sinon fin de l'essai (les jours d'essai
+ * restants ne sont pas perdus), sinon la date du paiement.
+ */
+export function paidPeriodStart(paidUntil: Date | null, trialEndsAt: Date | null, now: Date): Date {
+  const candidates = [paidUntil, trialEndsAt, now].filter((d): d is Date => !!d);
+  return new Date(Math.max(...candidates.map((d) => d.getTime())));
+}
+
+/** Ajoute des mois à une date (fin de mois conservée : 31/01 + 1 mois → 28/02 ou 29/02). */
+export function addMonthsUtc(d: Date, months: number): Date {
+  const r = new Date(d);
+  const day = r.getUTCDate();
+  r.setUTCDate(1);
+  r.setUTCMonth(r.getUTCMonth() + months);
+  const last = new Date(Date.UTC(r.getUTCFullYear(), r.getUTCMonth() + 1, 0)).getUTCDate();
+  r.setUTCDate(Math.min(day, last));
+  return r;
+}
+
 export type AccessMode = 'COMPLET' | 'LECTURE_SEULE' | 'AUCUN';
 
 export function accessMode(status: SubscriptionStatus): AccessMode {

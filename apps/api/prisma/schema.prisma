@@ -411,6 +411,7 @@ model Payment {
   method      String
   amountCents BigInt   @map("amount_cents")
   months      Int
+  edition     String?  // édition souscrite par ce paiement (passage de l'essai au payant, changement d'édition)
   status      String   @default("EN_ATTENTE")
   externalRef String   @unique @map("external_ref")
   createdAt   DateTime @default(now()) @map("created_at")

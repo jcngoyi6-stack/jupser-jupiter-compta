@@ -64,3 +64,22 @@ describe('cycle de vie (critère L3 : lecture seule à J+15)', () => {
     expect(() => prorata(1n, 1, 0)).toThrow();
   });
 });
+
+describe('passage de l’essai à l’abonnement payant', () => {
+  it('rappels de fin d’essai', async () => {
+    const { trialReminderDue } = await import('./index');
+    expect(trialReminderDue('2026-12-01', '2026-11-24')).toBe('ESSAI_J-7');
+    expect(trialReminderDue('2026-12-01', '2026-11-30')).toBe('ESSAI_J-1');
+    expect(trialReminderDue('2026-12-01', '2026-12-01')).toBe('ESSAI_J0');
+    expect(trialReminderDue('2026-12-01', '2026-11-28')).toBeNull();
+  });
+  it('la période payée commence après l’essai ou l’abonnement en cours', async () => {
+    const { paidPeriodStart, addMonthsUtc } = await import('./index');
+    const now = new Date('2026-11-10T00:00:00Z');
+    expect(paidPeriodStart(null, new Date('2026-12-01T00:00:00Z'), now).toISOString().slice(0, 10)).toBe('2026-12-01');
+    expect(paidPeriodStart(new Date('2027-03-01T00:00:00Z'), new Date('2026-12-01T00:00:00Z'), now).toISOString().slice(0, 10)).toBe('2027-03-01');
+    expect(paidPeriodStart(null, new Date('2026-10-01T00:00:00Z'), now)).toEqual(now);
+    expect(addMonthsUtc(new Date('2027-01-31T00:00:00Z'), 1).toISOString().slice(0, 10)).toBe('2027-02-28');
+    expect(addMonthsUtc(new Date('2026-12-01T00:00:00Z'), 12).toISOString().slice(0, 10)).toBe('2027-12-01');
+  });
+});

@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AuthService } from './auth/auth.service';
 import { PrismaService } from './common/prisma.service';
+import { ensureJupserMembership } from './common/jupser-tenant';
 import { seedTaxRules } from './common/reference';
 
 /**
@@ -20,10 +21,13 @@ async function main() {
   const email = process.env.BOOTSTRAP_STAFF_EMAIL?.toLowerCase();
   if (email) {
     const existing = await db.client.user.findUnique({ where: { email } });
-    if (existing) console.log(`Compte console ${email} déjà présent.`);
-    else {
+    if (existing) {
+      await ensureJupserMembership(db, existing.id);
+      console.log(`Compte console ${email} déjà présent.`);
+    } else {
       const password = `${randomBytes(12).toString('base64url')}-Jc9`;
-      await db.client.user.create({ data: { email, fullName: process.env.BOOTSTRAP_STAFF_NAME ?? 'Console JUPSER', passwordHash: await auth.hash(password), isJupserStaff: true } });
+      const user = await db.client.user.create({ data: { email, fullName: process.env.BOOTSTRAP_STAFF_NAME ?? 'Console JUPSER', passwordHash: await auth.hash(password), isJupserStaff: true } });
+      await ensureJupserMembership(db, user.id);
       console.log(`Compte console créé : ${email}\nMot de passe initial (affiché une seule fois, à changer) : ${password}`);
     }
   }

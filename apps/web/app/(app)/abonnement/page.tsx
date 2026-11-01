@@ -10,8 +10,9 @@ const STATUS: Record<string, string> = { ESSAI: 'Essai gratuit', ACTIF: 'Actif',
 export default function Abonnement() {
   const q = useQuery({ queryKey: ['subscription'], queryFn: () => api<any>('/billing/subscription') });
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
+  const [edition, setEdition] = useState('');
   const pay = useMutation({
-    mutationFn: (b: { method: string; months: number }) => api<any>('/billing/checkout', { method: 'POST', body: b }),
+    mutationFn: (b: { method: string; months: number }) => api<any>('/billing/checkout', { method: 'POST', body: { ...b, edition } }),
     onSuccess: (r) => {
       if (r.redirectUrl) window.location.href = r.redirectUrl;
       else setMsg({ kind: 'info', text: `${r.instructions} Référence : ${r.payment.externalRef}` });
@@ -30,7 +31,13 @@ export default function Abonnement() {
         <Kpi label="Mensuel / annuel (USD)" value={`${money(d.quote.monthlyUsdCents)} / ${money(d.quote.annualUsdCents)}`} hint="Annuel : 2 mois offerts" />
       </div>
       <div className="card space-y-3">
-        <h2>Payer</h2>
+        <h2>{d.tenant.computedStatus === 'ESSAI' ? 'Passer à l’abonnement payant' : 'Payer'}</h2>
+        {d.tenant.computedStatus === 'ESSAI' && <p className="text-sm text-slate-600">Vos données et votre paramétrage sont conservés ; la période payée commence à la fin de l’essai{d.tenant.trialEndsAt ? ` (${date(d.tenant.trialEndsAt)})` : ''} : aucun jour d’essai n’est perdu. L’abonnement est activé automatiquement dès la confirmation du paiement.</p>}
+        <label className="text-sm">Édition
+          <select className="input w-auto" value={edition || d.tenant.edition} onChange={(e) => setEdition(e.target.value)}>
+            <option value="TPE">TPE / SMT</option><option value="ESSENTIEL">Essentiel</option><option value="PRO">Pro</option><option value="ERP">Entreprise (ERP complet)</option>
+          </select>
+        </label>
         <div className="flex flex-wrap gap-2">
           <button className="btn-accent" onClick={() => pay.mutate({ method: 'MOBILE_MONEY', months: 1 })}>Mobile money — 1 mois</button>
           <button className="btn-accent" onClick={() => pay.mutate({ method: 'MOBILE_MONEY', months: 12 })}>Mobile money — 12 mois</button>

@@ -8,6 +8,7 @@ import { AuthService } from './auth/auth.service';
 import type { SessionUser } from './auth/decorators';
 import { AuditService } from './common/audit.service';
 import { PrismaService } from './common/prisma.service';
+import { ensureJupserMembership } from './common/jupser-tenant';
 import { seedTaxRules } from './common/reference';
 import { seedBoulangerie } from './seed-cage';
 
@@ -34,7 +35,7 @@ async function main() {
       update: {},
     });
 
-  await mkUser('console@jupser.cd', 'Console JUPSER', true);
+  await ensureJupserMembership(db, (await mkUser('console@jupser.cd', 'Console JUPSER', true)).id);
   const existing = await db.client.tenant.findFirst({ where: { name: 'Démo Kinshasa SARL' } });
   if (existing) {
     const adminUser = await db.client.user.findUniqueOrThrow({ where: { email: 'admin@demo.cd' } });

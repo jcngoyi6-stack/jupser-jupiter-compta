@@ -161,8 +161,32 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6"><SubscriptionBanner />{children}</main>
       </div>
+    </div>
+  );
+}
+
+/** Bandeau de fin d'essai ou d'impayé, avec accès direct à l'abonnement. */
+function SubscriptionBanner() {
+  const [s, setS] = useState<{ status: string; end: string | null } | null>(null);
+  useEffect(() => {
+    api<{ tenant: { computedStatus: string; trialEndsAt: string | null; paidUntil: string | null } }>('/billing/subscription')
+      .then((r) => setS({ status: r.tenant.computedStatus, end: (r.tenant.paidUntil ?? r.tenant.trialEndsAt)?.slice(0, 10) ?? null }))
+      .catch(() => setS(null));
+  }, []);
+  if (!s?.end) return null;
+  const days = Math.ceil((Date.parse(s.end) - Date.now()) / 86_400_000);
+  const fr = s.end.split('-').reverse().join('/');
+  let text = '';
+  if (s.status === 'ESSAI' && days <= 7) text = days > 0 ? `Votre essai gratuit se termine dans ${days} jour${days > 1 ? 's' : ''} (${fr}).` : `Votre essai gratuit se termine aujourd’hui.`;
+  else if (s.status === 'IMPAYE') text = `Abonnement échu depuis le ${fr} : l’accès passera en lecture seule à J+15.`;
+  else if (s.status === 'LECTURE_SEULE') text = 'Accès en lecture seule (abonnement échu) : consultation et exports restent possibles.';
+  if (!text) return null;
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+      <span>{text}</span>
+      <Link href="/abonnement" className="btn-primary py-1">Souscrire</Link>
     </div>
   );
 }

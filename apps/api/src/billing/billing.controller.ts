@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Post } from '@nestjs/common';
 import { PaymentError, type PaymentProvider } from '@jupiter/connectors';
 import { ApiTags } from '@nestjs/swagger';
-import { computeStatus, EDITION_MODULES, quoteEnterprise, type EditionCode, type PriceGrid, type SubscriptionStatus } from '@jupiter/licensing';
+import { addMonthsUtc, computeStatus, EDITION_MODULES, paidPeriodStart, quoteEnterprise, type EditionCode, type PriceGrid, type SubscriptionStatus } from '@jupiter/licensing';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
@@ -12,6 +12,7 @@ import { readData } from '../common/data';
 import { domainError, parse } from '../common/http';
 import { PrismaService } from '../common/prisma.service';
 import { PaymentsService } from './payments.service';
+import { SubscriptionRemindersService } from './reminders.service';
 
 const grid = (): PriceGrid => (JSON.parse(readData('tarifs_modules.json')) as { entreprises: PriceGrid }).entreprises;
 
@@ -27,6 +28,7 @@ export class BillingController {
     private readonly audit: AuditService,
     private readonly auth: AuthService,
     private readonly payments: PaymentsService,
+    private readonly reminders: SubscriptionRemindersService,
   ) {}
 
   @AllowWithoutMfa()
@@ -49,10 +51,16 @@ export class BillingController {
   @Roles('ADMIN')
   @Post('billing/checkout')
   async checkout(@CurrentUser() u: SessionUser, @Body() body: unknown) {
-    const b = parse(z.object({ method: z.enum(['MOBILE_MONEY', 'CARTE', 'VIREMENT']), months: z.union([z.literal(1), z.literal(12)]), operator: z.string().optional() }), body);
+    const b = parse(z.object({ method: z.enum(['MOBILE_MONEY', 'CARTE', 'VIREMENT']), months: z.union([z.literal(1), z.literal(12)]), operator: z.string().optional(), edition: z.enum(['TPE', 'ESSENTIEL', 'PRO', 'ERP']).optional() }), body);
     const t = await this.db.client.tenant.findUniqueOrThrow({ where: { id: u.tenantId } });
     const users = await this.db.client.membership.count({ where: { tenantId: t.id } });
-    const q = quoteEnterprise(grid(), t.edition as EditionCode, [], Math.max(users, 1));
+    const edition = (b.edition ?? t.edition) as EditionCode;
+    let q;
+    try {
+      q = quoteEnterprise(grid(), edition, [], Math.max(users, 1));
+    } catch (e) {
+      throw domainError('EDITION_INADAPTEE', (e as Error).message);
+    }
     const amount = b.months === 12 ? q.annualUsdCents : q.monthlyUsdCents;
     const company = await this.db.forTenant(u.tenantId, (tx) => tx.company.findFirst({ select: { country: true } }));
     let provider: PaymentProvider;
@@ -65,7 +73,7 @@ export class BillingController {
     let checkout;
     try {
       checkout = await provider.createCheckout({
-        reference: ref, amountMinor: BigInt(amount), currency: 'USD', description: `Abonnement Jupiter Compta ${t.edition} ${b.months} mois`,
+        reference: ref, amountMinor: BigInt(amount), currency: 'USD', description: `Abonnement Jupiter Compta ${edition} ${b.months} mois`,
         customer: { name: t.name, email: u.email, phone: b.operator }, method: b.method,
         returnUrl: `${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/abonnement?paiement=${ref}`,
         notifyUrl: `${process.env.PUBLIC_API_URL ?? 'http://localhost:4000'}/api/billing/webhook/${provider.code.toLowerCase()}`,
@@ -74,7 +82,7 @@ export class BillingController {
       throw domainError(e instanceof PaymentError ? e.code : 'PRESTATAIRE', (e as Error).message);
     }
     const p = await this.db.forTenant(u.tenantId, async (tx) => {
-      const pay = await tx.payment.create({ data: { tenantId: u.tenantId, provider: provider.code, method: b.method, amountCents: amount, months: b.months, externalRef: ref } });
+      const pay = await tx.payment.create({ data: { tenantId: u.tenantId, provider: provider.code, method: b.method, amountCents: amount, months: b.months, edition, externalRef: ref } });
       await this.audit.log(tx, u.tenantId, u.userId, 'PAIEMENT_INITIE', `payment:${pay.id}`, { method: b.method, amount, provider: provider.code });
       return pay;
     });
@@ -111,11 +119,15 @@ export class BillingController {
       }
       await tx.payment.update({ where: { id: p.id }, data: { status: verified.status, paidAt: verified.status === 'PAYE' ? new Date() : null } });
       if (verified.status === 'PAYE') {
+        // Passage automatique au payant : la période commence à la fin de l'essai ou de l'abonnement en cours
         const t = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId } });
-        const base = t.paidUntil && t.paidUntil > new Date() ? t.paidUntil : new Date();
-        const until = new Date(base);
-        until.setUTCMonth(until.getUTCMonth() + p.months);
-        await tx.tenant.update({ where: { id: tenantId }, data: { paidUntil: until, subStatus: 'ACTIF' } });
+        const until = addMonthsUtc(paidPeriodStart(t.paidUntil, t.trialEndsAt, new Date()), p.months);
+        const edition = (p.edition ?? t.edition) as EditionCode;
+        await tx.tenant.update({
+          where: { id: tenantId },
+          data: { paidUntil: until, subStatus: 'ACTIF', edition, modules: [...new Set([...EDITION_MODULES[edition], ...t.modules.filter((m) => !(Object.values(EDITION_MODULES).flat() as string[]).includes(m))])], maxCompanies: edition === 'ERP' ? Math.max(t.maxCompanies, 10) : t.maxCompanies, maxUsers: edition === 'TPE' ? 2 : Math.max(t.maxUsers, 50) },
+        });
+        await this.audit.log(tx, tenantId, 'PRESTATAIRE', 'ABONNEMENT_ACTIVE', `tenant:${tenantId}`, { edition, until: until.toISOString().slice(0, 10) });
       }
       await this.audit.log(tx, tenantId, 'PRESTATAIRE', 'PAIEMENT_' + verified.status, `payment:${p.id}`);
       return { status: verified.status };
@@ -143,6 +155,15 @@ export class BillingController {
       return { ...t, computedStatus: status, mrrUsdCents: mrr };
     });
     return { tenants: rows, mrrUsdCents: rows.reduce((s, r) => s + r.mrrUsdCents, 0n), byStatus: rows.reduce<Record<string, number>>((m, r) => ({ ...m, [r.computedStatus]: (m[r.computedStatus] ?? 0) + 1 }), {}) };
+  }
+
+  /** Exécution manuelle des rappels d'abonnement (également planifiée en production). */
+  @JupserStaff()
+  @Post('console/billing/reminders')
+  @HttpCode(200)
+  runReminders(@Body() body: unknown) {
+    const b = parse(z.object({ today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }), body ?? {});
+    return this.reminders.run(b.today);
   }
 
   @JupserStaff()

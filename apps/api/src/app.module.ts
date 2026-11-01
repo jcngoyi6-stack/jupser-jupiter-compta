@@ -21,6 +21,7 @@ import { AuthService } from './auth/auth.service';
 import { SecurityGuard } from './auth/guards';
 import { BillingController } from './billing/billing.controller';
 import { PaymentsService } from './billing/payments.service';
+import { SubscriptionRemindersService } from './billing/reminders.service';
 import { AuditService } from './common/audit.service';
 import { CryptoService } from './common/crypto.service';
 import { DbErrorFilter } from './common/errors';
@@ -72,6 +73,7 @@ import { TaxController } from './tax/tax.controller';
   providers: [
     PrismaService,
     PaymentsService,
+    SubscriptionRemindersService,
     AnalyticsService,
     CryptoService,
     AuditService,
