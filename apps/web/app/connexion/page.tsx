@@ -110,6 +110,7 @@ function Login() {
               </div>
             </details>
           )}
+          {step === 'login' && <p className="mt-4 text-center text-sm">Nouveau ? <a href="/inscription" className="text-turquoise-700">Essai gratuit de 30 jours</a></p>}
           <p className="mt-6 text-center text-xs text-slate-400">Précision. Conformité. Sérénité.</p>
         </form>
         <div className="mt-6 flex items-center gap-2 text-xs text-slate-300">

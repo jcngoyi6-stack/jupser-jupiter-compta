@@ -15,6 +15,7 @@ import { CompanyService } from './accounting/company.service';
 import { EntriesService } from './accounting/entries.service';
 import { AiController } from './ai/ai.controller';
 import { AuthController } from './auth/auth.controller';
+import { SignupController } from './auth/signup.controller';
 import { AuthService } from './auth/auth.service';
 import { SecurityGuard } from './auth/guards';
 import { BillingController } from './billing/billing.controller';
@@ -42,6 +43,7 @@ import { TaxController } from './tax/tax.controller';
   controllers: [
     HealthController,
     AuthController,
+    SignupController,
     AccountingController,
     ComplementsController,
     SpecialOpsController,

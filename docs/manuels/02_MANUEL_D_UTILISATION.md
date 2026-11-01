@@ -8,6 +8,9 @@ Ce manuel décrit les tâches courantes, écran par écran. Les noms de menus so
 
 ## Partie A — Prise en main
 
+### A.0 Créer un espace d'essai
+Sur la page de connexion, cliquez sur **Essai gratuit de 30 jours** : nom de l'entreprise ou du cabinet, édition à essayer, nom, adresse électronique, mot de passe, acceptation des conditions. Vous devenez administrateur de votre espace ; connectez-vous, activez la double authentification, puis créez votre société (**Sociétés**).
+
 ### A.1 Se connecter
 1. Ouvrez l'adresse communiquée par votre administrateur (en ligne) ou l'application de bureau.
 2. Saisissez votre adresse électronique et votre mot de passe.

@@ -75,6 +75,10 @@
 
 ## 7. Ce qui est déjà prêt
 
+- **Mise en ligne** : kit de production (`deploy/production`, guide `docs/DEPLOIEMENT_PRODUCTION.md`) — HTTPS automatique, réseau interne, sauvegardes chiffrées quotidiennes, secrets générés, amorçage sans données de démonstration, publication de l'image par GitHub Actions.
+- **Inscription en libre-service** à l'essai gratuit de 30 jours (`/inscription`), protégée contre les robots et les abus.
+- **Interconnexion des sociétés d'un groupe** : factures intragroupe avec acceptation, retraitements de consolidation (marges en stock et sur immobilisations).
+
 - Cœur comptable SYSCOHADA révisé, états financiers, notes annexes, SMT, DSF ; 142 applications du guide d'application couvertes, choix comptables validés par un expert-comptable agréé ONEC.
 - Modules ERP (ventes, achats, stocks, production, CRM, RH, paie, trésorerie, budget, analytique, consolidation, GED, courrier, collaboration), espace cabinets, évaluation de projets, JUPSER IA.
 - Sécurité : double authentification, isolation des clients, chiffrement, piste d'audit, postes enrôlés, SSO.
