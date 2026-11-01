@@ -7,3 +7,5 @@
 .git
 apps/api/.env
 apps/desktop/src-tauri/target
+deploy/production/.env
+deploy/production/backups

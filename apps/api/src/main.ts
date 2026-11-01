@@ -16,6 +16,9 @@ export async function createApp() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error', 'warn', 'log'], bodyParser: true });
   app.useBodyParser('json', { limit: '15mb' });
   app.setGlobalPrefix('api');
+  // Derrière le proxy TLS (Caddy) puis Next.js : adresse réelle du client pour la piste d'audit et les limitations
+  if (config.isProd) app.set('trust proxy', 2);
+  app.enableShutdownHooks();
   app.use(cookieParser());
   app.use((_req: Request, res: Response, next: NextFunction) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -28,9 +31,10 @@ export async function createApp() {
   const doc = new DocumentBuilder()
     .setTitle('Jupiter Compta — API')
     .setDescription('ERP SYSCOHADA révisé — JUPITER SERVICES SARLU (JUPSER)')
-    .setVersion('0.1.0')
+    .setVersion('0.6.0')
     .build();
-  SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, doc));
+  // Documentation de l'API : désactivée en production sauf demande explicite (ENABLE_API_DOCS=true)
+  if (!config.isProd || process.env.ENABLE_API_DOCS === 'true') SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, doc));
   return app;
 }
 

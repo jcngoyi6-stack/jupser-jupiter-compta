@@ -1,0 +1,100 @@
+# Jupiter Compta — production (un serveur). Usage : voir docs/DEPLOIEMENT_PRODUCTION.md
+# Les secrets viennent du fichier .env (généré par generate-secrets.sh), jamais du dépôt.
+name: jupiter-compta
+
+# Journaux : rotation (10 Mo × 5 fichiers par service)
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    logging: *logging
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?}
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jupiter"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [backend]
+
+  api:
+    logging: *logging
+    image: ${IMAGE:-ghcr.io/jcngoyi6-stack/jupiter-compta}:${TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: postgresql://jupiter_app:${DB_APP_PASSWORD}@db:5432/jupiter
+      DATABASE_OWNER_URL: postgresql://jupiter_owner:${DB_OWNER_PASSWORD}@db:5432/jupiter
+      PUBLIC_APP_URL: https://${APP_DOMAIN}
+      PUBLIC_API_URL: https://${APP_DOMAIN}
+      PUBLIC_VERIFY_BASE_URL: https://${APP_DOMAIN}/verifier
+    # Migrations puis amorçage idempotent (référentiels, premier compte console) avant le démarrage
+    command: sh -c "cd apps/api && npx prisma migrate deploy && node dist/bootstrap-prod.js && node dist/main.js"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  web:
+    logging: *logging
+    image: ${IMAGE:-ghcr.io/jcngoyi6-stack/jupiter-compta}:${TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    command: sh -c "cd apps/web && npx next start -p 3000"
+    networks: [backend, frontend]
+
+  caddy:
+    logging: *logging
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?}
+      ACME_EMAIL: ${ACME_EMAIL:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [frontend]
+
+  backup:
+    logging: *logging
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      PGPASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    entrypoint: ["sh", "/backup.sh"]
+    networks: [backend]
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  backend: { internal: true }
+  frontend:

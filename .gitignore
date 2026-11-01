@@ -7,3 +7,6 @@ coverage/
 *.log
 apps/api/src/generated/
 apps/api/storage/
+
+deploy/production/.env
+deploy/production/backups/
