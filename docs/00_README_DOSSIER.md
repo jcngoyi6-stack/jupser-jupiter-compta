@@ -3,7 +3,7 @@
 **Logiciel** : Jupiter Compta · **Éditeur** : JUPITER SERVICES SARLU (JUPSER), Kinshasa/Gombe
 **Référentiel** : SYSCOHADA révisé (Acte uniforme relatif au droit comptable et à l'information financière, en vigueur depuis le 1er janvier 2018) · **Marché** : 17 États parties à l'OHADA
 **Modèle économique** : SaaS par abonnement (licence par utilisateur et par module), paiement en ligne (carte + mobile money)
-**Version du dossier** : 2.0 — 29 octobre 2026 (ERP, JUPSER IA, comptes à 6 chiffres, IS-IRPP, espace Cabinets, tarifs v2)
+**Version du dossier** : 2.0 — 29 octobre 2026 (ERP, Jupiter IA, comptes à 6 chiffres, IS-IRPP, espace Cabinets, tarifs v2)
 
 ## Comment utiliser ce dossier
 1. Copier le dossier à la racine d'un nouveau dépôt Git.
@@ -21,7 +21,7 @@
 | `docs/04_COMPTABILITE_SYSCOHADA.md` | Moteur comptable : plan, journaux, saisie, clôture, états financiers, SMT, DSF |
 | `docs/05_MODULES_GESTION.md` | GRH & paie, production, marketing, analyse financière, devises |
 | `docs/06_FISCALITE_SOCIAL_17_PAYS.md` | Moteur fiscal et social paramétrable, calendrier, simulateur, état de la recherche par pays |
-| `docs/07_IA_COPILOTE.md` | JUPSER IA : guide, analyste, agent ; garde-fous |
+| `docs/07_IA_COPILOTE.md` | Jupiter IA : guide, analyste, agent ; garde-fous |
 | `docs/08_SECURITE.md` | Sécurité des données et des utilisateurs (niveau JUPSER EBNL) |
 | `docs/09_LICENCES_ABONNEMENTS_PAIEMENTS.md` | Offre, moteur de licences, paiements, console JUPSER (clients et abonnements) |
 | `docs/10_ROADMAP_RECETTE.md` | Lots, planning, critères d'acceptation, tests |

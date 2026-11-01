@@ -18,7 +18,7 @@ export default function Courrier() {
   };
   return (
     <div className="space-y-4">
-      <PageTitle title="Courrier" sub="Registre arrivé / départ, affectation, circuit de traitement, relances, réponse rédigée par JUPSER IA" />
+      <PageTitle title="Courrier" sub="Registre arrivé / départ, affectation, circuit de traitement, relances, réponse rédigée par Jupiter IA" />
       {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
       <div className="card grid grid-cols-2 gap-2 md:grid-cols-7">
         <select className="input" value={f.direction} onChange={(e) => setF({ ...f, direction: e.target.value })}><option value="ARRIVE">Arrivé</option><option value="DEPART">Départ</option></select>

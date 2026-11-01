@@ -131,7 +131,7 @@ export class EntriesService {
     return e;
   }
 
-  /** Contrôles applicables à une écriture (mêmes contrôles pour la saisie, l'import, la paie et JUPSER IA). */
+  /** Contrôles applicables à une écriture (mêmes contrôles pour la saisie, l'import, la paie et Jupiter IA). */
   async check(tx: Tx, companyId: string, id: string, systemGenerated = false) {
     const e = await this.get(tx, companyId, id);
     const journal = await tx.journal.findUniqueOrThrow({ where: { id: e.journalId } });

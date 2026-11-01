@@ -51,7 +51,7 @@ Périmètre, méthodes (intégration globale, mise en équivalence), éliminatio
 ## 9. Livres et restitutions (complément v2)
 - **Livre-journal** (centralisation mensuelle des journaux auxiliaires), **grand-livre** (général et auxiliaires clients/fournisseurs/personnel, avec lettrage), **balance** (générale, auxiliaire, âgée ; à 4, 6 ou 8 colonnes), **livre d'inventaire**, puis **états financiers dans leur ensemble** (bilan, compte de résultat, TFT, notes annexes).
 - Navigation : de chaque ligne des états → balance → grand-livre → écriture → pièce numérisée.
-- **Notes annexes** : pour chaque note, JUPSER IA propose les tableaux chiffrés et le texte explicatif (méthodes, variations, engagements, événements postérieurs) ; le comptable ou l'expert valide ou modifie ; la version validée est figée et signée électroniquement.
+- **Notes annexes** : pour chaque note, Jupiter IA propose les tableaux chiffrés et le texte explicatif (méthodes, variations, engagements, événements postérieurs) ; le comptable ou l'expert valide ou modifie ; la version validée est figée et signée électroniquement.
 
 ## 10. Travaux de fin d'exercice automatisés (propositions à valider)
 | Travail | Automatisation |

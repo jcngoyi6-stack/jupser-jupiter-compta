@@ -2,7 +2,7 @@ import { balanceGap } from '@jupiter/ledger';
 import { describe, expect, it } from 'vitest';
 import { acceptAction, MockLlmProvider, proposePurchaseEntry, redact, suggestAccounts, SYSTEM_PROMPT } from './index';
 
-describe('JUPSER IA', () => {
+describe('Jupiter IA', () => {
   it('propose une écriture d’achat en brouillon IA, jamais validée', () => {
     const p = proposePurchaseEntry(
       { supplierName: 'SNEL', date: '2026-03-01', number: 'F-889', netAmount: 100_00n, vatAmount: 16_00n, grossAmount: 116_00n, currency: 'CDF', expenseAccount: '605200', confidence: 0.95 },

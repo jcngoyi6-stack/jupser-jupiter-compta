@@ -1,4 +1,4 @@
-# CLAUDE.md — Règles du projet Jupiter Compta (ERP SYSCOHADA révisé, assistant JUPSER IA)
+# CLAUDE.md — Règles du projet Jupiter Compta (ERP SYSCOHADA révisé, assistant Jupiter IA)
 
 ## Pile imposée
 - **Monorepo** pnpm + Turborepo. TypeScript strict partout.
@@ -19,7 +19,7 @@
 7. Aucune écriture proposée par l'IA n'est validée sans action humaine (statut `BROUILLON_IA`).
 
 ## Principes comptables
-- Le tableau de docs/12 est normatif : chaque ligne doit avoir son test automatisé. Aucune fonction (y compris import et JUPSER IA) ne contourne ces contrôles.
+- Le tableau de docs/12 est normatif : chaque ligne doit avoir son test automatisé. Aucune fonction (y compris import et Jupiter IA) ne contourne ces contrôles.
 - Livres obligatoires (journal, grand-livre, balance, livre d'inventaire) et états financiers toujours régénérables et traçables jusqu'à la pièce.
 
 ## Fiscal et social

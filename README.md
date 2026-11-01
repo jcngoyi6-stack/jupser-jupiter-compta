@@ -12,7 +12,7 @@ Monorepo pnpm + Turborepo, TypeScript strict. Le dossier de conception d'origine
 | `packages/tax-engine` | Règles fiscales versionnées (`A_VALIDER`/`VALIDE`), TVA, IS/minimum, barèmes, calendrier, bandeau « Estimation » |
 | `packages/payroll` | Paie RDC (IRPP IS-IRPP, CNSS, INPP, ONEM), paie en USD convertie au cours du jour, écriture de paie |
 | `packages/licensing` | Tarifs, cycle d'abonnement (lecture seule à J+15), modules, quotas, jetons de licence hors ligne signés Ed25519 |
-| `packages/ai` | JUPSER IA : prompt système, propositions `BROUILLON_IA`, minimisation des données, OCR (contrôle du JSON lu par vision), fournisseur hors ligne |
+| `packages/ai` | Jupiter IA : prompt système, propositions `BROUILLON_IA`, minimisation des données, OCR (contrôle du JSON lu par vision), fournisseur hors ligne |
 | `packages/einvoice` | Facture normalisée RDC : validation, groupes de taxation, client e-MCF (DEF) et simulateur |
 | `packages/operations` | Stocks (CMUP/PEPS), production (nomenclatures, coût de revient), RH (pointage, recrutement non discriminatoire), marketing (RFM, consentement) |
 | `packages/advisory` | Cabinet : VAN, TRI, TRIM, délais, Monte-Carlo, sensibilité ; évaluation d'entreprise ; audit (seuil, Benford, écritures inhabituelles, sondage MUS) ; circuit de revue ; manuel de procédures |
@@ -61,7 +61,7 @@ cd apps/web && npx next start -p 3000
 
 Ouvrir http://localhost:3000. Comptes de démonstration **fictifs** (mot de passe `Jupiter-Demo-2026`) : `admin@demo.cd`, `chef@demo.cd`, `comptable@demo.cd`, `dg@demo.cd`, `console@jupser.cd` (console JUPSER). La double authentification (TOTP) est demandée à la première connexion des rôles sensibles : scannez le QR avec Google/Microsoft Authenticator.
 
-JUPSER IA fonctionne hors ligne par défaut ; renseigner `ANTHROPIC_API_KEY` dans `apps/api/.env` active l'API Claude (côté serveur uniquement).
+Jupiter IA fonctionne hors ligne par défaut ; renseigner `ANTHROPIC_API_KEY` dans `apps/api/.env` active l'API Claude (côté serveur uniquement).
 
 ## Tests
 

@@ -104,7 +104,7 @@ export function detailNote(number: string, current: AccountBalance[], previous: 
 
 export const NOTE_NUMBERS = { movements: NOTE_DEFS.map((d) => d.number), details: DETAIL_DEFS.map((d) => d.number) };
 
-/** Textes types proposés (à compléter et valider par le comptable ; JUPSER IA peut les enrichir). */
+/** Textes types proposés (à compléter et valider par le comptable ; Jupiter IA peut les enrichir). */
 export function textNoteTemplates(ctx: { companyName: string; system: string; depreciation: string; stockMethod: string; currency: string; fiscalYear: string }) {
   return [
     {

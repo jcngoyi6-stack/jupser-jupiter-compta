@@ -40,7 +40,7 @@ export const DEFAULT_JOURNALS = [
   { code: 'OD', label: 'Opérations diverses', type: 'OD', counterpartAccount: null },
   { code: 'PAIE', label: 'Paie', type: 'PAIE', counterpartAccount: null },
   { code: 'AN', label: 'À-nouveaux', type: 'AN', counterpartAccount: null },
-  { code: 'IA', label: 'Brouillons JUPSER IA', type: 'IA', counterpartAccount: null },
+  { code: 'IA', label: 'Brouillons Jupiter IA', type: 'IA', counterpartAccount: null },
 ];
 
 @Injectable()

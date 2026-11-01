@@ -1,4 +1,4 @@
-# 07 — JUPSER IA
+# 07 — Jupiter IA
 
 ## 1. Trois niveaux
 | Niveau | Rôle | Édition |

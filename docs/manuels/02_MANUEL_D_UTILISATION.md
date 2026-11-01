@@ -191,11 +191,11 @@ Menu **Projets d'investissement** : flux prévisionnels, taux d'actualisation �
 
 ---
 
-## Partie F — JUPSER IA
+## Partie F — Jupiter IA
 
-Menu **JUPSER IA** :
+Menu **Jupiter IA** :
 - **Poser une question** sur le SYSCOHADA ou le logiciel → **Envoyer**.
-- **Pièce → écriture** : déposez la photo ou le PDF d'une facture → **Proposer l'écriture**. La proposition apparaît dans **Propositions de JUPSER IA** : acceptez-la (elle devient un brouillon à valider), corrigez-la ou rejetez-la.
+- **Pièce → écriture** : déposez la photo ou le PDF d'une facture → **Proposer l'écriture**. La proposition apparaît dans **Propositions de Jupiter IA** : acceptez-la (elle devient un brouillon à valider), corrigez-la ou rejetez-la.
 L'IA ne valide jamais rien ; vérifiez toujours le fournisseur, les montants, la TVA et les comptes.
 
 ---

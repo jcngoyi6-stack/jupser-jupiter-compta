@@ -274,7 +274,7 @@ describe('L0 — isolation des locataires (RLS)', () => {
   });
 });
 
-describe('Ventes, documents QR (L7b) et JUPSER IA (L4)', () => {
+describe('Ventes, documents QR (L7b) et Jupiter IA (L4)', () => {
   it('RDC : refuse la facture normalisée sans NIF de la société', async () => {
     const r = await compta.post(`/api/companies/${companyId}/invoices`).set(H).send({ date: `${YEAR}-04-05`, thirdPartyId: clientId, lines: [{ description: 'X', quantity: 1, unitPrice: '1000', vat: 'NORMAL' }] });
     expect(r.body.code).toBe('NIF_MANQUANT');

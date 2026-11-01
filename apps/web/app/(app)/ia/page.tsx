@@ -43,7 +43,7 @@ export default function Ia() {
   });
   return (
     <div className="space-y-4">
-      <PageTitle title="JUPSER IA" sub="Guide comptable SYSCOHADA — aucune écriture n’est validée sans action humaine" />
+      <PageTitle title="Jupiter IA" sub="Guide comptable SYSCOHADA — aucune écriture n’est validée sans action humaine" />
       {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="card flex h-[32rem] flex-col">
@@ -53,7 +53,7 @@ export default function Ia() {
             {chat.map((m, i) => (
               <div key={i} className={`whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${m.role === 'user' ? 'ml-10 bg-nuit text-white' : 'mr-10 bg-turquoise-50 text-nuit'}`}>{m.content}</div>
             ))}
-            {ask.isPending && <p className="text-sm text-slate-500">JUPSER IA réfléchit…</p>}
+            {ask.isPending && <p className="text-sm text-slate-500">Jupiter IA réfléchit…</p>}
           </div>
           <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (q.trim()) { ask.mutate(q); setQ(''); } }}>
             <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Votre question…" />
@@ -83,7 +83,7 @@ export default function Ia() {
         )}
       </div>
       <div className="card p-0">
-        <h2 className="px-4 pt-3">Propositions de JUPSER IA</h2>
+        <h2 className="px-4 pt-3">Propositions de Jupiter IA</h2>
         <table className="table mt-1">
           <thead><tr><th>Date</th><th>Outil</th><th>Détail</th><th>Statut</th><th></th></tr></thead>
           <tbody>

@@ -17,7 +17,7 @@
 9. La gestion de l'entreprise (ERP)
 10. Pilotage : analyse financière, budget, trésorerie, comptabilité analytique
 11. L'espace des cabinets d'expertise comptable
-12. JUPSER IA : l'assistant qui propose, l'humain qui valide
+12. Jupiter IA : l'assistant qui propose, l'humain qui valide
 13. Sécurité, conformité et confiance
 14. Architecture technique et modes de déploiement
 15. Offre commerciale et accompagnement
@@ -181,7 +181,7 @@ Assistant de clôture : contrôles préalables, régularisations, dotations, éc
 - **Manuel de procédures** avec contrôle de la séparation des tâches.
 - **Évaluation d'entreprise et restructuration.**
 
-## 12. JUPSER IA : l'assistant qui propose, l'humain qui valide
+## 12. Jupiter IA : l'assistant qui propose, l'humain qui valide
 
 - **Guide** : répond aux questions sur le SYSCOHADA et sur l'utilisation du logiciel.
 - **Lecture de pièces** : à partir d'une photo ou d'un PDF de facture, propose une écriture complète (fournisseur reconnu, montants, TVA, comptes), marquée « brouillon IA ».

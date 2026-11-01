@@ -13,7 +13,7 @@ Objectif : faire de Jupiter Compta l'outil de production complet d'un cabinet, d
 
 ## 2. Import Excel et production des états depuis une balance (amélioré)
 1. Import de la balance (Excel/CSV), à 4, 6 ou 8 colonnes, ou du grand-livre.
-2. **Reconnaissance automatique** des colonnes et du format par JUPSER IA.
+2. **Reconnaissance automatique** des colonnes et du format par Jupiter IA.
 3. Contrôles : équilibre des soldes et des mouvements, comptes inconnus, sens anormal, cohérence N/N-1.
 4. **Correspondance** des comptes du client vers le plan SYSCOHADA à 6 chiffres, proposée par l'IA et mémorisée par client (réutilisée l'année suivante).
 5. Écritures d'inventaire et de régularisation proposées (amortissements, provisions, cut-off, impôt) et ajustements du cabinet (journal d'OD de révision).
@@ -48,7 +48,7 @@ Lettre de mission (selon le type de mission, honoraires, responsabilités), lett
 4. Insérer les **règles comptables** applicables : principes et dispositions de l'AUDCIF (docs/12), schémas d'écritures SYSCOHADA avec les comptes du client, méthodes retenues (amortissement, stocks).
 5. Insérer les **obligations fiscales et sociales** du pays (calendrier, déclarations) depuis les packs validés.
 6. Produire les **annexes** : plan de comptes du client, modèles de documents, matrice des délégations de signature, calendrier de clôture, fiches de contrôle.
-7. Rédaction par JUPSER IA, puis **revue et validation** par l'expert-comptable ; versionnage et mises à jour automatiques quand la réglementation ou l'organigramme change.
+7. Rédaction par Jupiter IA, puis **revue et validation** par l'expert-comptable ; versionnage et mises à jour automatiques quand la réglementation ou l'organigramme change.
 
 **Sortie** : manuel Word/PDF à la charte du cabinet ou du client, avec table des matières, logigrammes et fiches de procédure.
 

@@ -44,7 +44,7 @@ class ClaudeProvider implements LlmProvider {
   }
 }
 
-@ApiTags('JUPSER IA')
+@ApiTags('Jupiter IA')
 @RequiresModule('IA_GUIDE')
 @Controller('ai')
 export class AiController {
@@ -63,7 +63,7 @@ export class AiController {
 
   private async consumeCredit(tenantId: string) {
     const t = await this.db.client.tenant.updateMany({ where: { id: tenantId, aiCredits: { gt: 0 } }, data: { aiCredits: { decrement: 1 } } });
-    if (t.count === 0) throw new ForbiddenException({ code: 'CREDITS_IA', message: 'Crédits JUPSER IA épuisés pour cette période.' });
+    if (t.count === 0) throw new ForbiddenException({ code: 'CREDITS_IA', message: 'Crédits Jupiter IA épuisés pour cette période.' });
   }
 
   /** Mode « Guide » : questions en langage naturel, réponses avec renvoi à l'AUDCIF. */

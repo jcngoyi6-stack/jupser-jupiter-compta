@@ -8,7 +8,7 @@ import { domainError, parse, zDate } from '../common/http';
 import { PrismaService } from '../common/prisma.service';
 import { StorageService } from '../common/storage.service';
 
-/** Classement automatique des pièces (GED) — règles par mots-clés ; JUPSER IA affine si configurée. */
+/** Classement automatique des pièces (GED) — règles par mots-clés ; Jupiter IA affine si configurée. */
 export function classify(text: string, fileName: string): { category: string; tags: string[]; amount: bigint | null; date: string | null } {
   const t = `${fileName} ${text}`.toLowerCase();
   const rules: [RegExp, string][] = [

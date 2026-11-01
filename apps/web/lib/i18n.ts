@@ -14,7 +14,7 @@ const fr = {
   'nav.treasury': 'Trésorerie & devises',
   'nav.tax': 'Fiscalité',
   'nav.payroll': 'Paie',
-  'nav.ai': 'JUPSER IA',
+  'nav.ai': 'Jupiter IA',
   'nav.audit': 'Piste d’audit',
   'nav.users': 'Utilisateurs',
   'nav.subscription': 'Abonnement',
@@ -25,19 +25,19 @@ type Key = keyof typeof fr;
 const en: Partial<Record<Key, string>> = {
   'nav.dashboard': 'Dashboard', 'nav.entry': 'Journal entry', 'nav.entries': 'Entries', 'nav.chart': 'Chart of accounts', 'nav.thirdParties': 'Third parties',
   'nav.books': 'Books', 'nav.statements': 'Financial statements', 'nav.closing': 'Year-end closing', 'nav.sales': 'Invoices', 'nav.treasury': 'Treasury & currencies',
-  'nav.tax': 'Tax', 'nav.payroll': 'Payroll', 'nav.ai': 'JUPSER AI', 'nav.audit': 'Audit trail', 'nav.users': 'Users', 'nav.subscription': 'Subscription',
+  'nav.tax': 'Tax', 'nav.payroll': 'Payroll', 'nav.ai': 'Jupiter AI', 'nav.audit': 'Audit trail', 'nav.users': 'Users', 'nav.subscription': 'Subscription',
   'nav.console': 'JUPSER console', tagline: 'Precision. Compliance. Peace of mind.',
 };
 const pt: Partial<Record<Key, string>> = {
   'nav.dashboard': 'Painel', 'nav.entry': 'Lançamento', 'nav.entries': 'Lançamentos', 'nav.chart': 'Plano de contas', 'nav.thirdParties': 'Terceiros',
   'nav.books': 'Livros', 'nav.statements': 'Demonstrações financeiras', 'nav.closing': 'Encerramento', 'nav.sales': 'Faturas', 'nav.treasury': 'Tesouraria e moedas',
-  'nav.tax': 'Fiscalidade', 'nav.payroll': 'Salários', 'nav.ai': 'JUPSER IA', 'nav.audit': 'Trilha de auditoria', 'nav.users': 'Utilizadores', 'nav.subscription': 'Assinatura',
+  'nav.tax': 'Fiscalidade', 'nav.payroll': 'Salários', 'nav.ai': 'Jupiter IA', 'nav.audit': 'Trilha de auditoria', 'nav.users': 'Utilizadores', 'nav.subscription': 'Assinatura',
   'nav.console': 'Consola JUPSER', tagline: 'Precisão. Conformidade. Serenidade.',
 };
 const es: Partial<Record<Key, string>> = {
   'nav.dashboard': 'Panel', 'nav.entry': 'Asiento', 'nav.entries': 'Asientos', 'nav.chart': 'Plan de cuentas', 'nav.thirdParties': 'Terceros',
   'nav.books': 'Libros', 'nav.statements': 'Estados financieros', 'nav.closing': 'Cierre', 'nav.sales': 'Facturas', 'nav.treasury': 'Tesorería y divisas',
-  'nav.tax': 'Fiscalidad', 'nav.payroll': 'Nómina', 'nav.ai': 'JUPSER IA', 'nav.audit': 'Pista de auditoría', 'nav.users': 'Usuarios', 'nav.subscription': 'Suscripción',
+  'nav.tax': 'Fiscalidad', 'nav.payroll': 'Nómina', 'nav.ai': 'Jupiter IA', 'nav.audit': 'Pista de auditoría', 'nav.users': 'Usuarios', 'nav.subscription': 'Suscripción',
   'nav.console': 'Consola JUPSER', tagline: 'Precisión. Conformidad. Serenidad.',
 };
 const dict: Record<Lang, Partial<Record<Key, string>>> = { fr, en, pt, es };

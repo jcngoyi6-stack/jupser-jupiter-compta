@@ -26,7 +26,7 @@ Jupiter Compta est un **ERP** : chaque opération de l'entreprise (vente, achat,
 - **Messagerie interne** : conversations individuelles et de groupe, canaux par service, partage de pièces et liens vers un document du logiciel (« voir la facture FA-0123 »).
 - **Réunions** : convocation (ordre du jour, participants, lieu ou lien visio), accusés de réception, procès-verbal assisté par l'IA, décisions converties en tâches.
 - **Tâches, alertes et rappels** : tâches assignées, échéances, rappels (application, e-mail, SMS/WhatsApp) ; alertes automatiques (stock bas, facture échue, échéance fiscale, contrat expirant, absence non justifiée, dépassement budgétaire).
-- **E-mail** : envoi direct depuis le logiciel (factures, relances, offres, convocations) ; brouillon rédigé par JUPSER IA, relu par l'utilisateur ; suivi d'ouverture.
+- **E-mail** : envoi direct depuis le logiciel (factures, relances, offres, convocations) ; brouillon rédigé par Jupiter IA, relu par l'utilisateur ; suivi d'ouverture.
 - **Travail à distance** : accès sécurisé par navigateur et mobile, postes enrôlés, rôles et périmètres, validations à distance, historique.
 
 ## 4. Gestion budgétaire
@@ -50,4 +50,4 @@ Numérisation et import de toutes les pièces ; classement automatique par l'IA 
 Registre du courrier arrivé et départ, numérotation, numérisation, affectation à un service, circuit de traitement, délais et relances, réponse rédigée avec l'IA sur le papier en-tête de l'entreprise, archivage dans la GED.
 
 ## 10. Import des pièces justificatives
-Glisser-déposer, photo depuis le mobile, transfert par e-mail dédié à chaque société, import en masse ; lecture par JUPSER IA et proposition d'écriture.
+Glisser-déposer, photo depuis le mobile, transfert par e-mail dédié à chaque société, import en masse ; lecture par Jupiter IA et proposition d'écriture.

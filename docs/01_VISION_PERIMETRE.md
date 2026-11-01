@@ -8,7 +8,7 @@
 | Référentiel | SYSCOHADA révisé (système normal et système minimal de trésorerie) |
 | Ambition | Devenir la solution de référence de la comptabilité dans l'espace OHADA |
 | Nature | **ERP** : comptabilité, gestion commerciale, achats, stocks, production, RH-paie-présence, trésorerie, budget, fiscalité, GED, courrier, messagerie, et espace dédié aux cabinets |
-| Intelligence artificielle | **JUPSER IA** (nom de marque de l'assistant intégré) |
+| Intelligence artificielle | **Jupiter IA** (nom de marque de l'assistant intégré) |
 | Signature (logo) | « Précision. Conformité. Sérénité. » |
 | Identité visuelle | Logo, icône et logo éditeur fournis par JUPSER (`brand/`) : bleu nuit #0D2747, bleu turquoise #14A9CB, blanc |
 
@@ -39,12 +39,12 @@
 | Présence biométrique et recrutement | Empreinte digitale reliée à la paie ; critères d'évaluation des candidats (docs/13) |
 | GED et courrier | Archivage électronique assisté par l'IA, registre et circuit du courrier (docs/13) |
 | Espace Cabinets | Import de balances, audit, diagnostic, restructuration, évaluation, lettres de mission, manuels de procédures (docs/15) |
-| JUPSER IA | Guide, analyste, agent (docs/07) |
+| Jupiter IA | Guide, analyste, agent (docs/07) |
 | Console JUPSER | Clients, abonnements, licences, paiements, référentiels pays, support (docs/09) |
 
 ## 4. Ce qui différencie Jupiter Compta
 0. **Un seul logiciel pour toute l'entreprise (ERP)** : chaque opération saisie une fois produit le document avec QR et l'écriture comptable.
-1. **IA comptable native (JUPSER IA)** : de la pièce scannée à l'écriture proposée, contrôles de cohérence, clôture assistée, notes annexes rédigées, réponses citant l'article de l'Acte uniforme.
+1. **IA comptable native (Jupiter IA)** : de la pièce scannée à l'écriture proposée, contrôles de cohérence, clôture assistée, notes annexes rédigées, réponses citant l'article de l'Acte uniforme.
 2. **17 pays dans un seul produit** : packs fiscaux et sociaux versionnés, validés par des fiscalistes, mis à jour à chaque loi de finances.
 3. **Conçu pour le terrain** : mobile money natif, fonctionnement en connexion faible, multi-devises (USD/CDF, XOF, XAF, GNF, KMF).
 4. **Le meilleur outil des cabinets** : de la balance Excel aux états, à l'audit, à l'évaluation et au manuel de procédures sur mesure.

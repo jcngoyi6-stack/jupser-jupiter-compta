@@ -16,19 +16,19 @@
     "code": "ESSENTIEL",
     "nom": "Essentiel",
     "prix_utilisateur": 60,
-    "contenu": "Comptabilité générale complète (journal, grand-livre, balance, états financiers, notes annexes), tiers, trésorerie, factures/devis/reçus avec QR, messagerie interne, tâches et rappels, JUPSER IA Guide"
+    "contenu": "Comptabilité générale complète (journal, grand-livre, balance, états financiers, notes annexes), tiers, trésorerie, factures/devis/reçus avec QR, messagerie interne, tâches et rappels, Jupiter IA Guide"
    },
    {
     "code": "PRO",
     "nom": "Pro",
     "prix_utilisateur": 95,
-    "contenu": "Essentiel + fiscalité et simulateur + analyse financière + budget + stocks + JUPSER IA Analyste"
+    "contenu": "Essentiel + fiscalité et simulateur + analyse financière + budget + stocks + Jupiter IA Analyste"
    },
    {
     "code": "ERP",
     "nom": "Entreprise (ERP complet)",
     "prix_utilisateur": 140,
-    "contenu": "Tous les modules, JUPSER IA Agent, multi-sociétés, consolidation, API, SSO"
+    "contenu": "Tous les modules, Jupiter IA Agent, multi-sociétés, consolidation, API, SSO"
    }
   ],
   "modules_a_la_carte_par_utilisateur": {
@@ -78,7 +78,7 @@
     "dossiers_inclus": 200,
     "supplement_collaborateur": 80,
     "supplement_dossier": 6,
-    "contenu": "Cabinet Pro + évaluation d'entreprise et du patrimoine, restructuration, manuels de procédures sur mesure, marque du cabinet sur les rapports, JUPSER IA Agent"
+    "contenu": "Cabinet Pro + évaluation d'entreprise et du patrimoine, restructuration, manuels de procédures sur mesure, marque du cabinet sur les rapports, Jupiter IA Agent"
    },
    {
     "code": "CAB_RESEAU",

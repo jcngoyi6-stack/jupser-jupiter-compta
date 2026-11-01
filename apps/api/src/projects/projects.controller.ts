@@ -179,7 +179,7 @@ export class ProjectsController {
           ...(risk ? [] : ['Analyse de risque non encore réalisée.']),
         ] },
         { heading: 'Impact économique et social', paragraphs: [`Valeur ajoutée cumulée : ${num(r.economicImpact.valueAdded)} ; salaires : ${num(r.economicImpact.wages)} ; impôts : ${num(r.economicImpact.taxes)} ; emplois : ${r.economicImpact.jobs}.`] },
-        { heading: 'Commentaires de l’expert', paragraphs: [b.comments ?? 'À rédiger (JUPSER IA peut proposer un projet), puis valider par l’expert.'] },
+        { heading: 'Commentaires de l’expert', paragraphs: [b.comments ?? 'À rédiger (Jupiter IA peut proposer un projet), puis valider par l’expert.'] },
       ],
     });
     return new StreamableFile(buf);

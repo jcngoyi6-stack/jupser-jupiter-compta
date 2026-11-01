@@ -7,18 +7,18 @@ Le prix augmente avec **deux critères** : le **nombre d'utilisateurs** et les *
 | Édition | Prix | Contenu |
 |---|---|---|
 | TPE / SMT | 25 USD (2 utilisateurs maximum) | Système minimal de trésorerie, factures et reçus avec QR, états SMT |
-| Essentiel | 60 USD | Comptabilité générale complète, tiers, trésorerie, documents commerciaux avec QR, messagerie interne, tâches et rappels, JUPSER IA « Guide » |
-| Pro | 95 USD | Essentiel + fiscalité et simulateur, analyse financière, budget, stocks, JUPSER IA « Analyste » |
-| Entreprise (ERP complet) | 140 USD | Tous les modules, JUPSER IA « Agent », multi-sociétés, consolidation, API, SSO |
+| Essentiel | 60 USD | Comptabilité générale complète, tiers, trésorerie, documents commerciaux avec QR, messagerie interne, tâches et rappels, Jupiter IA « Guide » |
+| Pro | 95 USD | Essentiel + fiscalité et simulateur, analyse financière, budget, stocks, Jupiter IA « Analyste » |
+| Entreprise (ERP complet) | 140 USD | Tous les modules, Jupiter IA « Agent », multi-sociétés, consolidation, API, SSO |
 
-Modules ajoutés à une édition (USD par utilisateur et par mois) : fiscalité 20 · GRH, paie et recrutement 25 · présence biométrique 10 · analyse financière 15 · budget 10 · stocks 15 · production 20 · marketing et CRM 15 · archivage électronique (GED) assisté par l'IA 15 · gestion du courrier 10 · JUPSER IA « Agent » 25. Au-delà de 50 utilisateurs : sur devis.
+Modules ajoutés à une édition (USD par utilisateur et par mois) : fiscalité 20 · GRH, paie et recrutement 25 · présence biométrique 10 · analyse financière 15 · budget 10 · stocks 15 · production 20 · marketing et CRM 15 · archivage électronique (GED) assisté par l'IA 15 · gestion du courrier 10 · Jupiter IA « Agent » 25. Au-delà de 50 utilisateurs : sur devis.
 
 ### Cabinets d'expertise comptable et fiscale (forfait mensuel)
 | Palier | Prix | Inclus | Supplément | Contenu |
 |---|---|---|---|---|
 | Cabinet Essentiel | 450 USD | 3 collaborateurs, 25 dossiers | 60 USD / collaborateur, 8 USD / dossier | Multi-dossiers, import de balances, états financiers, DSF en masse, portail client, lettre de mission |
 | Cabinet Pro | 950 USD | 8 collaborateurs, 75 dossiers | 70 USD / collaborateur, 7 USD / dossier | + audit, analyse et diagnostic, gestion des missions, temps et honoraires |
-| Cabinet Premium | 1 900 USD | 20 collaborateurs, 200 dossiers | 80 USD / collaborateur, 6 USD / dossier | + évaluation, restructuration, manuels de procédures, rapports à la marque du cabinet, JUPSER IA « Agent » |
+| Cabinet Premium | 1 900 USD | 20 collaborateurs, 200 dossiers | 80 USD / collaborateur, 6 USD / dossier | + évaluation, restructuration, manuels de procédures, rapports à la marque du cabinet, Jupiter IA « Agent » |
 | Réseau | Sur devis | — | — | Grands cabinets et réseaux multi-pays |
 
 Paiement annuel : 2 mois offerts. Essai gratuit de 30 jours. Options : mise en service, reprise d'historique, formation, assistance prioritaire, terminaux biométriques, hébergement dédié.

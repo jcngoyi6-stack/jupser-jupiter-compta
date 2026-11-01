@@ -79,7 +79,7 @@ export default function Dashboard() {
             {drafts.data.items.slice(0, 5).map((e: any) => (
               <li key={e.id} className="flex justify-between py-2">
                 <span>{date(e.date)} · {e.journalCode} · {e.label}</span>
-                <span className="text-slate-500">{e.status === 'BROUILLON_IA' ? 'Proposée par JUPSER IA' : 'Brouillon'}</span>
+                <span className="text-slate-500">{e.status === 'BROUILLON_IA' ? 'Proposée par Jupiter IA' : 'Brouillon'}</span>
               </li>
             ))}
           </ul>
@@ -89,7 +89,7 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-3">
           {has('DOCUMENTS_QR') && can('COMMERCIAL', 'CAISSIER') && <Link href="/factures" className="card hover:border-turquoise"><h2>Factures</h2><p className="text-sm text-slate-500">Émettre une facture avec code QR</p></Link>}
           {has('GRH_PAIE_RECRUTEMENT') && can('PAIE', 'RH') && <Link href="/paie" className="card hover:border-turquoise"><h2>Paie</h2><p className="text-sm text-slate-500">Salariés et paie du mois</p></Link>}
-          {has('IA_GUIDE') && <Link href="/ia" className="card hover:border-turquoise"><h2>JUPSER IA</h2><p className="text-sm text-slate-500">Posez vos questions</p></Link>}
+          {has('IA_GUIDE') && <Link href="/ia" className="card hover:border-turquoise"><h2>Jupiter IA</h2><p className="text-sm text-slate-500">Posez vos questions</p></Link>}
         </div>
       )}
     </div>

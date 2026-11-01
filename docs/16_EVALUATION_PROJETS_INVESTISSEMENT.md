@@ -19,7 +19,7 @@ Repris du projet JUPSER EvalProjets, fondé sur l'ouvrage « Ingénierie des pro
 - Comparaison de plusieurs projets ou variantes.
 
 ## 3. Sorties
-Rapport d'évaluation (Word/PDF, logo du cabinet), tableaux annexes Excel, synthèse pour le comité de crédit ou le conseil d'administration ; commentaires rédigés par JUPSER IA, validés par l'expert.
+Rapport d'évaluation (Word/PDF, logo du cabinet), tableaux annexes Excel, synthèse pour le comité de crédit ou le conseil d'administration ; commentaires rédigés par Jupiter IA, validés par l'expert.
 
 ## 4. Tests d'acceptation
 Les exemples chiffrés de l'ouvrage servent de jeux de test : VAN, TRI et délais identiques à ceux du livre (à fournir par JUPSER).

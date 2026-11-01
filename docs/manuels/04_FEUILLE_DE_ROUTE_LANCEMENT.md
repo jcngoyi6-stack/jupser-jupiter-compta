@@ -80,7 +80,7 @@
 - **Interconnexion des sociétés d'un groupe** : factures intragroupe avec acceptation, retraitements de consolidation (marges en stock et sur immobilisations).
 
 - Cœur comptable SYSCOHADA révisé, états financiers, notes annexes, SMT, DSF ; 142 applications du guide d'application couvertes, choix comptables validés par un expert-comptable agréé ONEC.
-- Modules ERP (ventes, achats, stocks, production, CRM, RH, paie, trésorerie, budget, analytique, consolidation, GED, courrier, collaboration), espace cabinets, évaluation de projets, JUPSER IA.
+- Modules ERP (ventes, achats, stocks, production, CRM, RH, paie, trésorerie, budget, analytique, consolidation, GED, courrier, collaboration), espace cabinets, évaluation de projets, Jupiter IA.
 - Sécurité : double authentification, isolation des clients, chiffrement, piste d'audit, postes enrôlés, SSO.
 - Licences, abonnements, console JUPSER ; essai local sur ordinateur (Docker).
 - Manuels de présentation, d'utilisation et livrets de formation.

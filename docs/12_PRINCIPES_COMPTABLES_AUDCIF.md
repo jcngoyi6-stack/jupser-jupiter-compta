@@ -26,4 +26,4 @@ Exigence de JUPSER : **tous les principes comptables et toutes les dispositions 
 | Conservation | Livres et pièces conservés 10 ans, archivage électronique à valeur probante (empreinte, horodatage) | Purge impossible avant 10 ans |
 | Seuils SMT | Éligibilité selon le CA HT (60 / 40 / 30 millions FCFA ou équivalent) | Seuils convertis et appliqués |
 
-Règle de développement : aucune fonctionnalité ne peut contourner ces contrôles, y compris les actions de JUPSER IA et les imports.
+Règle de développement : aucune fonctionnalité ne peut contourner ces contrôles, y compris les actions de Jupiter IA et les imports.

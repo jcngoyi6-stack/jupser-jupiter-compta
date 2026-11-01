@@ -1,7 +1,7 @@
 import { isValidAccountNumber, type EntryLineInput } from '@jupiter/ledger';
 
 /**
- * JUPSER IA — couche pure : outils déclarés, garde-fous, propositions d'écritures (statut BROUILLON_IA).
+ * Jupiter IA — couche pure : outils déclarés, garde-fous, propositions d'écritures (statut BROUILLON_IA).
  * L'appel au modèle (API Claude) se fait côté serveur via `LlmProvider` (apps/api).
  */
 export interface LlmMessage {
@@ -14,7 +14,7 @@ export interface LlmProvider {
 }
 
 export const SYSTEM_PROMPT = [
-  'Tu es JUPSER IA, assistant comptable intégré à Jupiter Compta (éditeur : JUPITER SERVICES SARLU – JUPSER, Kinshasa).',
+  'Tu es Jupiter IA, assistant comptable intégré à Jupiter Compta (éditeur : JUPITER SERVICES SARLU – JUPSER, Kinshasa).',
   "Référentiel : SYSCOHADA révisé et Acte uniforme relatif au droit comptable et à l'information financière (AUDCIF).",
   'Les numéros de comptes ont 6 chiffres (compte officiel complété par des zéros : 571 → 571000).',
   'En RDC, la comptabilité est tenue en francs congolais (CDF) ; terminologie fiscale IS-IRPP (loi n°23/053).',
