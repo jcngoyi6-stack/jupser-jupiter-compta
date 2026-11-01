@@ -222,3 +222,18 @@ describe('analyse financière', () => {
     expect(empty.ratiosBp.margeNette).toBeNull();
   });
 });
+
+describe('bilan consolidé : impôts différés', () => {
+  it('compte IDA en actif immobilisé, IDP en dettes financières ; ignoré hors consolidation', async () => {
+    const { buildBalanceSheet } = await import('./balance-sheet');
+    const balances = [
+      { account: 'IDA', net: 300n }, { account: 'IDP', net: -100n }, { account: '521100', net: 800n }, { account: '101300', net: -1000n },
+    ];
+    const c = buildBalanceSheet(balances, { consolidated: true });
+    expect(c.assets.find((a) => a.ref === 'AW')!.net).toBe(300n);
+    expect(c.liabilities.find((l) => l.ref === 'DE')!.value).toBe(100n);
+    expect(c.totalAssets).toBe(c.totalLiabilities);
+    const p = buildBalanceSheet(balances);
+    expect(p.assets.find((a) => a.ref === 'AW')).toBeUndefined();
+  });
+});

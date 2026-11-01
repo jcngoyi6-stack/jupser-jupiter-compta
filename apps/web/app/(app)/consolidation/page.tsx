@@ -109,6 +109,7 @@ export default function Consolidation() {
               <tr><td>Réserves consolidées (part du groupe)</td><td className="text-right"><Money v={r.summary?.groupReserves} /></td></tr>
               <tr><td>Quote-part dans les résultats des entités mises en équivalence</td><td className="text-right"><Money v={r.equityMethodResult} /></td></tr>
               <tr><td>Capitaux propres part du groupe</td><td className="text-right"><Money v={r.summary?.groupEquity} /></td></tr>
+              <tr><td>Impôts différés actif / passif (bilan consolidé)</td><td className="text-right"><Money v={r.balanceSheet.assets.find((a: any) => a.ref === 'AW')?.net} /> / <Money v={r.balanceSheet.liabilities.find((l: any) => l.ref === 'DE')?.value} /></td></tr>
               <tr><td>Écart de conversion</td><td className="text-right"><Money v={r.translationDifference} /></td></tr>
               <tr><td>Comptes réciproques éliminés</td><td className="text-right">{r.eliminated.length}</td></tr>
               {(r.intercompany ?? []).map((x: any) => (

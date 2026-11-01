@@ -729,7 +729,7 @@ export class ConsolidationController {
       }
       const intercompany = await this.intercompanyAdjustments(tx, members, entities);
       const r = consolidate(entities, ['181', '185', '186', '187', '188', '463', ...INTERCOMPANY_ACCOUNT_PREFIXES]);
-      const bs = buildBalanceSheet(r.balances);
+      const bs = buildBalanceSheet(r.balances, { consolidated: true });
       const is = buildIncomeStatement(r.balances);
       return { group: g, ...r, balanceSheet: bs, incomeStatement: is, groupResult: r.summary.groupResult, intercompany };
     });

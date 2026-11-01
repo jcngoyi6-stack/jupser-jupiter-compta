@@ -61,6 +61,10 @@ export function days360(from: string, to: string): number {
   return Math.max(0, (y2 - y1) * 360 + (m2 - m1) * 30 + (Math.min(d2, 30) - Math.min(d1, 30)) + 1);
 }
 
+/** Compte de consolidation des impôts différés (hors plan des comptes personnels) : solde débiteur actif, créditeur passif. */
+export const DEFERRED_TAX_ASSET = 'IDA';
+export const DEFERRED_TAX_LIABILITY = 'IDP';
+
 const dayBefore = (iso: string) => {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - 1);
@@ -123,6 +127,13 @@ export function intercompanyEliminations(p: { lines: IntercompanyInvoiceLine[]; 
   }
   const remainingMargin = closingStockMargin + assetMargin;
   const deferredTax = pct(remainingMargin, p.taxRate ?? 0);
+  // Impôt différé actif : solde de clôture au bilan consolidé (compte de consolidation IDA), part d'ouverture en
+  // réserves, variation de l'exercice en charge d'impôt (891)
+  const openingDeferredTax = pct(reservesImpact, p.taxRate ?? 0);
+  const taxVariation = deferredTax - openingDeferredTax;
+  if (deferredTax > 0n) lines.push(D(DEFERRED_TAX_ASSET, deferredTax));
+  if (openingDeferredTax > 0n) lines.push(C(RESERVES, openingDeferredTax));
+  if (taxVariation !== 0n) lines.push(C('891100', taxVariation));
   const resultEffect = openingStockMargin - closingStockMargin + depreciationReversed
     - assetMarginCurrent(p);
   return {
@@ -130,8 +141,9 @@ export function intercompanyEliminations(p: { lines: IntercompanyInvoiceLine[]; 
     values: {
       revenueEliminated: revenue, unrealisedMargin: remainingMargin, closingStockMargin, openingStockMargin, assetMargin,
       depreciationReversed, reservesImpact: -reservesImpact, resultEffectBeforeTax: resultEffect, deferredTaxAsset: deferredTax,
+      openingDeferredTax, taxVariation, resultEffectAfterTax: resultEffect + taxVariation,
     },
-    notes: remainingMargin ? ['Impôt différé actif sur la marge interne restant au bilan : à présenter au bilan consolidé (impôts différés).'] : [],
+    notes: remainingMargin ? ['Impôt différé actif sur la marge interne restant au bilan : présenté au bilan consolidé (ligne « Impôts différés »).'] : [],
   };
 }
 

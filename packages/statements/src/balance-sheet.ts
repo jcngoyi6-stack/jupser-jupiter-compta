@@ -229,7 +229,22 @@ export interface BalanceSheet {
  * Construit le bilan à partir des soldes de clôture (classes 1 à 5) et du résultat des classes 6 à 8
  * non encore soldées (porté en CJ).
  */
-export function buildBalanceSheet(balances: AccountBalance[]): BalanceSheet {
+/**
+ * Lignes propres aux états consolidés : impôts différés actif (dans l'actif immobilisé) et passif (dans les dettes
+ * financières et ressources assimilées), alimentées par les comptes de consolidation IDA et IDP.
+ */
+const CONSOLIDATED_ASSET: { ref: string; label: string; total?: string[] } = { ref: 'AW', label: 'Impôts différés actif' };
+const CONSOLIDATED_LIABILITY: { ref: string; label: string; total?: string[] } = { ref: 'DE', label: 'Impôts différés passif' };
+
+function layout(consolidated: boolean): { assetLines: typeof ASSET_LINES; liabilityLines: typeof LIABILITY_LINES } {
+  if (!consolidated) return { assetLines: ASSET_LINES, liabilityLines: LIABILITY_LINES };
+  const assetLines = ASSET_LINES.flatMap((l) => (l.ref === 'AZ' ? [CONSOLIDATED_ASSET, { ...l, total: [...l.total!, 'AW'] }] : [l]));
+  const liabilityLines = LIABILITY_LINES.flatMap((l) => (l.ref === 'DD' ? [CONSOLIDATED_LIABILITY, { ...l, total: [...l.total!, 'DE'] }] : [l]));
+  return { assetLines, liabilityLines };
+}
+
+export function buildBalanceSheet(balances: AccountBalance[], options: { consolidated?: boolean } = {}): BalanceSheet {
+  const { assetLines: ASSET_LINES, liabilityLines: LIABILITY_LINES } = layout(!!options.consolidated);
   const gross: Record<string, bigint> = {};
   const dep: Record<string, bigint> = {};
   const liab: Record<string, bigint> = {};
@@ -240,6 +255,12 @@ export function buildBalanceSheet(balances: AccountBalance[]): BalanceSheet {
     const c = b.account[0];
     if (c === '6' || c === '7' || c === '8') {
       pendingResult += -b.net;
+      continue;
+    }
+    if (b.account === 'IDA' || b.account === 'IDP') {
+      if (!options.consolidated) { unmapped.push(b); continue; }
+      if (b.net >= 0n) gross.AW = (gross.AW ?? 0n) + b.net;
+      else liab.DE = (liab.DE ?? 0n) - b.net;
       continue;
     }
     if (c === '9' || b.net === 0n) continue;

@@ -100,5 +100,10 @@ Les sociétés d'un même client (locataire) peuvent être reliées :
   repris : cumul des exercices antérieurs en réserves, dotation de l'exercice extournée (681). Pour une cession hors stock
   (immobilisation d'occasion), le vendeur indique sur la facture un coût de revient (sa valeur nette comptable),
   interne et jamais imprimé.
-  Contrôle : la baisse des capitaux propres consolidés (réserves + résultat) est égale à la marge restant au bilan.
+  **Impôt différé** : l'impôt différé actif sur la marge restant au bilan (taux d'IS du pack pays de la mère) est
+  comptabilisé dans les états consolidés : ligne « Impôts différés actif » (AW) dans l'actif immobilisé et, le cas
+  échéant, « Impôts différés passif » (DE) dans les dettes financières ; la part relative aux marges d'ouverture est
+  portée en réserves, la variation de l'exercice en charge d'impôt (891).
+  Contrôle : la baisse des capitaux propres consolidés (réserves + résultat) est égale à la marge restant au bilan,
+  nette de l'impôt différé.
 - Chaque société garde sa validation propre : les écritures miroirs restent des brouillons à valider dans chaque dossier.

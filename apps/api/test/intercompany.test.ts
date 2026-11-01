@@ -61,6 +61,11 @@ describe('factures intragroupe', () => {
     expect(st.body.intercompany).toHaveLength(1);
     // marge (15 000 − 10 000) × 10 sacs restants, en centimes
     expect(st.body.intercompany[0]).toMatchObject({ revenueEliminated: String(60_000_000), unrealisedMargin: String(5_000_000) });
+    // impôt différé actif au bilan consolidé, au taux d'IS du pack pays de la mère
+    const dta = st.body.intercompany[0].deferredTaxAsset;
+    expect(Number(dta)).toBeGreaterThan(0);
+    expect(st.body.balanceSheet.assets.find((a: any) => a.ref === 'AW').net).toBe(dta);
+    expect(st.body.balanceSheet.controls.find((c: any) => c.code === 'BILAN_EQUILIBRE').ok).toBe(true);
   });
 
   it('immobilisation cédée dans le groupe : durée d’utilité exigée, marge éliminée et dotation extournée', async () => {

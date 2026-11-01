@@ -35,6 +35,9 @@ describe('retraitement de la marge intragroupe', () => {
     expect(l).toContainEqual(['603100', 100_000n]);
     expect(l).toContainEqual(['311100', -100_000n]);
     expect(l).toContainEqual(['241100', -1_000_000n]);
+    expect(l).toContainEqual(['IDA', 330_000n]);
+    expect(l).toContainEqual(['891100', -330_000n]);
+    expect(r.values!.resultEffectAfterTax).toBe(-770_000n);
     expect(intercompanyEliminations({ lines: [] }).entries).toEqual([]);
   });
 });
@@ -66,6 +69,13 @@ describe('stock d’ouverture et immobilisations cédées entre sociétés du gr
       revenueEliminated: 2_600_000n, openingStockMargin: 200_000n, closingStockMargin: 40_000n, assetMargin: 1_395_000n, depreciationReversed: 285_000n,
       reservesImpact: -1_280_000n, resultEffectBeforeTax: -155_000n, unrealisedMargin: 1_435_000n, deferredTaxAsset: 430_500n,
     });
+  });
+  it('impôt différé : 430 500 au bilan, 384 000 en réserves d’ouverture, variation 46 500 en charge d’impôt', () => {
+    expect(l).toContainEqual(['IDA', 430_500n]);
+    expect(l).toContainEqual(['118800', -384_000n]);
+    expect(l).toContainEqual(['891100', -46_500n]);
+    expect(r.values).toMatchObject({ openingDeferredTax: 384_000n, taxVariation: 46_500n, resultEffectAfterTax: -108_500n });
+    expect(r.entries[0]!.lines.reduce((s, x) => s + x.debit - x.credit, 0n)).toBe(0n);
   });
   it('capitaux propres consolidés diminués de la marge restant au bilan', () => {
     expect(BigInt(r.values!.reservesImpact as bigint) + BigInt(r.values!.resultEffectBeforeTax as bigint)).toBe(-(r.values!.unrealisedMargin as bigint));
