@@ -12,6 +12,7 @@ import { MFA_ROLES, type Role, type SessionUser } from './decorators';
 export const ARGON2_OPTS = { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
 
 interface TokenPayload {
+  iat?: number;
   sub: string;
   tid: string;
   mfa: boolean;
@@ -131,6 +132,10 @@ export class AuthService {
       include: { user: true },
     });
     if (!m) throw new UnauthorizedException();
+    // Mot de passe changé (réinitialisation) : les sessions ouvertes avant le changement sont révoquées
+    if (m.user.passwordChangedAt && p.iat !== undefined && p.iat < Math.floor(m.user.passwordChangedAt.getTime() / 1000)) {
+      throw new UnauthorizedException({ code: 'SESSION_REVOQUEE', message: 'Mot de passe modifié : reconnectez-vous.' });
+    }
     return {
       userId: p.sub,
       tenantId: p.tid,

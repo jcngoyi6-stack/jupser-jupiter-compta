@@ -73,6 +73,7 @@ model User {
   failedLogins   Int       @default(0) @map("failed_logins")
   lockedUntil    DateTime? @map("locked_until")
   isJupserStaff  Boolean   @default(false) @map("is_jupser_staff")
+  passwordChangedAt DateTime? @map("password_changed_at") // les sessions antérieures sont révoquées
   createdAt      DateTime  @default(now()) @map("created_at")
   memberships    Membership[]
 
@@ -997,4 +998,18 @@ model IntercompanyInvoice {
   @@index([buyerCompanyId, status])
   @@index([sellerCompanyId])
   @@map("intercompany_invoice")
+}
+
+/// Jeton de réinitialisation du mot de passe : seule son empreinte SHA-256 est conservée ; usage unique, 1 heure.
+model PasswordReset {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  ip        String?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset")
 }
